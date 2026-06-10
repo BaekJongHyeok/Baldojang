@@ -60,6 +60,7 @@ export function WeekView({
 
   const totalSlots = Math.ceil((globalEnd - globalStart) / slotMinutes);
   const totalHeight = totalSlots * SLOT_HEIGHT;
+  const pxPerMin = totalHeight / (globalEnd - globalStart);
 
   const slots = Array.from({ length: totalSlots }, (_, i) => {
     const min = globalStart + i * slotMinutes;
@@ -136,12 +137,13 @@ export function WeekView({
                       const e = kstHourMin(r.ends_at);
                       const rStartMin = s.hours * 60 + s.minutes;
                       const rEndMin = e.hours * 60 + e.minutes;
-                      const top = ((rStartMin - globalStart) / (globalEnd - globalStart)) * totalHeight;
-                      const height = Math.max(18, ((rEndMin - rStartMin) / (globalEnd - globalStart)) * totalHeight);
+                      const top = (rStartMin - globalStart) * pxPerMin;
+                      const height = Math.max(18, (rEndMin - rStartMin) * pxPerMin);
                       const l = layout.get(r.id) ?? { col: 0, totalCols: 1 };
-                      const colW = 100 / l.totalCols;
-                      const left = `${l.col * colW}%`;
-                      const width = `calc(${colW}% - 2px)`;
+                      const leftPct = (l.col / l.totalCols) * 100;
+                      const widthPct = (1 / l.totalCols) * 100;
+                      const left = `${leftPct}%`;
+                      const width = `calc(${widthPct}% - 2px)`;
                       return (
                         <button
                           key={r.id}

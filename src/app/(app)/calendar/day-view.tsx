@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef } from "react";
 import type { CalendarReservation, DayHours } from "@/lib/calendar-data";
 import { kstHourMin, nowKSTMinutes, layoutOverlaps } from "@/lib/calendar-utils";
 
@@ -55,6 +55,7 @@ export function DayView({
   const endMin = timeToMinutes(hours.close);
   const totalSlots = Math.ceil((endMin - startMin) / slotMinutes);
   const totalHeight = totalSlots * SLOT_HEIGHT;
+  const pxPerMin = totalHeight / (endMin - startMin);
 
   const slots = Array.from({ length: totalSlots }, (_, i) => {
     const min = startMin + i * slotMinutes;
@@ -66,7 +67,7 @@ export function DayView({
   const nowMin = nowKSTMinutes();
   const nowTop =
     isToday && nowMin >= startMin && nowMin <= endMin
-      ? ((nowMin - startMin) / (endMin - startMin)) * totalHeight
+      ? (nowMin - startMin) * pxPerMin
       : null;
 
   useEffect(() => {
@@ -75,9 +76,18 @@ export function DayView({
     }
   }, [isToday, nowTop]);
 
+  // 겹침 레이아웃 계산
+  const items = reservations.map((r) => {
+    const s = kstHourMin(r.starts_at);
+    const e = kstHourMin(r.ends_at);
+    return { id: r.id, startMin: s.hours * 60 + s.minutes, endMin: e.hours * 60 + e.minutes };
+  });
+  const layout = layoutOverlaps(items);
+
   return (
     <div ref={containerRef} className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
       <div className="relative mx-2 my-2" style={{ height: totalHeight }}>
+        {/* 슬롯 라인 (클릭 가능) */}
         {slots.map((label, i) => (
           <div
             key={i}
@@ -89,34 +99,30 @@ export function DayView({
           </div>
         ))}
 
-        {(() => {
-          const items = reservations.map((r) => {
-            const s = kstHourMin(r.starts_at);
-            const e = kstHourMin(r.ends_at);
-            return { id: r.id, startMin: s.hours * 60 + s.minutes, endMin: e.hours * 60 + e.minutes };
-          });
-          const layout = layoutOverlaps(items);
-          const GUTTER_LEFT = 44; // px (w-11 = 2.75rem ≈ 44px)
-          const GUTTER_RIGHT = 4;
-
-          return reservations.map((r) => {
+        {/* 블록 컨테이너: 시간 라벨(44px) 이후 ~ 오른쪽 4px 간격 */}
+        <div className="absolute top-0 bottom-0 left-11 right-1">
+          {reservations.map((r) => {
             const s = kstHourMin(r.starts_at);
             const e = kstHourMin(r.ends_at);
             const rStartMin = s.hours * 60 + s.minutes;
             const rEndMin = e.hours * 60 + e.minutes;
-            const top = ((rStartMin - startMin) / (endMin - startMin)) * totalHeight;
-            const height = Math.max(24, ((rEndMin - rStartMin) / (endMin - startMin)) * totalHeight);
+            const top = (rStartMin - startMin) * pxPerMin;
+            const height = Math.max(24, (rEndMin - rStartMin) * pxPerMin);
             const l = layout.get(r.id) ?? { col: 0, totalCols: 1 };
-            const colWidth = 100 / l.totalCols;
-            const left = `calc(${GUTTER_LEFT}px + ${l.col * colWidth}% * (100% - ${GUTTER_LEFT + GUTTER_RIGHT}px) / 100)`;
-            const width = `calc(${colWidth}% * (100% - ${GUTTER_LEFT + GUTTER_RIGHT}px) / 100 - 2px)`;
+            const leftPct = (l.col / l.totalCols) * 100;
+            const widthPct = (1 / l.totalCols) * 100;
 
             return (
               <button
                 key={r.id}
                 onClick={(e) => { e.stopPropagation(); onSelect(r.id); }}
                 className={`absolute z-[5] overflow-hidden rounded-lg border px-1.5 py-1 text-left transition hover:shadow-sm ${statusStyle(r.status)}`}
-                style={{ top, height, left, width }}
+                style={{
+                  top,
+                  height,
+                  left: `${leftPct}%`,
+                  width: `calc(${widthPct}% - 2px)`,
+                }}
               >
                 <p className="truncate text-xs font-semibold">{r.pet.name}</p>
                 <p className="truncate text-[10px] opacity-75">
@@ -128,9 +134,10 @@ export function DayView({
                 )}
               </button>
             );
-          });
-        })()}
+          })}
+        </div>
 
+        {/* 현재 시각 라인 */}
         {nowTop !== null && (
           <div className="absolute left-0 right-0 z-10 border-t-2 border-red-500" style={{ top: nowTop }}>
             <div className="absolute -left-0.5 -top-1 h-2 w-2 rounded-full bg-red-500" />
