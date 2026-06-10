@@ -32,12 +32,14 @@ export function DayView({
   slotMinutes,
   isToday,
   onSelect,
+  onSlotClick,
 }: {
   reservations: CalendarReservation[];
   hours: DayHours | null;
   slotMinutes: number;
   isToday: boolean;
   onSelect: (id: string) => void;
+  onSlotClick?: (time: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -77,8 +79,13 @@ export function DayView({
     <div ref={containerRef} className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
       <div className="relative mx-2 my-2" style={{ height: totalHeight }}>
         {slots.map((label, i) => (
-          <div key={i} className="absolute left-0 right-0 border-t border-stone-100" style={{ top: i * SLOT_HEIGHT }}>
-            <span className="absolute -top-2.5 left-0 text-[10px] text-stone-400 w-10">{label}</span>
+          <div
+            key={i}
+            className="absolute left-0 right-0 border-t border-stone-100 cursor-pointer"
+            style={{ top: i * SLOT_HEIGHT, height: SLOT_HEIGHT }}
+            onClick={() => onSlotClick?.(label)}
+          >
+            <span className="absolute -top-2.5 left-0 text-[10px] text-stone-400 w-10 pointer-events-none">{label}</span>
           </div>
         ))}
 
@@ -92,8 +99,8 @@ export function DayView({
           return (
             <button
               key={r.id}
-              onClick={() => onSelect(r.id)}
-              className={`absolute left-11 right-1 overflow-hidden rounded-lg border px-2 py-1 text-left transition hover:shadow-sm ${statusStyle(r.status)}`}
+              onClick={(e) => { e.stopPropagation(); onSelect(r.id); }}
+              className={`absolute left-11 right-1 z-[5] overflow-hidden rounded-lg border px-2 py-1 text-left transition hover:shadow-sm ${statusStyle(r.status)}`}
               style={{ top, height }}
             >
               <p className="truncate text-xs font-semibold">{r.pet.name}</p>

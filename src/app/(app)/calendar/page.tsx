@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { getShopCalendarConfig, getReservations } from "@/lib/calendar-data";
 import { dateToDayKey, todayKST } from "@/lib/calendar-utils";
 import { CalendarClient } from "./calendar-client";
@@ -33,6 +34,23 @@ export default async function CalendarPage({
 
   const reservations = await getReservations(shopId, fromISO, toISO);
 
+  // 펫 목록 (예약 폼용)
+  const supabase = await createClient();
+  const { data: pets } = await supabase
+    .from("pets")
+    .select("id, name, breed, size, caution_tags, customer_id, customers(name, phone)")
+    .eq("shop_id", shopId)
+    .eq("is_active", true)
+    .order("name");
+
+  // 시술 목록 (예약 폼용)
+  const { data: services } = await supabase
+    .from("services")
+    .select("id, name, duration_minutes, price, sort_order")
+    .eq("shop_id", shopId)
+    .eq("is_active", true)
+    .order("sort_order");
+
   // 21일 날짜 정보
   const allDays = Array.from({ length: 21 }, (_, i) => {
     const d = addDays(rangeStart, i);
@@ -42,6 +60,25 @@ export default async function CalendarPage({
     return { date: ds, dayKey, hours };
   });
 
+  const formPets = (pets ?? []).map((p) => {
+    const c = Array.isArray(p.customers) ? p.customers[0] : p.customers;
+    return {
+      id: p.id,
+      name: p.name,
+      breed: p.breed,
+      size: p.size as string | null,
+      caution_tags: p.caution_tags,
+      customer: c ? { name: c.name, phone: c.phone } : null,
+    };
+  });
+
+  const formServices = (services ?? []).map((s) => ({
+    id: s.id,
+    name: s.name,
+    duration_minutes: s.duration_minutes,
+    price: s.price as Record<string, number>,
+  }));
+
   return (
     <CalendarClient
       reservations={reservations}
@@ -49,6 +86,8 @@ export default async function CalendarPage({
       config={config}
       initialDate={dateStr}
       today={today}
+      pets={formPets}
+      services={formServices}
     />
   );
 }
