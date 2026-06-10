@@ -223,6 +223,9 @@ export function CalendarClient({
         <CompleteDialog
           reservationId={completeReservation.id}
           petName={completeReservation.pet.name}
+          startsAt={completeReservation.starts_at}
+          endsAt={completeReservation.ends_at}
+          slotMinutes={config.slotMinutes}
           onClose={() => { setCompleteId(null); handleCompleteSuccess(); }}
           onSuccess={handleCompleteSuccess}
         />

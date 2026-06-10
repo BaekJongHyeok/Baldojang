@@ -26,13 +26,6 @@ async function getStaff() {
   return { shopId: staff.shop_id, slotMinutes: shop?.slot_minutes ?? 30 };
 }
 
-/** 현재 시각을 slotMinutes 단위로 올림한 ISO 문자열 (KST 기준) */
-function ceilToSlot(now: Date, slotMinutes: number): string {
-  const ms = slotMinutes * 60 * 1000;
-  const ceiled = new Date(Math.ceil(now.getTime() / ms) * ms);
-  return ceiled.toISOString();
-}
-
 export async function createReservationAction(formData: FormData) {
   const supabase = await createClient();
   const info = await getStaff();
@@ -177,15 +170,10 @@ export async function completeWithVisitAction(formData: FormData) {
     .single();
   if (!staff) return { error: "스태프 정보를 찾을 수 없습니다." };
 
-  // slot_minutes 조회
-  const { data: shop } = await supabase
-    .from("shops")
-    .select("slot_minutes")
-    .eq("id", staff.shop_id)
-    .single();
-  const slotMinutes = shop?.slot_minutes ?? 30;
-
   const reservationId = String(formData.get("reservation_id"));
+  const actualEndsAt = formData.get("actual_ends_at")
+    ? String(formData.get("actual_ends_at"))
+    : null;
   const styleMemo = formData.get("style_memo")
     ? String(formData.get("style_memo"))
     : null;
@@ -220,22 +208,8 @@ export async function completeWithVisitAction(formData: FormData) {
     return { error: `방문 기록 생성 실패: ${visitErr.message}` };
   }
 
-  // ends_at 당기기: 현재가 starts_at~ends_at 사이면 now를 슬롯 올림
-  const now = new Date();
-  const startsAt = new Date(reservation.starts_at);
-  const endsAt = new Date(reservation.ends_at);
-  let newEndsAt = reservation.ends_at;
-
-  if (now > startsAt && now < endsAt) {
-    newEndsAt = ceilToSlot(now, slotMinutes);
-    // 올림 결과가 starts_at 이하가 되지 않도록 보장
-    if (new Date(newEndsAt) <= startsAt) {
-      newEndsAt = new Date(
-        startsAt.getTime() + slotMinutes * 60 * 1000,
-      ).toISOString();
-    }
-  }
-  // now >= endsAt (지난 예약 정리) 또는 now <= startsAt (미래 예약) → 변경 없음
+  // 명시적 종료 시각으로 ends_at 업데이트
+  const newEndsAt = actualEndsAt ?? reservation.ends_at;
 
   const { error: statusErr } = await supabase
     .from("reservations")
