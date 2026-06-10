@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { CalendarReservation, DayHours } from "@/lib/calendar-data";
-import { kstHourMin, kstDateStr, layoutOverlaps } from "@/lib/calendar-utils";
+import { kstHourMin, kstDateStr } from "@/lib/calendar-utils";
 
 const SLOT_HEIGHT = 36;
 
@@ -20,7 +20,7 @@ function statusColor(status: string) {
     case "no_show":
       return "bg-red-100 border-red-200 text-red-800";
     case "cancelled":
-      return "bg-stone-100 border-stone-200 text-stone-400 line-through";
+      return "bg-stone-100 border-stone-200 text-stone-400 line-through opacity-50";
     default:
       return "bg-stone-100 border-stone-200";
   }
@@ -125,40 +125,27 @@ export function WeekView({
                 )}
 
                 {!isClosed &&
-                  (() => {
-                    const items = dayRes.map((r) => {
-                      const s = kstHourMin(r.starts_at);
-                      const e = kstHourMin(r.ends_at);
-                      return { id: r.id, startMin: s.hours * 60 + s.minutes, endMin: e.hours * 60 + e.minutes };
-                    });
-                    const layout = layoutOverlaps(items);
-                    return dayRes.map((r) => {
-                      const s = kstHourMin(r.starts_at);
-                      const e = kstHourMin(r.ends_at);
-                      const rStartMin = s.hours * 60 + s.minutes;
-                      const rEndMin = e.hours * 60 + e.minutes;
-                      const top = (rStartMin - globalStart) * pxPerMin;
-                      const height = Math.max(18, (rEndMin - rStartMin) * pxPerMin);
-                      const l = layout.get(r.id) ?? { col: 0, totalCols: 1 };
-                      const leftPct = (l.col / l.totalCols) * 100;
-                      const widthPct = (1 / l.totalCols) * 100;
-                      const left = `${leftPct}%`;
-                      const width = `calc(${widthPct}% - 2px)`;
-                      return (
-                        <button
-                          key={r.id}
-                          onClick={() => onSelect(r.id)}
-                          className={`absolute overflow-hidden rounded border px-0.5 py-px text-left ${statusColor(r.status)}`}
-                          style={{ top, height, left, width }}
-                        >
-                          <p className="truncate text-[10px] font-semibold leading-tight">{r.pet.name}</p>
-                          {height > 24 && (
-                            <p className="truncate text-[9px] opacity-75 leading-tight">{r.service.name}</p>
-                          )}
-                        </button>
-                      );
-                    });
-                  })()}
+                  dayRes.map((r) => {
+                    const s = kstHourMin(r.starts_at);
+                    const e = kstHourMin(r.ends_at);
+                    const rStartMin = s.hours * 60 + s.minutes;
+                    const rEndMin = e.hours * 60 + e.minutes;
+                    const top = (rStartMin - globalStart) * pxPerMin;
+                    const height = Math.max(18, (rEndMin - rStartMin) * pxPerMin);
+                    return (
+                      <button
+                        key={r.id}
+                        onClick={() => onSelect(r.id)}
+                        className={`absolute inset-x-0.5 overflow-hidden rounded border px-0.5 py-px text-left ${statusColor(r.status)}`}
+                        style={{ top, height }}
+                      >
+                        <p className="truncate text-[10px] font-semibold leading-tight">{r.pet.name}</p>
+                        {height > 24 && (
+                          <p className="truncate text-[9px] opacity-75 leading-tight">{r.service.name}</p>
+                        )}
+                      </button>
+                    );
+                  })}
               </div>
             );
           })}

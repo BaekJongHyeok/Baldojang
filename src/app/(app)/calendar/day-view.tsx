@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { CalendarReservation, DayHours } from "@/lib/calendar-data";
-import { kstHourMin, nowKSTMinutes, layoutOverlaps } from "@/lib/calendar-utils";
+import { kstHourMin, nowKSTMinutes } from "@/lib/calendar-utils";
 
 const SLOT_HEIGHT = 48;
 
@@ -20,7 +20,7 @@ function statusStyle(status: string) {
     case "no_show":
       return "bg-red-50 border-red-200 text-red-800";
     case "cancelled":
-      return "bg-stone-50 border-stone-200 text-stone-400 line-through";
+      return "bg-stone-50 border-stone-200 text-stone-400 line-through opacity-50";
     default:
       return "bg-stone-50 border-stone-200";
   }
@@ -76,18 +76,10 @@ export function DayView({
     }
   }, [isToday, nowTop]);
 
-  // 겹침 레이아웃 계산
-  const items = reservations.map((r) => {
-    const s = kstHourMin(r.starts_at);
-    const e = kstHourMin(r.ends_at);
-    return { id: r.id, startMin: s.hours * 60 + s.minutes, endMin: e.hours * 60 + e.minutes };
-  });
-  const layout = layoutOverlaps(items);
-
   return (
     <div ref={containerRef} className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
       <div className="relative mx-2 my-2" style={{ height: totalHeight }}>
-        {/* 슬롯 라인 (클릭 가능) */}
+        {/* 슬롯 라인 */}
         {slots.map((label, i) => (
           <div
             key={i}
@@ -99,7 +91,7 @@ export function DayView({
           </div>
         ))}
 
-        {/* 블록 컨테이너: 시간 라벨(44px) 이후 ~ 오른쪽 4px 간격 */}
+        {/* 블록 컨테이너 */}
         <div className="absolute top-0 bottom-0 left-11 right-1">
           {reservations.map((r) => {
             const s = kstHourMin(r.starts_at);
@@ -108,21 +100,13 @@ export function DayView({
             const rEndMin = e.hours * 60 + e.minutes;
             const top = (rStartMin - startMin) * pxPerMin;
             const height = Math.max(24, (rEndMin - rStartMin) * pxPerMin);
-            const l = layout.get(r.id) ?? { col: 0, totalCols: 1 };
-            const leftPct = (l.col / l.totalCols) * 100;
-            const widthPct = (1 / l.totalCols) * 100;
 
             return (
               <button
                 key={r.id}
                 onClick={(e) => { e.stopPropagation(); onSelect(r.id); }}
-                className={`absolute z-[5] overflow-hidden rounded-lg border px-1.5 py-1 text-left transition hover:shadow-sm ${statusStyle(r.status)}`}
-                style={{
-                  top,
-                  height,
-                  left: `${leftPct}%`,
-                  width: `calc(${widthPct}% - 2px)`,
-                }}
+                className={`absolute left-0 right-0 z-[5] overflow-hidden rounded-lg border px-2 py-1 text-left transition hover:shadow-sm ${statusStyle(r.status)}`}
+                style={{ top, height }}
               >
                 <p className="truncate text-xs font-semibold">{r.pet.name}</p>
                 <p className="truncate text-[10px] opacity-75">

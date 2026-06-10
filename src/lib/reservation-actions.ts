@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-async function getShopId() {
+async function getStaff() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -14,13 +14,29 @@ async function getShopId() {
     .select("shop_id")
     .eq("id", user.id)
     .single();
-  return staff?.shop_id ?? null;
+  if (!staff) return null;
+
+  // slot_minutes 조회
+  const { data: shop } = await supabase
+    .from("shops")
+    .select("slot_minutes")
+    .eq("id", staff.shop_id)
+    .single();
+
+  return { shopId: staff.shop_id, slotMinutes: shop?.slot_minutes ?? 30 };
+}
+
+/** 현재 시각을 slotMinutes 단위로 올림한 ISO 문자열 (KST 기준) */
+function ceilToSlot(now: Date, slotMinutes: number): string {
+  const ms = slotMinutes * 60 * 1000;
+  const ceiled = new Date(Math.ceil(now.getTime() / ms) * ms);
+  return ceiled.toISOString();
 }
 
 export async function createReservationAction(formData: FormData) {
   const supabase = await createClient();
-  const shopId = await getShopId();
-  if (!shopId) return { error: "인증이 필요합니다." };
+  const info = await getStaff();
+  if (!info) return { error: "인증이 필요합니다." };
 
   const petId = String(formData.get("pet_id"));
   const serviceId = String(formData.get("service_id"));
@@ -32,7 +48,7 @@ export async function createReservationAction(formData: FormData) {
     : null;
 
   const { error } = await supabase.from("reservations").insert({
-    shop_id: shopId,
+    shop_id: info.shopId,
     pet_id: petId,
     service_id: serviceId,
     starts_at: startsAt,
@@ -93,6 +109,48 @@ export async function changeReservationStatusAction(formData: FormData) {
     | "no_show"
     | "cancelled";
 
+  if (newStatus === "no_show") {
+    // 노쇼: 슬롯 축소 (starts_at + 1슬롯 또는 현재 시각 올림 중 큰 값)
+    const info = await getStaff();
+    if (!info) return { error: "인증이 필요합니다." };
+
+    const { data: reservation } = await supabase
+      .from("reservations")
+      .select("starts_at, ends_at")
+      .eq("id", reservationId)
+      .single();
+
+    if (reservation) {
+      const now = new Date();
+      const startsAt = new Date(reservation.starts_at);
+      const oneSlotEnd = new Date(
+        startsAt.getTime() + info.slotMinutes * 60 * 1000,
+      );
+      const nowCeiled = new Date(
+        Math.ceil(now.getTime() / (info.slotMinutes * 60 * 1000)) *
+          (info.slotMinutes * 60 * 1000),
+      );
+      // 새 ends_at = max(starts_at + 1슬롯, 현재시각 올림), 원래 ends_at보다 작을 때만 축소
+      const newEnd = new Date(
+        Math.max(oneSlotEnd.getTime(), nowCeiled.getTime()),
+      );
+      const originalEnd = new Date(reservation.ends_at);
+
+      const shrunkEnd =
+        newEnd < originalEnd ? newEnd.toISOString() : reservation.ends_at;
+
+      const { error } = await supabase
+        .from("reservations")
+        .update({ status: "no_show", ends_at: shrunkEnd })
+        .eq("id", reservationId);
+
+      if (error) return { error: error.message };
+
+      revalidatePath("/calendar");
+      return { success: true };
+    }
+  }
+
   const { error } = await supabase
     .from("reservations")
     .update({ status: newStatus })
@@ -119,6 +177,14 @@ export async function completeWithVisitAction(formData: FormData) {
     .single();
   if (!staff) return { error: "스태프 정보를 찾을 수 없습니다." };
 
+  // slot_minutes 조회
+  const { data: shop } = await supabase
+    .from("shops")
+    .select("slot_minutes")
+    .eq("id", staff.shop_id)
+    .single();
+  const slotMinutes = shop?.slot_minutes ?? 30;
+
   const reservationId = String(formData.get("reservation_id"));
   const styleMemo = formData.get("style_memo")
     ? String(formData.get("style_memo"))
@@ -130,7 +196,7 @@ export async function completeWithVisitAction(formData: FormData) {
   // 예약 정보 조회
   const { data: reservation, error: fetchErr } = await supabase
     .from("reservations")
-    .select("pet_id, service_id, starts_at, price_quoted")
+    .select("pet_id, service_id, starts_at, ends_at, price_quoted")
     .eq("id", reservationId)
     .single();
 
@@ -138,7 +204,7 @@ export async function completeWithVisitAction(formData: FormData) {
     return { error: fetchErr?.message ?? "예약을 찾을 수 없습니다." };
   }
 
-  // visits 행을 먼저 생성 (실패 시 status는 변경하지 않음)
+  // visits 행을 먼저 생성
   const { error: visitErr } = await supabase.from("visits").insert({
     shop_id: staff.shop_id,
     pet_id: reservation.pet_id,
@@ -154,10 +220,26 @@ export async function completeWithVisitAction(formData: FormData) {
     return { error: `방문 기록 생성 실패: ${visitErr.message}` };
   }
 
-  // visits 성공 후 상태를 completed로 변경
+  // ends_at 당기기: 현재가 starts_at~ends_at 사이면 now를 슬롯 올림
+  const now = new Date();
+  const startsAt = new Date(reservation.starts_at);
+  const endsAt = new Date(reservation.ends_at);
+  let newEndsAt = reservation.ends_at;
+
+  if (now > startsAt && now < endsAt) {
+    newEndsAt = ceilToSlot(now, slotMinutes);
+    // 올림 결과가 starts_at 이하가 되지 않도록 보장
+    if (new Date(newEndsAt) <= startsAt) {
+      newEndsAt = new Date(
+        startsAt.getTime() + slotMinutes * 60 * 1000,
+      ).toISOString();
+    }
+  }
+  // now >= endsAt (지난 예약 정리) 또는 now <= startsAt (미래 예약) → 변경 없음
+
   const { error: statusErr } = await supabase
     .from("reservations")
-    .update({ status: "completed" })
+    .update({ status: "completed", ends_at: newEndsAt })
     .eq("id", reservationId);
 
   if (statusErr) {
