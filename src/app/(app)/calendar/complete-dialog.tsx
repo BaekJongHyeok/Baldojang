@@ -19,11 +19,13 @@ export function CompleteDialog({
   const [behaviorMemo, setBehaviorMemo] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit() {
+  function doComplete(withMemo: boolean) {
     const fd = new FormData();
     fd.set("reservation_id", reservationId);
-    if (styleMemo) fd.set("style_memo", styleMemo);
-    if (behaviorMemo) fd.set("behavior_memo", behaviorMemo);
+    if (withMemo) {
+      if (styleMemo) fd.set("style_memo", styleMemo);
+      if (behaviorMemo) fd.set("behavior_memo", behaviorMemo);
+    }
 
     setError(null);
     startTransition(async () => {
@@ -69,18 +71,19 @@ export function CompleteDialog({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={onClose}
-              className="flex-1 rounded-xl border border-stone-200 py-2.5 text-sm font-medium text-stone-500 hover:bg-stone-50"
+              onClick={() => doComplete(false)}
+              disabled={isPending}
+              className="flex-1 rounded-xl border border-stone-200 py-2.5 text-sm font-medium text-stone-500 hover:bg-stone-50 disabled:opacity-50"
             >
-              건너뛰기
+              {isPending ? "처리 중..." : "건너뛰기"}
             </button>
             <button
               type="button"
-              onClick={handleSubmit}
+              onClick={() => doComplete(true)}
               disabled={isPending}
               className="flex-1 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50"
             >
-              {isPending ? "저장 중..." : "완료"}
+              {isPending ? "저장 중..." : "메모와 완료"}
             </button>
           </div>
         </div>
