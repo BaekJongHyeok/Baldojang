@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { calcAge, sizeLabel, formatPhone } from "@/lib/utils";
 import { DeactivateButton } from "./deactivate-button";
+import { getPetPhotoUrl } from "@/lib/storage";
 
 export default async function PetChartPage({
   params,
@@ -25,6 +26,8 @@ export default async function PetChartPage({
     .single();
 
   if (!pet) notFound();
+
+  const photoSignedUrl = await getPetPhotoUrl(pet.photo_url);
 
   const customer = Array.isArray(pet.customers)
     ? pet.customers[0]
@@ -51,9 +54,9 @@ export default async function PetChartPage({
       {/* 헤더 */}
       <div className="flex items-start gap-4 rounded-2xl bg-white p-5 shadow-sm">
         <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-stone-100 text-2xl font-bold text-stone-400 overflow-hidden">
-          {pet.photo_url ? (
+          {photoSignedUrl ? (
             <img
-              src={pet.photo_url}
+              src={photoSignedUrl}
               alt={pet.name}
               className="h-full w-full object-cover"
             />

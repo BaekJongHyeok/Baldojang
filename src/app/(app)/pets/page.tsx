@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PetListClient } from "./pet-list";
+import { getPetPhotoUrls } from "@/lib/storage";
 
 export default async function PetsPage({
   searchParams,
@@ -56,8 +57,15 @@ export default async function PetsPage({
     }
   }
 
+  // signed URL 일괄 생성
+  const photoPaths = (pets ?? [])
+    .map((p) => p.photo_url)
+    .filter((u): u is string => !!u);
+  const photoUrlMap = await getPetPhotoUrls(photoPaths);
+
   const petsWithVisit = (pets ?? []).map((p) => ({
     ...p,
+    photoSignedUrl: p.photo_url ? (photoUrlMap[p.photo_url] ?? null) : null,
     lastVisit: lastVisitMap[p.id] ?? null,
   }));
 

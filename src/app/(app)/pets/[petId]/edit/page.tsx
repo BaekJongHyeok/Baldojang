@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { PetForm } from "@/components/pet-form";
 import { updatePetAction } from "@/lib/pet-actions";
+import { getPetPhotoUrl } from "@/lib/storage";
 
 export default async function EditPetPage({
   params,
@@ -32,6 +33,8 @@ export default async function EditPetPage({
 
   if (!pet) notFound();
 
+  const photoSignedUrl = await getPetPhotoUrl(pet.photo_url);
+
   const customer = Array.isArray(pet.customers)
     ? pet.customers[0]
     : pet.customers;
@@ -58,6 +61,7 @@ export default async function EditPetPage({
           }}
           customer={customer ?? undefined}
           shopId={staff.shop_id}
+          initialPhotoSignedUrl={photoSignedUrl ?? undefined}
         />
       </div>
     </div>

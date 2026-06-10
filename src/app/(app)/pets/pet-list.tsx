@@ -11,6 +11,7 @@ type Pet = {
   breed: string | null;
   size: string | null;
   photo_url: string | null;
+  photoSignedUrl: string | null;
   caution_tags: string[];
   is_active: boolean;
   customer_id: string;
@@ -107,9 +108,9 @@ export function PetListClient({
               >
                 {/* 아바타 */}
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-stone-100 text-lg font-bold text-stone-400 overflow-hidden">
-                  {pet.photo_url ? (
+                  {pet.photoSignedUrl ? (
                     <img
-                      src={pet.photo_url}
+                      src={pet.photoSignedUrl}
                       alt={pet.name}
                       className="h-full w-full object-cover"
                     />

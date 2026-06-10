@@ -64,11 +64,13 @@ export function PetForm({
   pet,
   customer,
   shopId,
+  initialPhotoSignedUrl,
 }: {
   action: (formData: FormData) => Promise<{ error?: string } | void>;
   pet?: Pet;
   customer?: Customer;
   shopId: string;
+  initialPhotoSignedUrl?: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -84,8 +86,9 @@ export function PetForm({
   const [tags, setTags] = useState<string[]>(pet?.caution_tags ?? []);
   const [customTag, setCustomTag] = useState("");
 
-  // 사진
+  // 사진: photoUrl은 DB 저장용 경로, previewUrl은 표시용 signed/blob URL
   const [photoUrl, setPhotoUrl] = useState(pet?.photo_url ?? "");
+  const [previewUrl, setPreviewUrl] = useState(initialPhotoSignedUrl ?? "");
   const [uploading, setUploading] = useState(false);
 
   const isEdit = !!pet;
@@ -143,10 +146,13 @@ export function PetForm({
         .from("pet-photos")
         .upload(path, resized, { upsert: true, contentType: "image/webp" });
       if (upErr) throw upErr;
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("pet-photos").getPublicUrl(path);
-      setPhotoUrl(publicUrl);
+      // DB에는 스토리지 경로만 저장
+      setPhotoUrl(path);
+      // 미리보기용 signed URL 생성
+      const { data: signed } = await supabase.storage
+        .from("pet-photos")
+        .createSignedUrl(path, 3600);
+      if (signed?.signedUrl) setPreviewUrl(signed.signedUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : "사진 업로드 실패");
     } finally {
@@ -293,9 +299,9 @@ export function PetForm({
             className="text-sm text-stone-500 file:mr-3 file:rounded-lg file:border-0 file:bg-stone-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-stone-700"
           />
           {uploading && <p className="text-xs text-stone-400">업로드 중...</p>}
-          {photoUrl && (
+          {previewUrl && (
             <img
-              src={photoUrl}
+              src={previewUrl}
               alt="펫 사진"
               className="mt-1 h-20 w-20 rounded-xl object-cover"
             />

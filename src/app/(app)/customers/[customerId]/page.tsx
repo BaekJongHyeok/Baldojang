@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { formatPhone, sizeLabel } from "@/lib/utils";
+import { getPetPhotoUrls } from "@/lib/storage";
 
 export default async function CustomerDetailPage({
   params,
@@ -28,6 +29,12 @@ export default async function CustomerDetailPage({
     .select("id, name, breed, size, photo_url, caution_tags, is_active")
     .eq("customer_id", customerId)
     .order("created_at", { ascending: false });
+
+  // signed URL 일괄 생성
+  const photoPaths = (pets ?? [])
+    .map((p) => p.photo_url)
+    .filter((u): u is string => !!u);
+  const photoUrlMap = await getPetPhotoUrls(photoPaths);
 
   return (
     <div className="flex flex-col gap-6">
@@ -80,9 +87,9 @@ export default async function CustomerDetailPage({
               }`}
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-100 text-sm font-bold text-stone-400 overflow-hidden">
-                {pet.photo_url ? (
+                {pet.photo_url && photoUrlMap[pet.photo_url] ? (
                   <img
-                    src={pet.photo_url}
+                    src={photoUrlMap[pet.photo_url]}
                     alt={pet.name}
                     className="h-full w-full object-cover"
                   />
