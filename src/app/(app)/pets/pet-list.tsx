@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useRef, useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { sizeLabel } from "@/lib/utils";
 
 type Pet = {
@@ -25,40 +24,25 @@ function getCustomer(pet: Pet) {
   return pet.customers;
 }
 
-export function PetListClient({
-  pets,
-  query,
-  showInactive,
-}: {
-  pets: Pet[];
-  query: string;
-  showInactive: boolean;
-}) {
-  const router = useRouter();
-  const [search, setSearch] = useState(query);
-  const debounce = useRef<ReturnType<typeof setTimeout>>(undefined);
+export function PetListClient({ pets }: { pets: Pet[] }) {
+  const [search, setSearch] = useState("");
+  const [showInactive, setShowInactive] = useState(false);
 
-  useEffect(() => {
-    return () => clearTimeout(debounce.current);
-  }, []);
-
-  function handleSearch(value: string) {
-    setSearch(value);
-    clearTimeout(debounce.current);
-    debounce.current = setTimeout(() => {
-      const params = new URLSearchParams();
-      if (value) params.set("q", value);
-      if (showInactive) params.set("inactive", "1");
-      router.push(`/pets?${params.toString()}`);
-    }, 300);
-  }
-
-  function toggleInactive() {
-    const params = new URLSearchParams();
-    if (search) params.set("q", search);
-    if (!showInactive) params.set("inactive", "1");
-    router.push(`/pets?${params.toString()}`);
-  }
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return pets.filter((pet) => {
+      // 비활성 필터
+      if (!showInactive && !pet.is_active) return false;
+      // 검색어 필터 (펫 이름, 보호자 이름, 전화번호)
+      if (!q) return true;
+      const customer = getCustomer(pet);
+      return (
+        pet.name.toLowerCase().includes(q) ||
+        (customer?.name?.toLowerCase().includes(q) ?? false) ||
+        (customer?.phone?.includes(q) ?? false)
+      );
+    });
+  }, [pets, search, showInactive]);
 
   return (
     <div>
@@ -75,8 +59,8 @@ export function PetListClient({
       <input
         type="text"
         value={search}
-        onChange={(e) => handleSearch(e.target.value)}
-        placeholder="강아지 이름으로 검색"
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="이름, 보호자, 전화번호로 검색"
         className="mt-4 w-full min-w-0 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
       />
 
@@ -84,19 +68,19 @@ export function PetListClient({
         <input
           type="checkbox"
           checked={showInactive}
-          onChange={toggleInactive}
+          onChange={(e) => setShowInactive(e.target.checked)}
           className="rounded"
         />
         비활성 펫 포함
       </label>
 
-      {pets.length === 0 ? (
+      {filtered.length === 0 ? (
         <p className="py-16 text-center text-sm text-stone-400">
-          {query ? "검색 결과가 없습니다." : "등록된 펫이 없습니다."}
+          {search ? "검색 결과가 없습니다." : "등록된 펫이 없습니다."}
         </p>
       ) : (
         <div className="mt-4 flex flex-col gap-2">
-          {pets.map((pet) => {
+          {filtered.map((pet) => {
             const customer = getCustomer(pet);
             return (
               <Link

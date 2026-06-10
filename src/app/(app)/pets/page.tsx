@@ -3,12 +3,7 @@ import { redirect } from "next/navigation";
 import { PetListClient } from "./pet-list";
 import { getPetPhotoUrls } from "@/lib/storage";
 
-export default async function PetsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; inactive?: string }>;
-}) {
-  const params = await searchParams;
+export default async function PetsPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -22,26 +17,14 @@ export default async function PetsPage({
     .single();
   if (!staff) redirect("/dashboard");
 
-  const q = params.q ?? "";
-  const showInactive = params.inactive === "1";
-
-  let query = supabase
+  // 샵의 전체 펫 로드 (활성+비활성 모두, 클라이언트에서 필터)
+  const { data: pets } = await supabase
     .from("pets")
     .select("id, name, breed, size, photo_url, caution_tags, is_active, customer_id, customers(name, phone)")
     .eq("shop_id", staff.shop_id)
     .order("created_at", { ascending: false });
 
-  if (!showInactive) {
-    query = query.eq("is_active", true);
-  }
-
-  if (q) {
-    query = query.ilike("name", `%${q}%`);
-  }
-
-  const { data: pets } = await query;
-
-  // 각 펫의 마지막 방문일 조회
+  // 마지막 방문일 조회
   const petIds = (pets ?? []).map((p) => p.id);
   let lastVisitMap: Record<string, string> = {};
   if (petIds.length > 0) {
@@ -63,17 +46,11 @@ export default async function PetsPage({
     .filter((u): u is string => !!u);
   const photoUrlMap = await getPetPhotoUrls(photoPaths);
 
-  const petsWithVisit = (pets ?? []).map((p) => ({
+  const allPets = (pets ?? []).map((p) => ({
     ...p,
     photoSignedUrl: p.photo_url ? (photoUrlMap[p.photo_url] ?? null) : null,
     lastVisit: lastVisitMap[p.id] ?? null,
   }));
 
-  return (
-    <PetListClient
-      pets={petsWithVisit}
-      query={q}
-      showInactive={showInactive}
-    />
-  );
+  return <PetListClient pets={allPets} />;
 }
