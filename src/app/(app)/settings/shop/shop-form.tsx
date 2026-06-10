@@ -124,41 +124,47 @@ export function ShopSettingsForm({
           {DAYS.map(({ key, label }) => {
             const active = !!hours[key];
             return (
-              <div key={key} className="flex items-center gap-3">
-                <span className="w-6 text-center text-sm font-medium text-stone-600">
-                  {label}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => toggleDay(key)}
-                  className={`relative h-6 w-11 rounded-full transition ${
-                    active ? "bg-stone-900" : "bg-stone-200"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${
-                      active ? "left-[22px]" : "left-0.5"
+              <div
+                key={key}
+                className="flex flex-col gap-1.5 rounded-xl bg-stone-50 p-3 lg:flex-row lg:items-center lg:gap-3 lg:rounded-none lg:bg-transparent lg:p-0"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-6 text-center text-sm font-medium text-stone-600">
+                    {label}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => toggleDay(key)}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+                      active ? "bg-stone-900" : "bg-stone-200"
                     }`}
-                  />
-                </button>
-                {active ? (
-                  <div className="flex items-center gap-1.5">
+                  >
+                    <span
+                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${
+                        active ? "left-[22px]" : "left-0.5"
+                      }`}
+                    />
+                  </button>
+                  {!active && (
+                    <span className="text-xs text-stone-400">휴무</span>
+                  )}
+                </div>
+                {active && (
+                  <div className="flex min-w-0 items-center gap-1.5 pl-9 lg:pl-0">
                     <input
                       type="time"
                       value={hours[key].open}
                       onChange={(e) => updateTime(key, "open", e.target.value)}
-                      className="rounded-lg border border-stone-200 px-2 py-1 text-xs outline-none focus:border-stone-400"
+                      className="min-w-0 flex-1 rounded-lg border border-stone-200 px-2 py-1 text-xs outline-none focus:border-stone-400"
                     />
-                    <span className="text-xs text-stone-400">~</span>
+                    <span className="shrink-0 text-xs text-stone-400">~</span>
                     <input
                       type="time"
                       value={hours[key].close}
                       onChange={(e) => updateTime(key, "close", e.target.value)}
-                      className="rounded-lg border border-stone-200 px-2 py-1 text-xs outline-none focus:border-stone-400"
+                      className="min-w-0 flex-1 rounded-lg border border-stone-200 px-2 py-1 text-xs outline-none focus:border-stone-400"
                     />
                   </div>
-                ) : (
-                  <span className="text-xs text-stone-400">휴무</span>
                 )}
               </div>
             );
