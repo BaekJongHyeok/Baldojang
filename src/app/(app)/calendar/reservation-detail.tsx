@@ -1,10 +1,9 @@
 "use client";
 
-import { useTransition, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { formatPhone } from "@/lib/utils";
 import { formatTimestampKST } from "@/lib/calendar-utils";
-import { changeReservationStatusAction } from "@/lib/reservation-actions";
 import type { CalendarReservation } from "@/lib/calendar-data";
 
 function statusLabel(s: string) {
@@ -19,25 +18,15 @@ export function ReservationDetail({
   onClose,
   onComplete,
   onEdit,
+  onStatusChange,
 }: {
   reservation: CalendarReservation;
   onClose: () => void;
   onComplete: () => void;
   onEdit: () => void;
+  onStatusChange: (id: string, status: "no_show" | "cancelled") => void;
 }) {
-  const [isPending, startTransition] = useTransition();
   const [confirm, setConfirm] = useState<"no_show" | "cancelled" | null>(null);
-
-  function handleStatusChange(status: "no_show" | "cancelled") {
-    const fd = new FormData();
-    fd.set("reservation_id", r.id);
-    fd.set("status", status);
-    startTransition(async () => {
-      await changeReservationStatusAction(fd);
-      setConfirm(null);
-      onClose();
-    });
-  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 px-4 lg:items-center" onClick={onClose}>
@@ -77,7 +66,6 @@ export function ReservationDetail({
           )}
         </div>
 
-        {/* 액션 버튼 */}
         <div className="mt-5 flex flex-col gap-2">
           {r.status === "confirmed" && !confirm && (
             <>
@@ -99,7 +87,7 @@ export function ReservationDetail({
               </p>
               <div className="mt-2 flex gap-2">
                 <button onClick={() => setConfirm(null)} className="flex-1 rounded-lg border border-stone-200 py-2 text-xs font-medium text-stone-500">아니오</button>
-                <button onClick={() => handleStatusChange(confirm)} disabled={isPending} className="flex-1 rounded-lg bg-red-500 py-2 text-xs font-medium text-white disabled:opacity-50">{isPending ? "처리 중..." : "확인"}</button>
+                <button onClick={() => onStatusChange(r.id, confirm)} className="flex-1 rounded-lg bg-red-500 py-2 text-xs font-medium text-white">확인</button>
               </div>
             </div>
           )}

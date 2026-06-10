@@ -2,11 +2,7 @@
 
 import { useTransition, useState, useMemo } from "react";
 import Link from "next/link";
-import {
-  createReservationAction,
-  updateReservationAction,
-} from "@/lib/reservation-actions";
-import { sizeLabel, formatPhone } from "@/lib/utils";
+import { sizeLabel } from "@/lib/utils";
 import type { CalendarReservation, DayHours } from "@/lib/calendar-data";
 
 export type FormPet = {
@@ -35,7 +31,7 @@ type Props = {
   existingReservations: CalendarReservation[];
   editReservation?: CalendarReservation;
   onClose: () => void;
-  onSuccess: () => void;
+  onSubmit: (fd: FormData) => Promise<{ error?: string; success?: boolean }>;
 };
 
 function buildSlots(hours: DayHours, slotMinutes: number): string[] {
@@ -70,7 +66,7 @@ export function ReservationForm({
   existingReservations,
   editReservation,
   onClose,
-  onSuccess,
+  onSubmit,
 }: Props) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -160,13 +156,11 @@ export function ReservationForm({
 
     setError(null);
     startTransition(async () => {
-      const action = isEdit ? updateReservationAction : createReservationAction;
-      const result = await action(fd);
+      const result = await onSubmit(fd);
       if (result?.error) {
         setError(result.error);
-      } else {
-        onSuccess();
       }
+      // onSubmit handles closing and optimistic update
     });
   }
 

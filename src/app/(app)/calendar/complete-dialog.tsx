@@ -1,7 +1,6 @@
 "use client";
 
 import { useTransition, useState, useMemo } from "react";
-import { completeWithVisitAction } from "@/lib/reservation-actions";
 import { kstHourMin, formatTimestampKST } from "@/lib/calendar-utils";
 
 function buildEndSlots(
@@ -29,7 +28,7 @@ export function CompleteDialog({
   endsAt,
   slotMinutes,
   onClose,
-  onSuccess,
+  onSubmit,
 }: {
   reservationId: string;
   petName: string;
@@ -37,7 +36,7 @@ export function CompleteDialog({
   endsAt: string;
   slotMinutes: number;
   onClose: () => void;
-  onSuccess: () => void;
+  onSubmit: (fd: FormData) => Promise<{ error?: string; success?: boolean }>;
 }) {
   const [isPending, startTransition] = useTransition();
   const [styleMemo, setStyleMemo] = useState("");
@@ -93,11 +92,9 @@ export function CompleteDialog({
 
     setError(null);
     startTransition(async () => {
-      const result = await completeWithVisitAction(fd);
+      const result = await onSubmit(fd);
       if (result?.error) {
         setError(result.error);
-      } else {
-        onSuccess();
       }
     });
   }

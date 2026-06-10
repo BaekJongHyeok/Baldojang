@@ -1,10 +1,16 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { addDays, subDays, startOfWeek, format } from "date-fns";
 import type { CalendarReservation, ShopCalendarConfig, DayHours } from "@/lib/calendar-data";
 import { kstDateStr, formatDateKST } from "@/lib/calendar-utils";
+import {
+  createReservationAction,
+  updateReservationAction,
+  changeReservationStatusAction,
+  completeWithVisitAction,
+} from "@/lib/reservation-actions";
 import { DayView } from "./day-view";
 import { WeekView } from "./week-view";
 import { ReservationDetail } from "./reservation-detail";
@@ -19,7 +25,7 @@ type FormState =
   | { mode: "edit"; reservation: CalendarReservation };
 
 export function CalendarClient({
-  reservations,
+  reservations: serverReservations,
   allDays,
   config,
   initialDate,
@@ -36,12 +42,23 @@ export function CalendarClient({
   services: FormService[];
 }) {
   const router = useRouter();
+  const [localReservations, setLocalReservations] = useState(serverReservations);
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [view, setView] = useState<"day" | "week">("day");
   const [showCancelled, setShowCancelled] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [formState, setFormState] = useState<FormState>(null);
   const [completeId, setCompleteId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  }
+
+  // 서버 prop이 바뀌면 (router.refresh 등) 동기화
+  // SSR re-render 시 serverReservations가 바뀌므로 key로 동기화
+  const reservations = localReservations;
 
   const rangeStart = allDays[0].date;
   const rangeEnd = allDays[allDays.length - 1].date;
@@ -106,23 +123,125 @@ export function CalendarClient({
     navigateTo(format(ws, "yyyy-MM-dd"));
   }
 
-  function handleFormSuccess() {
-    setFormState(null);
-    router.refresh();
-  }
+  // --- 낙관적 업데이트 핸들러들 ---
 
-  function handleCompleteSuccess() {
+  const handleCreate = useCallback(async (fd: FormData): Promise<{ error?: string; success?: boolean }> => {
+    const petId = String(fd.get("pet_id"));
+    const serviceId = String(fd.get("service_id"));
+    const startsAt = String(fd.get("starts_at"));
+    const endsAt = String(fd.get("ends_at"));
+    const memo = fd.get("memo") ? String(fd.get("memo")) : null;
+
+    const pet = pets.find((p) => p.id === petId);
+    const svc = services.find((s) => s.id === serviceId);
+    const tempId = `temp-${Date.now()}`;
+    const optimistic: CalendarReservation = {
+      id: tempId,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      status: "confirmed",
+      memo,
+      pet: { id: petId, name: pet?.name ?? "", photo_url: null },
+      service: { name: svc?.name ?? "", duration_minutes: svc?.duration_minutes ?? 60 },
+      customer: pet?.customer ?? null,
+    };
+
+    // 즉시 반영 + 폼 닫기
+    setLocalReservations((prev) => [...prev, optimistic]);
+    setFormState(null);
+
+    const result = await createReservationAction(fd);
+    if (result?.error) {
+      setLocalReservations((prev) => prev.filter((r) => r.id !== tempId));
+      showToast(result.error);
+      return result;
+    }
+    // 서버에서 실제 데이터로 교체
+    router.refresh();
+    return { success: true };
+  }, [pets, services, router]);
+
+  const handleUpdate = useCallback(async (fd: FormData): Promise<{ error?: string; success?: boolean }> => {
+    const reservationId = String(fd.get("reservation_id"));
+    const serviceId = String(fd.get("service_id"));
+    const startsAt = String(fd.get("starts_at"));
+    const endsAt = String(fd.get("ends_at"));
+    const memo = fd.get("memo") ? String(fd.get("memo")) : null;
+    const svc = services.find((s) => s.id === serviceId);
+
+    const prev = localReservations;
+    setLocalReservations((list) =>
+      list.map((r) =>
+        r.id === reservationId
+          ? { ...r, starts_at: startsAt, ends_at: endsAt, memo, service: { name: svc?.name ?? r.service.name, duration_minutes: svc?.duration_minutes ?? r.service.duration_minutes } }
+          : r
+      ),
+    );
+    setFormState(null);
+
+    const result = await updateReservationAction(fd);
+    if (result?.error) {
+      setLocalReservations(prev);
+      showToast(result.error);
+      return result;
+    }
+    router.refresh();
+    return { success: true };
+  }, [services, localReservations, router]);
+
+  const handleStatusChange = useCallback(async (reservationId: string, status: "no_show" | "cancelled") => {
+    const prev = localReservations;
+    setLocalReservations((list) =>
+      list.map((r) => (r.id === reservationId ? { ...r, status } : r)),
+    );
+    setSelectedId(null);
+
+    const fd = new FormData();
+    fd.set("reservation_id", reservationId);
+    fd.set("status", status);
+    const result = await changeReservationStatusAction(fd);
+    if (result?.error) {
+      setLocalReservations(prev);
+      showToast(result.error);
+    } else {
+      router.refresh();
+    }
+  }, [localReservations, router]);
+
+  const handleComplete = useCallback(async (fd: FormData): Promise<{ error?: string; success?: boolean }> => {
+    const reservationId = String(fd.get("reservation_id"));
+    const actualEndsAt = fd.get("actual_ends_at") ? String(fd.get("actual_ends_at")) : null;
+
+    const prev = localReservations;
+    setLocalReservations((list) =>
+      list.map((r) =>
+        r.id === reservationId
+          ? { ...r, status: "completed" as const, ends_at: actualEndsAt ?? r.ends_at }
+          : r
+      ),
+    );
     setCompleteId(null);
     setSelectedId(null);
-    router.refresh();
-  }
 
-  function handleSlotClick(time: string) {
-    setFormState({ mode: "create", time });
-  }
+    const result = await completeWithVisitAction(fd);
+    if (result?.error) {
+      setLocalReservations(prev);
+      showToast(result.error);
+      return result;
+    }
+    router.refresh();
+    return { success: true };
+  }, [localReservations, router]);
 
   return (
     <div className="-mx-4 -mt-6 sm:-mx-6 lg:-mx-8 lg:-mt-8">
+      {/* 토스트 */}
+      {toast && (
+        <div className="fixed top-4 left-1/2 z-[70] -translate-x-1/2 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-lg">
+          {toast}
+        </div>
+      )}
+
       {/* 헤더 */}
       <div className="sticky top-0 z-20 border-b border-stone-200 bg-white px-4 py-3">
         <div className="flex items-center justify-between gap-2">
@@ -149,7 +268,6 @@ export function CalendarClient({
             <label className="flex items-center gap-1.5 text-[11px] text-stone-400">
               <input type="checkbox" checked={showCancelled} onChange={(e) => setShowCancelled(e.target.checked)} className="rounded" />취소
             </label>
-            {/* 데스크톱: 헤더 내 + 예약 버튼 */}
             <button onClick={() => setFormState({ mode: "create" })} className="hidden rounded-lg bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-800 lg:block">
               + 예약
             </button>
@@ -173,7 +291,7 @@ export function CalendarClient({
           slotMinutes={config.slotMinutes}
           isToday={selectedDate === today}
           onSelect={setSelectedId}
-          onSlotClick={handleSlotClick}
+          onSlotClick={(time) => setFormState({ mode: "create", time })}
         />
       ) : (
         <WeekView
@@ -201,6 +319,7 @@ export function CalendarClient({
           onClose={() => setSelectedId(null)}
           onComplete={() => { setCompleteId(selectedReservation.id); setSelectedId(null); }}
           onEdit={() => { setFormState({ mode: "edit", reservation: selectedReservation }); setSelectedId(null); }}
+          onStatusChange={handleStatusChange}
         />
       )}
 
@@ -215,7 +334,7 @@ export function CalendarClient({
           existingReservations={dayReservations}
           editReservation={formState.mode === "edit" ? formState.reservation : undefined}
           onClose={() => setFormState(null)}
-          onSuccess={handleFormSuccess}
+          onSubmit={formState.mode === "edit" ? handleUpdate : handleCreate}
         />
       )}
 
@@ -226,8 +345,8 @@ export function CalendarClient({
           startsAt={completeReservation.starts_at}
           endsAt={completeReservation.ends_at}
           slotMinutes={config.slotMinutes}
-          onClose={() => { setCompleteId(null); handleCompleteSuccess(); }}
-          onSuccess={handleCompleteSuccess}
+          onClose={() => setCompleteId(null)}
+          onSubmit={handleComplete}
         />
       )}
     </div>
