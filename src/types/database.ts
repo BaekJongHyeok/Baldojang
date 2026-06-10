@@ -1,613 +1,758 @@
-// 임시 타입 — `supabase gen types typescript`로 교체 예정
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
-      shops: {
-        Row: {
-          id: string;
-          name: string;
-          phone: string | null;
-          address: string | null;
-          open_hours: Record<string, unknown>;
-          slot_minutes: number;
-          logo_url: string | null;
-          brand_color: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          phone?: string | null;
-          address?: string | null;
-          open_hours?: Record<string, unknown>;
-          slot_minutes?: number;
-          logo_url?: string | null;
-          brand_color?: string | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          phone?: string | null;
-          address?: string | null;
-          open_hours?: Record<string, unknown>;
-          slot_minutes?: number;
-          logo_url?: string | null;
-          brand_color?: string | null;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
-      staff: {
-        Row: {
-          id: string;
-          shop_id: string;
-          name: string;
-          role: "owner" | "staff";
-          created_at: string;
-        };
-        Insert: {
-          id: string;
-          shop_id: string;
-          name: string;
-          role?: "owner" | "staff";
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          shop_id?: string;
-          name?: string;
-          role?: "owner" | "staff";
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "staff_shop_id_fkey";
-            columns: ["shop_id"];
-            isOneToOne: false;
-            referencedRelation: "shops";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
       customers: {
         Row: {
-          id: string;
-          shop_id: string;
-          name: string;
-          phone: string;
-          memo: string | null;
-          source: string | null;
-          created_at: string;
-        };
+          created_at: string
+          id: string
+          memo: string | null
+          name: string
+          phone: string
+          shop_id: string
+          source: string | null
+        }
         Insert: {
-          id?: string;
-          shop_id: string;
-          name: string;
-          phone: string;
-          memo?: string | null;
-          source?: string | null;
-          created_at?: string;
-        };
+          created_at?: string
+          id?: string
+          memo?: string | null
+          name: string
+          phone: string
+          shop_id: string
+          source?: string | null
+        }
         Update: {
-          id?: string;
-          shop_id?: string;
-          name?: string;
-          phone?: string;
-          memo?: string | null;
-          source?: string | null;
-          created_at?: string;
-        };
+          created_at?: string
+          id?: string
+          memo?: string | null
+          name?: string
+          phone?: string
+          shop_id?: string
+          source?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "customers_shop_id_fkey";
-            columns: ["shop_id"];
-            isOneToOne: false;
-            referencedRelation: "shops";
-            referencedColumns: ["id"];
+            foreignKeyName: "customers_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
           },
-        ];
-      };
-      pets: {
-        Row: {
-          id: string;
-          shop_id: string;
-          customer_id: string;
-          name: string;
-          breed: string | null;
-          size: "small" | "medium" | "large" | null;
-          birth_date: string | null;
-          weight_kg: number | null;
-          photo_url: string | null;
-          caution_tags: string[];
-          caution_memo: string | null;
-          vaccinated: boolean | null;
-          neutered: boolean | null;
-          is_active: boolean;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          shop_id: string;
-          customer_id: string;
-          name: string;
-          breed?: string | null;
-          size?: "small" | "medium" | "large" | null;
-          birth_date?: string | null;
-          weight_kg?: number | null;
-          photo_url?: string | null;
-          caution_tags?: string[];
-          caution_memo?: string | null;
-          vaccinated?: boolean | null;
-          neutered?: boolean | null;
-          is_active?: boolean;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          shop_id?: string;
-          customer_id?: string;
-          name?: string;
-          breed?: string | null;
-          size?: "small" | "medium" | "large" | null;
-          birth_date?: string | null;
-          weight_kg?: number | null;
-          photo_url?: string | null;
-          caution_tags?: string[];
-          caution_memo?: string | null;
-          vaccinated?: boolean | null;
-          neutered?: boolean | null;
-          is_active?: boolean;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "pets_shop_id_fkey";
-            columns: ["shop_id"];
-            isOneToOne: false;
-            referencedRelation: "shops";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "pets_customer_id_fkey";
-            columns: ["customer_id"];
-            isOneToOne: false;
-            referencedRelation: "customers";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      services: {
-        Row: {
-          id: string;
-          shop_id: string;
-          name: string;
-          duration_minutes: number;
-          price: Record<string, unknown>;
-          recommend_cycle_weeks: number | null;
-          sort_order: number;
-          is_active: boolean;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          shop_id: string;
-          name: string;
-          duration_minutes?: number;
-          price?: Record<string, unknown>;
-          recommend_cycle_weeks?: number | null;
-          sort_order?: number;
-          is_active?: boolean;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          shop_id?: string;
-          name?: string;
-          duration_minutes?: number;
-          price?: Record<string, unknown>;
-          recommend_cycle_weeks?: number | null;
-          sort_order?: number;
-          is_active?: boolean;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "services_shop_id_fkey";
-            columns: ["shop_id"];
-            isOneToOne: false;
-            referencedRelation: "shops";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      reservations: {
-        Row: {
-          id: string;
-          shop_id: string;
-          pet_id: string;
-          service_id: string;
-          staff_id: string | null;
-          starts_at: string;
-          ends_at: string;
-          status: "confirmed" | "completed" | "no_show" | "cancelled";
-          price_quoted: number | null;
-          memo: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          shop_id: string;
-          pet_id: string;
-          service_id: string;
-          staff_id?: string | null;
-          starts_at: string;
-          ends_at: string;
-          status?: "confirmed" | "completed" | "no_show" | "cancelled";
-          price_quoted?: number | null;
-          memo?: string | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          shop_id?: string;
-          pet_id?: string;
-          service_id?: string;
-          staff_id?: string | null;
-          starts_at?: string;
-          ends_at?: string;
-          status?: "confirmed" | "completed" | "no_show" | "cancelled";
-          price_quoted?: number | null;
-          memo?: string | null;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "reservations_shop_id_fkey";
-            columns: ["shop_id"];
-            isOneToOne: false;
-            referencedRelation: "shops";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "reservations_pet_id_fkey";
-            columns: ["pet_id"];
-            isOneToOne: false;
-            referencedRelation: "pets";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "reservations_service_id_fkey";
-            columns: ["service_id"];
-            isOneToOne: false;
-            referencedRelation: "services";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "reservations_staff_id_fkey";
-            columns: ["staff_id"];
-            isOneToOne: false;
-            referencedRelation: "staff";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      visits: {
-        Row: {
-          id: string;
-          shop_id: string;
-          pet_id: string;
-          reservation_id: string | null;
-          service_id: string | null;
-          visited_at: string;
-          before_photos: string[];
-          after_photos: string[];
-          style_memo: string | null;
-          behavior_memo: string | null;
-          price_final: number | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          shop_id: string;
-          pet_id: string;
-          reservation_id?: string | null;
-          service_id?: string | null;
-          visited_at?: string;
-          before_photos?: string[];
-          after_photos?: string[];
-          style_memo?: string | null;
-          behavior_memo?: string | null;
-          price_final?: number | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          shop_id?: string;
-          pet_id?: string;
-          reservation_id?: string | null;
-          service_id?: string | null;
-          visited_at?: string;
-          before_photos?: string[];
-          after_photos?: string[];
-          style_memo?: string | null;
-          behavior_memo?: string | null;
-          price_final?: number | null;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "visits_shop_id_fkey";
-            columns: ["shop_id"];
-            isOneToOne: false;
-            referencedRelation: "shops";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "visits_pet_id_fkey";
-            columns: ["pet_id"];
-            isOneToOne: false;
-            referencedRelation: "pets";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "visits_reservation_id_fkey";
-            columns: ["reservation_id"];
-            isOneToOne: false;
-            referencedRelation: "reservations";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "visits_service_id_fkey";
-            columns: ["service_id"];
-            isOneToOne: false;
-            referencedRelation: "services";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      passes: {
-        Row: {
-          id: string;
-          shop_id: string;
-          customer_id: string;
-          type: "amount" | "count";
-          name: string;
-          total_amount: number | null;
-          balance: number | null;
-          total_count: number | null;
-          remaining: number | null;
-          expires_at: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          shop_id: string;
-          customer_id: string;
-          type: "amount" | "count";
-          name: string;
-          total_amount?: number | null;
-          balance?: number | null;
-          total_count?: number | null;
-          remaining?: number | null;
-          expires_at?: string | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          shop_id?: string;
-          customer_id?: string;
-          type?: "amount" | "count";
-          name?: string;
-          total_amount?: number | null;
-          balance?: number | null;
-          total_count?: number | null;
-          remaining?: number | null;
-          expires_at?: string | null;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "passes_shop_id_fkey";
-            columns: ["shop_id"];
-            isOneToOne: false;
-            referencedRelation: "shops";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "passes_customer_id_fkey";
-            columns: ["customer_id"];
-            isOneToOne: false;
-            referencedRelation: "customers";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      pass_logs: {
-        Row: {
-          id: string;
-          pass_id: string;
-          visit_id: string | null;
-          delta: number;
-          memo: string | null;
-          created_by: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          pass_id: string;
-          visit_id?: string | null;
-          delta: number;
-          memo?: string | null;
-          created_by?: string | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          pass_id?: string;
-          visit_id?: string | null;
-          delta?: number;
-          memo?: string | null;
-          created_by?: string | null;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "pass_logs_pass_id_fkey";
-            columns: ["pass_id"];
-            isOneToOne: false;
-            referencedRelation: "passes";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "pass_logs_visit_id_fkey";
-            columns: ["visit_id"];
-            isOneToOne: false;
-            referencedRelation: "visits";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "pass_logs_created_by_fkey";
-            columns: ["created_by"];
-            isOneToOne: false;
-            referencedRelation: "staff";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      payments: {
-        Row: {
-          id: string;
-          shop_id: string;
-          visit_id: string;
-          method: "cash" | "card" | "transfer" | "pass";
-          amount: number;
-          pass_id: string | null;
-          paid_at: string;
-        };
-        Insert: {
-          id?: string;
-          shop_id: string;
-          visit_id: string;
-          method: "cash" | "card" | "transfer" | "pass";
-          amount: number;
-          pass_id?: string | null;
-          paid_at?: string;
-        };
-        Update: {
-          id?: string;
-          shop_id?: string;
-          visit_id?: string;
-          method?: "cash" | "card" | "transfer" | "pass";
-          amount?: number;
-          pass_id?: string | null;
-          paid_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "payments_shop_id_fkey";
-            columns: ["shop_id"];
-            isOneToOne: false;
-            referencedRelation: "shops";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "payments_visit_id_fkey";
-            columns: ["visit_id"];
-            isOneToOne: false;
-            referencedRelation: "visits";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "payments_pass_id_fkey";
-            columns: ["pass_id"];
-            isOneToOne: false;
-            referencedRelation: "passes";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
+        ]
+      }
       notifications: {
         Row: {
-          id: string;
-          shop_id: string;
-          customer_id: string | null;
-          reservation_id: string | null;
-          template_code: string;
-          status: "pending" | "sent" | "failed";
-          cost_krw: number | null;
-          sent_at: string | null;
-          error_msg: string | null;
-          created_at: string;
-        };
+          cost_krw: number | null
+          created_at: string
+          customer_id: string | null
+          error_msg: string | null
+          id: string
+          reservation_id: string | null
+          sent_at: string | null
+          shop_id: string
+          status: Database["public"]["Enums"]["notification_status"]
+          template_code: string
+        }
         Insert: {
-          id?: string;
-          shop_id: string;
-          customer_id?: string | null;
-          reservation_id?: string | null;
-          template_code: string;
-          status?: "pending" | "sent" | "failed";
-          cost_krw?: number | null;
-          sent_at?: string | null;
-          error_msg?: string | null;
-          created_at?: string;
-        };
+          cost_krw?: number | null
+          created_at?: string
+          customer_id?: string | null
+          error_msg?: string | null
+          id?: string
+          reservation_id?: string | null
+          sent_at?: string | null
+          shop_id: string
+          status?: Database["public"]["Enums"]["notification_status"]
+          template_code: string
+        }
         Update: {
-          id?: string;
-          shop_id?: string;
-          customer_id?: string | null;
-          reservation_id?: string | null;
-          template_code?: string;
-          status?: "pending" | "sent" | "failed";
-          cost_krw?: number | null;
-          sent_at?: string | null;
-          error_msg?: string | null;
-          created_at?: string;
-        };
+          cost_krw?: number | null
+          created_at?: string
+          customer_id?: string | null
+          error_msg?: string | null
+          id?: string
+          reservation_id?: string | null
+          sent_at?: string | null
+          shop_id?: string
+          status?: Database["public"]["Enums"]["notification_status"]
+          template_code?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "notifications_shop_id_fkey";
-            columns: ["shop_id"];
-            isOneToOne: false;
-            referencedRelation: "shops";
-            referencedColumns: ["id"];
+            foreignKeyName: "notifications_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "notifications_customer_id_fkey";
-            columns: ["customer_id"];
-            isOneToOne: false;
-            referencedRelation: "customers";
-            referencedColumns: ["id"];
+            foreignKeyName: "notifications_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "notifications_reservation_id_fkey";
-            columns: ["reservation_id"];
-            isOneToOne: false;
-            referencedRelation: "reservations";
-            referencedColumns: ["id"];
+            foreignKeyName: "notifications_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
           },
-        ];
-      };
-    };
-    Views: Record<string, never>;
+        ]
+      }
+      pass_logs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          delta: number
+          id: string
+          memo: string | null
+          pass_id: string
+          visit_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          delta: number
+          id?: string
+          memo?: string | null
+          pass_id: string
+          visit_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          delta?: number
+          id?: string
+          memo?: string | null
+          pass_id?: string
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pass_logs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pass_logs_pass_id_fkey"
+            columns: ["pass_id"]
+            isOneToOne: false
+            referencedRelation: "passes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pass_logs_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      passes: {
+        Row: {
+          balance: number | null
+          created_at: string
+          customer_id: string
+          expires_at: string | null
+          id: string
+          name: string
+          remaining: number | null
+          shop_id: string
+          total_amount: number | null
+          total_count: number | null
+          type: Database["public"]["Enums"]["pass_type"]
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string
+          customer_id: string
+          expires_at?: string | null
+          id?: string
+          name: string
+          remaining?: number | null
+          shop_id: string
+          total_amount?: number | null
+          total_count?: number | null
+          type: Database["public"]["Enums"]["pass_type"]
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string
+          customer_id?: string
+          expires_at?: string | null
+          id?: string
+          name?: string
+          remaining?: number | null
+          shop_id?: string
+          total_amount?: number | null
+          total_count?: number | null
+          type?: Database["public"]["Enums"]["pass_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "passes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "passes_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          paid_at: string
+          pass_id: string | null
+          shop_id: string
+          visit_id: string
+        }
+        Insert: {
+          amount: number
+          id?: string
+          method: Database["public"]["Enums"]["payment_method"]
+          paid_at?: string
+          pass_id?: string | null
+          shop_id: string
+          visit_id: string
+        }
+        Update: {
+          amount?: number
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          paid_at?: string
+          pass_id?: string | null
+          shop_id?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_pass_id_fkey"
+            columns: ["pass_id"]
+            isOneToOne: false
+            referencedRelation: "passes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pets: {
+        Row: {
+          birth_date: string | null
+          breed: string | null
+          caution_memo: string | null
+          caution_tags: string[]
+          created_at: string
+          customer_id: string
+          id: string
+          is_active: boolean
+          name: string
+          neutered: boolean | null
+          photo_url: string | null
+          shop_id: string
+          size: Database["public"]["Enums"]["pet_size"] | null
+          vaccinated: boolean | null
+          weight_kg: number | null
+        }
+        Insert: {
+          birth_date?: string | null
+          breed?: string | null
+          caution_memo?: string | null
+          caution_tags?: string[]
+          created_at?: string
+          customer_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          neutered?: boolean | null
+          photo_url?: string | null
+          shop_id: string
+          size?: Database["public"]["Enums"]["pet_size"] | null
+          vaccinated?: boolean | null
+          weight_kg?: number | null
+        }
+        Update: {
+          birth_date?: string | null
+          breed?: string | null
+          caution_memo?: string | null
+          caution_tags?: string[]
+          created_at?: string
+          customer_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          neutered?: boolean | null
+          photo_url?: string | null
+          shop_id?: string
+          size?: Database["public"]["Enums"]["pet_size"] | null
+          vaccinated?: boolean | null
+          weight_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pets_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pets_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reservations: {
+        Row: {
+          created_at: string
+          ends_at: string
+          id: string
+          memo: string | null
+          pet_id: string
+          price_quoted: number | null
+          service_id: string
+          shop_id: string
+          staff_id: string | null
+          starts_at: string
+          status: Database["public"]["Enums"]["reservation_status"]
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          id?: string
+          memo?: string | null
+          pet_id: string
+          price_quoted?: number | null
+          service_id: string
+          shop_id: string
+          staff_id?: string | null
+          starts_at: string
+          status?: Database["public"]["Enums"]["reservation_status"]
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          id?: string
+          memo?: string | null
+          pet_id?: string
+          price_quoted?: number | null
+          service_id?: string
+          shop_id?: string
+          staff_id?: string | null
+          starts_at?: string
+          status?: Database["public"]["Enums"]["reservation_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      services: {
+        Row: {
+          created_at: string
+          duration_minutes: number
+          id: string
+          is_active: boolean
+          name: string
+          price: Json
+          recommend_cycle_weeks: number | null
+          shop_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: Json
+          recommend_cycle_weeks?: number | null
+          shop_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: Json
+          recommend_cycle_weeks?: number | null
+          shop_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shops: {
+        Row: {
+          address: string | null
+          brand_color: string | null
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          open_hours: Json
+          phone: string | null
+          slot_minutes: number
+        }
+        Insert: {
+          address?: string | null
+          brand_color?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          open_hours?: Json
+          phone?: string | null
+          slot_minutes?: number
+        }
+        Update: {
+          address?: string | null
+          brand_color?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          open_hours?: Json
+          phone?: string | null
+          slot_minutes?: number
+        }
+        Relationships: []
+      }
+      staff: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          role: Database["public"]["Enums"]["staff_role"]
+          shop_id: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          name: string
+          role?: Database["public"]["Enums"]["staff_role"]
+          shop_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          role?: Database["public"]["Enums"]["staff_role"]
+          shop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visits: {
+        Row: {
+          after_photos: string[]
+          before_photos: string[]
+          behavior_memo: string | null
+          created_at: string
+          id: string
+          pet_id: string
+          price_final: number | null
+          reservation_id: string | null
+          service_id: string | null
+          shop_id: string
+          style_memo: string | null
+          visited_at: string
+        }
+        Insert: {
+          after_photos?: string[]
+          before_photos?: string[]
+          behavior_memo?: string | null
+          created_at?: string
+          id?: string
+          pet_id: string
+          price_final?: number | null
+          reservation_id?: string | null
+          service_id?: string | null
+          shop_id: string
+          style_memo?: string | null
+          visited_at?: string
+        }
+        Update: {
+          after_photos?: string[]
+          before_photos?: string[]
+          behavior_memo?: string | null
+          created_at?: string
+          id?: string
+          pet_id?: string
+          price_final?: number | null
+          reservation_id?: string | null
+          service_id?: string | null
+          shop_id?: string
+          style_memo?: string | null
+          visited_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visits_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
     Functions: {
       create_shop_with_owner: {
-        Args: { shop_name: string; owner_name: string };
-        Returns: string;
-      };
-      my_shop_id: {
-        Args: Record<string, never>;
-        Returns: string;
-      };
-    };
+        Args: { owner_name: string; shop_name: string }
+        Returns: string
+      }
+      my_shop_id: { Args: never; Returns: string }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+    }
     Enums: {
-      reservation_status: "confirmed" | "completed" | "no_show" | "cancelled";
-      pet_size: "small" | "medium" | "large";
-      payment_method: "cash" | "card" | "transfer" | "pass";
-      pass_type: "amount" | "count";
-      notification_status: "pending" | "sent" | "failed";
-      staff_role: "owner" | "staff";
-    };
-    CompositeTypes: Record<string, never>;
-  };
-};
+      notification_status: "pending" | "sent" | "failed"
+      pass_type: "amount" | "count"
+      payment_method: "cash" | "card" | "transfer" | "pass"
+      pet_size: "small" | "medium" | "large"
+      reservation_status: "confirmed" | "completed" | "no_show" | "cancelled"
+      staff_role: "owner" | "staff"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      notification_status: ["pending", "sent", "failed"],
+      pass_type: ["amount", "count"],
+      payment_method: ["cash", "card", "transfer", "pass"],
+      pet_size: ["small", "medium", "large"],
+      reservation_status: ["confirmed", "completed", "no_show", "cancelled"],
+      staff_role: ["owner", "staff"],
+    },
+  },
+} as const
