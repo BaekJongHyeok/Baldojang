@@ -125,16 +125,21 @@ export function ReservationForm({
     }
   }
 
-  // 클라이언트 충돌 경고
-  const hasConflict = useMemo(() => {
-    if (!startTime || !endTime) return false;
+  // 클라이언트 충돌 경고 (상태별 분리)
+  const overlap = useMemo(() => {
+    if (!startTime || !endTime) return { confirmed: false, soft: false };
     const sISO = `${date}T${startTime}:00+09:00`;
     const eISO = `${date}T${endTime}:00+09:00`;
-    return existingReservations.some((r) => {
-      if (r.status === "cancelled") return false;
-      if (isEdit && r.id === editReservation?.id) return false;
-      return r.starts_at < eISO && r.ends_at > sISO;
-    });
+    let confirmed = false;
+    let soft = false;
+    for (const r of existingReservations) {
+      if (isEdit && r.id === editReservation?.id) continue;
+      const overlaps = r.starts_at < eISO && r.ends_at > sISO;
+      if (!overlaps) continue;
+      if (r.status === "confirmed") confirmed = true;
+      if (r.status === "completed" || r.status === "no_show") soft = true;
+    }
+    return { confirmed, soft };
   }, [startTime, endTime, date, existingReservations, isEdit, editReservation]);
 
   const priceQuoted = selectedPet && selectedService
@@ -303,9 +308,14 @@ export function ReservationForm({
             </label>
           </div>
 
-          {hasConflict && (
+          {overlap.confirmed && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+              이 시간에 확정된 예약이 있습니다. 제출 시 거부됩니다.
+            </p>
+          )}
+          {!overlap.confirmed && overlap.soft && (
             <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
-              이 시간에 다른 예약이 있습니다
+              이 시간에 완료/노쇼 처리된 예약이 있습니다. 그대로 진행할 수 있습니다.
             </p>
           )}
 

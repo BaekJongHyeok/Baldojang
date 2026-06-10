@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { CalendarReservation, DayHours } from "@/lib/calendar-data";
-import { kstHourMin, kstDateStr } from "@/lib/calendar-utils";
+import { kstHourMin, kstDateStr, layoutOverlaps } from "@/lib/calendar-utils";
 
 const SLOT_HEIGHT = 36;
 
@@ -124,27 +124,39 @@ export function WeekView({
                 )}
 
                 {!isClosed &&
-                  dayRes.map((r) => {
-                    const start = kstHourMin(r.starts_at);
-                    const end = kstHourMin(r.ends_at);
-                    const rStartMin = start.hours * 60 + start.minutes;
-                    const rEndMin = end.hours * 60 + end.minutes;
-                    const top = ((rStartMin - globalStart) / (globalEnd - globalStart)) * totalHeight;
-                    const height = Math.max(18, ((rEndMin - rStartMin) / (globalEnd - globalStart)) * totalHeight);
-                    return (
-                      <button
-                        key={r.id}
-                        onClick={() => onSelect(r.id)}
-                        className={`absolute inset-x-0.5 overflow-hidden rounded border px-0.5 py-px text-left ${statusColor(r.status)}`}
-                        style={{ top, height }}
-                      >
-                        <p className="truncate text-[10px] font-semibold leading-tight">{r.pet.name}</p>
-                        {height > 24 && (
-                          <p className="truncate text-[9px] opacity-75 leading-tight">{r.service.name}</p>
-                        )}
-                      </button>
-                    );
-                  })}
+                  (() => {
+                    const items = dayRes.map((r) => {
+                      const s = kstHourMin(r.starts_at);
+                      const e = kstHourMin(r.ends_at);
+                      return { id: r.id, startMin: s.hours * 60 + s.minutes, endMin: e.hours * 60 + e.minutes };
+                    });
+                    const layout = layoutOverlaps(items);
+                    return dayRes.map((r) => {
+                      const s = kstHourMin(r.starts_at);
+                      const e = kstHourMin(r.ends_at);
+                      const rStartMin = s.hours * 60 + s.minutes;
+                      const rEndMin = e.hours * 60 + e.minutes;
+                      const top = ((rStartMin - globalStart) / (globalEnd - globalStart)) * totalHeight;
+                      const height = Math.max(18, ((rEndMin - rStartMin) / (globalEnd - globalStart)) * totalHeight);
+                      const l = layout.get(r.id) ?? { col: 0, totalCols: 1 };
+                      const colW = 100 / l.totalCols;
+                      const left = `${l.col * colW}%`;
+                      const width = `calc(${colW}% - 2px)`;
+                      return (
+                        <button
+                          key={r.id}
+                          onClick={() => onSelect(r.id)}
+                          className={`absolute overflow-hidden rounded border px-0.5 py-px text-left ${statusColor(r.status)}`}
+                          style={{ top, height, left, width }}
+                        >
+                          <p className="truncate text-[10px] font-semibold leading-tight">{r.pet.name}</p>
+                          {height > 24 && (
+                            <p className="truncate text-[9px] opacity-75 leading-tight">{r.service.name}</p>
+                          )}
+                        </button>
+                      );
+                    });
+                  })()}
               </div>
             );
           })}
