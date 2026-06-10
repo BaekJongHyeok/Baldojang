@@ -1,20 +1,8 @@
 import { redirect } from "next/navigation";
-import {
-  getShopCalendarConfig,
-  getReservations,
-  dateToDayKey,
-} from "@/lib/calendar-data";
+import { getShopCalendarConfig, getReservations } from "@/lib/calendar-data";
+import { dateToDayKey, todayKST } from "@/lib/calendar-utils";
 import { CalendarClient } from "./calendar-client";
-import {
-  startOfWeek,
-  endOfWeek,
-  format,
-  addDays,
-} from "date-fns";
-
-function toKSTDateStr(d: Date): string {
-  return format(d, "yyyy-MM-dd");
-}
+import { startOfWeek, addDays, subWeeks, addWeeks, format } from "date-fns";
 
 export default async function CalendarPage({
   searchParams,
@@ -26,26 +14,29 @@ export default async function CalendarPage({
   if (!result) redirect("/dashboard");
   const { config, shopId } = result;
 
-  // 기준 날짜 (KST)
-  const now = new Date();
-  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const todayStr = toKSTDateStr(kstNow);
-  const dateStr = params.date ?? todayStr;
+  const today = todayKST();
+  const dateStr = params.date ?? today;
 
-  // 주간 범위 (월요일 시작)
-  const baseDate = new Date(dateStr + "T00:00:00+09:00");
-  const weekStart = startOfWeek(baseDate, { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(baseDate, { weekStartsOn: 1 });
+  // 3주 범위 (전주 월요일 ~ 다음주 일요일)
+  const baseDate = new Date(dateStr + "T00:00:00Z");
+  const currentWeekStart = startOfWeek(baseDate, { weekStartsOn: 1 });
+  const rangeStart = subWeeks(currentWeekStart, 1);
+  const rangeEnd = addWeeks(currentWeekStart, 2); // 다음주 월요일 00:00 = 이번주+다음주 끝
 
-  const fromISO = new Date(weekStart.getTime() - 9 * 60 * 60 * 1000).toISOString();
-  const toISO = new Date(weekEnd.getTime() + 24 * 60 * 60 * 1000 - 9 * 60 * 60 * 1000).toISOString();
+  // UTC ISO로 변환 (KST 00:00 = UTC 전날 15:00)
+  const fromISO = new Date(
+    Date.UTC(rangeStart.getUTCFullYear(), rangeStart.getUTCMonth(), rangeStart.getUTCDate()) - 9 * 60 * 60 * 1000
+  ).toISOString();
+  const toISO = new Date(
+    Date.UTC(rangeEnd.getUTCFullYear(), rangeEnd.getUTCMonth(), rangeEnd.getUTCDate()) - 9 * 60 * 60 * 1000
+  ).toISOString();
 
   const reservations = await getReservations(shopId, fromISO, toISO);
 
-  // 주간 날짜 목록 + 요일별 영업시간
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = addDays(weekStart, i);
-    const ds = toKSTDateStr(d);
+  // 21일 날짜 정보
+  const allDays = Array.from({ length: 21 }, (_, i) => {
+    const d = addDays(rangeStart, i);
+    const ds = format(d, "yyyy-MM-dd");
     const dayKey = dateToDayKey(ds);
     const hours = config.openHours[dayKey] ?? null;
     return { date: ds, dayKey, hours };
@@ -54,10 +45,10 @@ export default async function CalendarPage({
   return (
     <CalendarClient
       reservations={reservations}
-      weekDays={weekDays}
+      allDays={allDays}
       config={config}
-      currentDate={dateStr}
-      today={todayStr}
+      initialDate={dateStr}
+      today={today}
     />
   );
 }

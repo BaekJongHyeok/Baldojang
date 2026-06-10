@@ -2,69 +2,110 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { format, addDays, subDays, addWeeks, subWeeks, startOfWeek } from "date-fns";
-import { ko } from "date-fns/locale";
+import { addDays, subDays, startOfWeek, format } from "date-fns";
 import type { CalendarReservation, ShopCalendarConfig, DayHours } from "@/lib/calendar-data";
+import { kstDateStr, formatDateKST } from "@/lib/calendar-utils";
 import { DayView } from "./day-view";
 import { WeekView } from "./week-view";
 import { ReservationDetail } from "./reservation-detail";
 
-type WeekDay = { date: string; dayKey: string; hours: DayHours | null };
+type DayInfo = { date: string; dayKey: string; hours: DayHours | null };
 
 export function CalendarClient({
   reservations,
-  weekDays,
+  allDays,
   config,
-  currentDate,
+  initialDate,
   today,
 }: {
   reservations: CalendarReservation[];
-  weekDays: WeekDay[];
+  allDays: DayInfo[];
   config: ShopCalendarConfig;
-  currentDate: string;
+  initialDate: string;
   today: string;
 }) {
   const router = useRouter();
+  const [selectedDate, setSelectedDate] = useState(initialDate);
   const [view, setView] = useState<"day" | "week">("day");
   const [showCancelled, setShowCancelled] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // 데이터 범위 (allDays의 첫날~마지막날)
+  const rangeStart = allDays[0].date;
+  const rangeEnd = allDays[allDays.length - 1].date;
+
+  // 선택된 날짜가 데이터 범위 내인지 확인, 벗어나면 서버 이동
+  function navigateTo(dateStr: string) {
+    if (dateStr >= rangeStart && dateStr <= rangeEnd) {
+      setSelectedDate(dateStr);
+    } else {
+      router.push(`/calendar?date=${dateStr}`);
+    }
+  }
+
+  // 선택 날짜의 주간 (월~일)
+  const currentWeekDays = useMemo(() => {
+    const ws = startOfWeek(new Date(selectedDate + "T00:00:00Z"), { weekStartsOn: 1 });
+    const wsStr = format(ws, "yyyy-MM-dd");
+    const startIdx = allDays.findIndex((d) => d.date === wsStr);
+    if (startIdx === -1) return allDays.slice(0, 7);
+    return allDays.slice(startIdx, startIdx + 7);
+  }, [selectedDate, allDays]);
+
+  // 현재 날짜 정보
+  const currentDayInfo = allDays.find((d) => d.date === selectedDate);
+
+  // 취소 필터
+  const filtered = useMemo(
+    () => reservations.filter((r) => showCancelled || r.status !== "cancelled"),
+    [reservations, showCancelled],
+  );
+
+  // 일간 뷰용: 선택 날짜의 예약만
+  const dayReservations = useMemo(
+    () => filtered.filter((r) => kstDateStr(r.starts_at) === selectedDate),
+    [filtered, selectedDate],
+  );
+
+  // 주간 뷰용: 현재 주 예약만
+  const weekReservations = useMemo(() => {
+    if (currentWeekDays.length === 0) return [];
+    const ws = currentWeekDays[0].date;
+    const we = currentWeekDays[currentWeekDays.length - 1].date;
+    return filtered.filter((r) => {
+      const d = kstDateStr(r.starts_at);
+      return d >= ws && d <= we;
+    });
+  }, [filtered, currentWeekDays]);
 
   const selectedReservation = useMemo(
     () => reservations.find((r) => r.id === selectedId) ?? null,
     [reservations, selectedId],
   );
 
-  // 현재 날짜의 영업시간
-  const currentDayInfo = weekDays.find((d) => d.date === currentDate);
-
-  function navigate(date: string) {
-    router.push(`/calendar?date=${date}`);
-  }
-
+  // 일간 네비
   function navDay(offset: number) {
-    const d = offset === 0
-      ? new Date(today + "T00:00:00+09:00")
-      : addDays(new Date(currentDate + "T00:00:00+09:00"), offset);
-    navigate(format(d, "yyyy-MM-dd"));
-  }
-
-  function navWeek(offset: number) {
     if (offset === 0) {
-      navigate(today);
+      navigateTo(today);
       return;
     }
-    const base = new Date(currentDate + "T00:00:00+09:00");
-    const d = offset > 0 ? addWeeks(base, 1) : subWeeks(base, 1);
-    const ws = startOfWeek(d, { weekStartsOn: 1 });
-    navigate(format(ws, "yyyy-MM-dd"));
+    const d = addDays(new Date(selectedDate + "T00:00:00Z"), offset);
+    navigateTo(format(d, "yyyy-MM-dd"));
   }
 
-  // 필터링
-  const filtered = useMemo(
-    () =>
-      reservations.filter((r) => showCancelled || r.status !== "cancelled"),
-    [reservations, showCancelled],
-  );
+  // 주간 네비
+  function navWeek(offset: number) {
+    if (offset === 0) {
+      navigateTo(today);
+      return;
+    }
+    const base = new Date(selectedDate + "T00:00:00Z");
+    const ws = startOfWeek(
+      offset > 0 ? addDays(base, 7) : subDays(base, 7),
+      { weekStartsOn: 1 },
+    );
+    navigateTo(format(ws, "yyyy-MM-dd"));
+  }
 
   return (
     <div className="-mx-4 -mt-6 sm:-mx-6 lg:-mx-8 lg:-mt-8">
@@ -76,9 +117,7 @@ export function CalendarClient({
             <button
               onClick={() => setView("day")}
               className={`rounded-md px-3 py-1 text-xs font-medium transition ${
-                view === "day"
-                  ? "bg-white text-stone-900 shadow-sm"
-                  : "text-stone-500"
+                view === "day" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"
               }`}
             >
               일간
@@ -86,9 +125,7 @@ export function CalendarClient({
             <button
               onClick={() => setView("week")}
               className={`rounded-md px-3 py-1 text-xs font-medium transition ${
-                view === "week"
-                  ? "bg-white text-stone-900 shadow-sm"
-                  : "text-stone-500"
+                view === "week" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"
               }`}
             >
               주간
@@ -98,43 +135,25 @@ export function CalendarClient({
           {/* 네비게이션 */}
           {view === "day" ? (
             <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => navDay(-1)}
-                className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
-              >
+              <button onClick={() => navDay(-1)} className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100">
                 <ChevronLeft />
               </button>
-              <button
-                onClick={() => navDay(0)}
-                className="rounded-lg px-2 py-1 text-xs font-medium text-stone-600 hover:bg-stone-100"
-              >
+              <button onClick={() => navDay(0)} className="rounded-lg px-2 py-1 text-xs font-medium text-stone-600 hover:bg-stone-100">
                 오늘
               </button>
-              <button
-                onClick={() => navDay(1)}
-                className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
-              >
+              <button onClick={() => navDay(1)} className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100">
                 <ChevronRight />
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => navWeek(-1)}
-                className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
-              >
+              <button onClick={() => navWeek(-1)} className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100">
                 <ChevronLeft />
               </button>
-              <button
-                onClick={() => navWeek(0)}
-                className="rounded-lg px-2 py-1 text-xs font-medium text-stone-600 hover:bg-stone-100"
-              >
+              <button onClick={() => navWeek(0)} className="rounded-lg px-2 py-1 text-xs font-medium text-stone-600 hover:bg-stone-100">
                 이번 주
               </button>
-              <button
-                onClick={() => navWeek(1)}
-                className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
-              >
+              <button onClick={() => navWeek(1)} className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100">
                 <ChevronRight />
               </button>
             </div>
@@ -142,12 +161,7 @@ export function CalendarClient({
 
           {/* 취소 토글 */}
           <label className="flex items-center gap-1.5 text-[11px] text-stone-400">
-            <input
-              type="checkbox"
-              checked={showCancelled}
-              onChange={(e) => setShowCancelled(e.target.checked)}
-              className="rounded"
-            />
+            <input type="checkbox" checked={showCancelled} onChange={(e) => setShowCancelled(e.target.checked)} className="rounded" />
             취소
           </label>
         </div>
@@ -155,36 +169,31 @@ export function CalendarClient({
         {/* 날짜 표시 */}
         <p className="mt-1.5 text-sm font-semibold text-stone-900">
           {view === "day"
-            ? format(new Date(currentDate + "T00:00:00+09:00"), "M월 d일 (EEEE)", { locale: ko })
-            : `${format(new Date(weekDays[0].date + "T00:00:00+09:00"), "M/d")} – ${format(new Date(weekDays[6].date + "T00:00:00+09:00"), "M/d")}`}
+            ? formatDateKST(selectedDate, "M월 d일 (EEEE)")
+            : currentWeekDays.length >= 7
+              ? `${formatDateKST(currentWeekDays[0].date, "M/d")} – ${formatDateKST(currentWeekDays[6].date, "M/d")}`
+              : ""}
         </p>
       </div>
 
       {/* 뷰 */}
       {view === "day" ? (
         <DayView
-          reservations={filtered.filter((r) => {
-            const rDate = r.starts_at.slice(0, 10);
-            // KST 변환: timestamptz를 KST 날짜로
-            const d = new Date(r.starts_at);
-            const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
-            const kstDate = format(kst, "yyyy-MM-dd");
-            return kstDate === currentDate;
-          })}
+          reservations={dayReservations}
           hours={currentDayInfo?.hours ?? null}
           slotMinutes={config.slotMinutes}
-          isToday={currentDate === today}
+          isToday={selectedDate === today}
           onSelect={setSelectedId}
         />
       ) : (
         <WeekView
-          reservations={filtered}
-          weekDays={weekDays}
+          reservations={weekReservations}
+          weekDays={currentWeekDays}
           slotMinutes={config.slotMinutes}
           today={today}
           onSelectDate={(date) => {
+            setSelectedDate(date);
             setView("day");
-            navigate(date);
           }}
           onSelect={setSelectedId}
         />
@@ -192,10 +201,7 @@ export function CalendarClient({
 
       {/* 상세 다이얼로그 */}
       {selectedReservation && (
-        <ReservationDetail
-          reservation={selectedReservation}
-          onClose={() => setSelectedId(null)}
-        />
+        <ReservationDetail reservation={selectedReservation} onClose={() => setSelectedId(null)} />
       )}
     </div>
   );

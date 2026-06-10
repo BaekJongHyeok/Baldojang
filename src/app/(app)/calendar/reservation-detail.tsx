@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { format } from "date-fns";
-import { ko } from "date-fns/locale";
 import { formatPhone } from "@/lib/utils";
+import { formatTimestampKST } from "@/lib/calendar-utils";
 import type { CalendarReservation } from "@/lib/calendar-data";
 
 function statusLabel(status: string) {
@@ -24,12 +23,6 @@ function statusBadge(status: string) {
     case "cancelled": return "bg-stone-100 text-stone-400";
     default: return "bg-stone-100 text-stone-600";
   }
-}
-
-function kstFormat(iso: string, fmt: string) {
-  const d = new Date(iso);
-  const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
-  return format(kst, fmt, { locale: ko });
 }
 
 export function ReservationDetail({
@@ -71,13 +64,13 @@ export function ReservationDetail({
           <div className="flex justify-between">
             <span className="text-stone-500">날짜</span>
             <span className="text-stone-900">
-              {kstFormat(r.starts_at, "M월 d일 (EEEE)")}
+              {formatTimestampKST(r.starts_at, "M월 d일 (EEEE)")}
             </span>
           </div>
           <div className="flex justify-between">
             <span className="text-stone-500">시간</span>
             <span className="text-stone-900">
-              {kstFormat(r.starts_at, "HH:mm")} – {kstFormat(r.ends_at, "HH:mm")}
+              {formatTimestampKST(r.starts_at, "HH:mm")} – {formatTimestampKST(r.ends_at, "HH:mm")}
             </span>
           </div>
           {r.customer && (

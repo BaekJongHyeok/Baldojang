@@ -20,13 +20,6 @@ export type ShopCalendarConfig = {
   slotMinutes: number;
 };
 
-/** ISO date string (YYYY-MM-DD) → 해당일 요일 키 (mon~sun) */
-export function dateToDayKey(dateStr: string): string {
-  const keys = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-  const d = new Date(dateStr + "T00:00:00+09:00");
-  return keys[d.getDay()];
-}
-
 /** 샵 캘린더 설정 (영업시간, 슬롯) 조회 */
 export async function getShopCalendarConfig(): Promise<{
   config: ShopCalendarConfig;
