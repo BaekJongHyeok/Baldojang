@@ -55,8 +55,23 @@ export default async function DashboardPage() {
 
   const todayRevenue = (todayPayments ?? []).reduce((sum, p) => sum + p.amount, 0);
 
+  // 재방문 대상 수 (간이 계산: 마지막 visit + default_cycle_weeks 경과한 활성 펫)
+  const defCycle = 5; // 0005 마이그레이션 후 shops.default_cycle_weeks에서 조회
+  const cutoff = new Date(Date.now() - (defCycle - 1) * 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: oldVisits } = await supabase
+    .from("visits")
+    .select("pet_id")
+    .eq("shop_id", staff.shop_id)
+    .lte("visited_at", cutoff);
+  const oldPetIds = new Set((oldVisits ?? []).map((v) => v.pet_id));
+  // 미래 예약 있는 펫 제외
+  const nowISO = new Date().toISOString();
+  const { data: futureRes } = await supabase.from("reservations").select("pet_id").eq("shop_id", staff.shop_id).eq("status", "confirmed").gte("starts_at", nowISO);
+  const futurePetIds = new Set((futureRes ?? []).map((r) => r.pet_id));
+  const retentionCount = [...oldPetIds].filter((id) => !futurePetIds.has(id)).length;
+
   // 다음 예약 (현재 시각 이후 첫 confirmed)
-  const now = new Date().toISOString();
+  const now = nowISO;
   const nextReservation = reservations.find(
     (r) => r.status === "confirmed" && r.starts_at > now,
   );
@@ -68,7 +83,7 @@ export default async function DashboardPage() {
       </h1>
 
       {/* 요약 카드 */}
-      <div className="mt-4 grid grid-cols-3 gap-2">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <div className="rounded-2xl bg-white p-4 shadow-sm text-center">
           <p className="text-2xl font-bold text-stone-900">{totalCount}</p>
           <p className="text-[11px] text-stone-500">오늘 예약</p>
@@ -81,6 +96,12 @@ export default async function DashboardPage() {
           <p className="text-2xl font-bold text-stone-900">₩{todayRevenue.toLocaleString()}</p>
           <p className="text-[11px] text-stone-500">오늘 매출</p>
         </div>
+        {retentionCount > 0 && (
+          <Link href="/retention" className="rounded-2xl bg-amber-50 p-4 shadow-sm text-center transition hover:bg-amber-100">
+            <p className="text-2xl font-bold text-amber-700">{retentionCount}</p>
+            <p className="text-[11px] text-amber-600">재방문 대상</p>
+          </Link>
+        )}
       </div>
 
       {/* 다음 예약 하이라이트 */}

@@ -24,6 +24,7 @@ export async function updateShopAction(formData: FormData) {
     ? String(formData.get("address"))
     : null;
   const slotMinutes = Number(formData.get("slot_minutes")) || 30;
+  const defaultCycleWeeks = Number(formData.get("default_cycle_weeks")) || 5;
   const openHoursRaw = String(formData.get("open_hours"));
 
   let openHours: Json;
@@ -41,6 +42,7 @@ export async function updateShopAction(formData: FormData) {
       address,
       slot_minutes: slotMinutes,
       open_hours: openHours,
+      ...({ default_cycle_weeks: defaultCycleWeeks } as Record<string, number>),
     })
     .eq("id", staff.shop_id);
 

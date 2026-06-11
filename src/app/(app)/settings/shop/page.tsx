@@ -40,6 +40,7 @@ export default async function ShopSettingsPage() {
           address={shop.address ?? ""}
           openHours={openHours}
           slotMinutes={shop.slot_minutes}
+          defaultCycleWeeks={5}
         />
       </div>
     </div>
