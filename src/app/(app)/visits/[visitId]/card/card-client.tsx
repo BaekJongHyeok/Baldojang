@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useTransition, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { toPng } from "html-to-image";
 import { toast } from "sonner";
 import { formatTimestampKST } from "@/lib/calendar-utils";
@@ -37,6 +38,7 @@ const CARD_SIZES = {
 } as const;
 
 export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
+  const router = useRouter();
   const renderRef = useRef<HTMLDivElement>(null);
   const [template, setTemplate] = useState<"minimal" | "photo">("minimal");
   const [ratio, setRatio] = useState<"4:5" | "9:16">("4:5");
@@ -80,26 +82,31 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
     }
   }, [size, pet.name, visit.visitedAt]);
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>, typeOverride?: "before" | "after") {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    const type = typeOverride ?? uploadType;
     startTransition(async () => {
       const supabase = createClient();
       const urls: string[] = [];
       for (let i = 0; i < files.length; i++) {
         const resized = await resizeImage(files[i], 1600);
-        const path = `${shopId}/${visit.id}/${uploadType}-${Date.now()}-${i}.webp`;
+        const path = `${shopId}/${visit.id}/${type}-${Date.now()}-${i}.webp`;
         const { error } = await supabase.storage.from("visit-photos").upload(path, resized, { contentType: "image/webp" });
         if (error) { toast.error(`업로드 실패: ${error.message}`); return; }
         urls.push(path);
       }
       const fd = new FormData();
       fd.set("visit_id", visit.id);
-      fd.set("type", uploadType);
+      fd.set("type", type);
       fd.set("urls", urls.join(","));
       const result = await addVisitPhotosAction(fd);
-      if (result?.error) toast.error(result.error);
-      else toast.success("사진이 등록되었습니다. 페이지를 새로고침하면 반영됩니다.");
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("사진이 등록되었습니다.");
+        router.refresh();
+      }
     });
   }
 
@@ -133,7 +140,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
             <label className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white cursor-pointer hover:bg-stone-800">
               {isPending ? <Spinner /> : null}
               사진 선택
-              <input type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" />
+              <input type="file" accept="image/*" multiple onChange={(e) => handleUpload(e, uploadType)} className="hidden" />
             </label>
           </div>
         </div>
@@ -163,12 +170,19 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
         )}
       </div>
 
-      {visit.afterPhotos.length > 1 && (
+      {(visit.beforePhotos.length > 0 || visit.afterPhotos.length > 1) && (
         <div className="mt-2 flex gap-1.5 overflow-x-auto">
-          {visit.afterPhotos.map((url, i) => (
-            <button key={i} onClick={() => setSelectedPhoto(i)}
-              className={`h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 ${i === selectedPhoto ? "border-stone-900" : "border-transparent"}`}>
+          {visit.beforePhotos.map((url, i) => (
+            <div key={`b-${i}`} className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 border-transparent opacity-70">
               <img src={url} alt="" className="h-full w-full object-cover" />
+              <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-center text-[8px] font-bold text-white leading-tight">전</span>
+            </div>
+          ))}
+          {visit.afterPhotos.map((url, i) => (
+            <button key={`a-${i}`} onClick={() => setSelectedPhoto(i)}
+              className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 ${i === selectedPhoto ? "border-stone-900" : "border-transparent"}`}>
+              <img src={url} alt="" className="h-full w-full object-cover" />
+              <span className="absolute bottom-0 left-0 right-0 bg-stone-900/50 text-center text-[8px] font-bold text-white leading-tight">후</span>
             </button>
           ))}
         </div>
@@ -194,7 +208,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
             <label className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-stone-600 cursor-pointer hover:bg-stone-50">
               {isPending && <Spinner className="h-3 w-3" />}
               + 사진 추가
-              <input type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" />
+              <input type="file" accept="image/*" multiple onChange={(e) => handleUpload(e, uploadType)} className="hidden" />
             </label>
           </div>
         ) : (
@@ -203,7 +217,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
             <label className="flex shrink-0 items-center gap-1.5 rounded-lg bg-stone-900 px-2.5 py-1 text-[11px] font-medium text-white cursor-pointer hover:bg-stone-800">
               {isPending && <Spinner className="h-3 w-3" />}
               + 전 사진
-              <input type="file" accept="image/*" multiple onChange={(e) => { setUploadType("before"); handleUpload(e); }} className="hidden" />
+              <input type="file" accept="image/*" multiple onChange={(e) => handleUpload(e, "before")} className="hidden" />
             </label>
           </div>
         )}
