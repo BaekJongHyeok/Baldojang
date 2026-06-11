@@ -182,21 +182,21 @@ export function PetForm({
     <form action={handleSubmit} className={`flex flex-col gap-6 ${isPending ? "pointer-events-none" : ""}`}>
       {/* 보호자 섹션 */}
       {!isEdit && (
-        <fieldset className="flex flex-col gap-3 rounded-2xl bg-white p-5 shadow-sm">
-          <legend className="text-sm font-bold text-stone-900">보호자</legend>
+        <fieldset className="flex flex-col gap-3 rounded-lg bg-white p-5">
+          <legend className="text-sm font-bold text-ink">보호자</legend>
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-stone-700">전화번호</span>
+            <span className="text-sm font-medium text-ink-secondary">전화번호</span>
             <input
               type="tel"
               value={phone}
               onChange={handlePhoneChange}
               required
-              className="min-w-0 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+              className="min-w-0 rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
               placeholder="010-0000-0000"
             />
           </label>
           {lookingUp && (
-            <p className="text-xs text-stone-400">조회 중...</p>
+            <p className="text-xs text-ink-disabled">조회 중...</p>
           )}
           {foundCustomer && (
             <p className="text-sm text-green-600">
@@ -205,7 +205,7 @@ export function PetForm({
           )}
           {!foundCustomer && phone.replace(/[^0-9]/g, "").length >= 10 && !lookingUp && (
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-stone-700">
+              <span className="text-sm font-medium text-ink-secondary">
                 보호자 이름 (신규)
               </span>
               <input
@@ -214,7 +214,7 @@ export function PetForm({
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 required
-                className="min-w-0 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+                className="min-w-0 rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
                 placeholder="홍길동"
               />
             </label>
@@ -223,29 +223,29 @@ export function PetForm({
       )}
 
       {/* 펫 정보 섹션 */}
-      <fieldset className="flex flex-col gap-3 rounded-2xl bg-white p-5 shadow-sm">
-        <legend className="text-sm font-bold text-stone-900">펫 정보</legend>
+      <fieldset className="flex flex-col gap-3 rounded-lg bg-white p-5">
+        <legend className="text-sm font-bold text-ink">펫 정보</legend>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-stone-700">이름 *</span>
+          <span className="text-sm font-medium text-ink-secondary">이름 *</span>
           <input
             name="pet_name"
             type="text"
             required
             defaultValue={pet?.name ?? ""}
-            className="min-w-0 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+            className="min-w-0 rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
             placeholder="멍멍이"
           />
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-stone-700">견종</span>
+          <span className="text-sm font-medium text-ink-secondary">견종</span>
           <input
             name="breed"
             type="text"
             list="breed-list"
             defaultValue={pet?.breed ?? ""}
-            className="min-w-0 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+            className="min-w-0 rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
             placeholder="말티즈"
           />
           <datalist id="breed-list">
@@ -256,11 +256,11 @@ export function PetForm({
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-stone-700">체급</span>
+          <span className="text-sm font-medium text-ink-secondary">체급</span>
           <select
             name="size"
             defaultValue={pet?.size ?? ""}
-            className="min-w-0 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+            className="min-w-0 rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
           >
             <option value="">선택 안 함</option>
             <option value="small">소형</option>
@@ -271,16 +271,16 @@ export function PetForm({
 
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-stone-700">생일</span>
+            <span className="text-sm font-medium text-ink-secondary">생일</span>
             <input
               name="birth_date"
               type="date"
               defaultValue={pet?.birth_date ?? ""}
-              className="min-w-0 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+              className="min-w-0 rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-stone-700">
+            <span className="text-sm font-medium text-ink-secondary">
               몸무게 (kg)
             </span>
             <input
@@ -289,37 +289,37 @@ export function PetForm({
               step="0.1"
               min="0"
               defaultValue={pet?.weight_kg ?? ""}
-              className="min-w-0 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+              className="min-w-0 rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
               placeholder="3.5"
             />
           </label>
         </div>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-stone-700">사진</span>
+          <span className="text-sm font-medium text-ink-secondary">사진</span>
           <input
             type="file"
             accept="image/*"
             onChange={handlePhoto}
-            className="text-sm text-stone-500 file:mr-3 file:rounded-lg file:border-0 file:bg-stone-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-stone-700"
+            className="text-sm text-ink-caption file:mr-3 file:rounded-lg file:border-0 file:bg-border-light file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-ink-secondary"
           />
-          {uploading && <p className="text-xs text-stone-400">업로드 중...</p>}
+          {uploading && <p className="text-xs text-ink-disabled">업로드 중...</p>}
           {previewUrl && (
             <img
               src={previewUrl}
               alt="펫 사진"
-              className="mt-1 h-20 w-20 rounded-xl object-cover"
+              className="mt-1 h-20 w-20 rounded-md object-cover"
             />
           )}
         </label>
       </fieldset>
 
       {/* 케어 정보 섹션 */}
-      <fieldset className="flex flex-col gap-3 rounded-2xl bg-white p-5 shadow-sm">
-        <legend className="text-sm font-bold text-stone-900">케어 정보</legend>
+      <fieldset className="flex flex-col gap-3 rounded-lg bg-white p-5">
+        <legend className="text-sm font-bold text-ink">케어 정보</legend>
 
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-stone-700">주의사항</span>
+          <span className="text-sm font-medium text-ink-secondary">주의사항</span>
           <div className="flex flex-wrap gap-1.5">
             {DEFAULT_CAUTION_TAGS.map((tag) => (
               <button
@@ -328,8 +328,8 @@ export function PetForm({
                 onClick={() => toggleTag(tag)}
                 className={`rounded-lg px-2.5 py-1 text-xs font-medium transition ${
                   tags.includes(tag)
-                    ? "bg-red-100 text-red-700"
-                    : "bg-stone-100 text-stone-500"
+                    ? "bg-danger-light text-danger"
+                    : "bg-border-light text-ink-caption"
                 }`}
               >
                 {tag}
@@ -342,7 +342,7 @@ export function PetForm({
                   key={tag}
                   type="button"
                   onClick={() => toggleTag(tag)}
-                  className="rounded-lg bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700 transition"
+                  className="rounded-lg bg-danger-light px-2.5 py-1 text-xs font-medium text-danger transition"
                 >
                   {tag} ✕
                 </button>
@@ -359,13 +359,13 @@ export function PetForm({
                   addCustomTag();
                 }
               }}
-              className="min-w-0 flex-1 rounded-lg border border-stone-200 px-3 py-1.5 text-xs outline-none focus:border-stone-400"
+              className="min-w-0 flex-1 rounded-lg border border-border px-3 py-1.5 text-xs outline-none focus:border-primary"
               placeholder="직접 입력"
             />
             <button
               type="button"
               onClick={addCustomTag}
-              className="shrink-0 rounded-lg bg-stone-100 px-3 py-1.5 text-xs font-medium text-stone-600"
+              className="shrink-0 rounded-lg bg-border-light px-3 py-1.5 text-xs font-medium text-ink-secondary"
             >
               추가
             </button>
@@ -373,27 +373,27 @@ export function PetForm({
         </div>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-stone-700">
+          <span className="text-sm font-medium text-ink-secondary">
             주의사항 메모
           </span>
           <textarea
             name="caution_memo"
             rows={2}
             defaultValue={pet?.caution_memo ?? ""}
-            className="min-w-0 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+            className="min-w-0 rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
             placeholder="자유 서술 주의사항"
           />
         </label>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-stone-700">접종 여부</span>
+            <span className="text-sm font-medium text-ink-secondary">접종 여부</span>
             <select
               name="vaccinated"
               defaultValue={
                 pet?.vaccinated === null ? "" : String(pet?.vaccinated)
               }
-              className="min-w-0 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+              className="min-w-0 rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
             >
               <option value="">모름</option>
               <option value="true">완료</option>
@@ -401,13 +401,13 @@ export function PetForm({
             </select>
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-stone-700">중성화</span>
+            <span className="text-sm font-medium text-ink-secondary">중성화</span>
             <select
               name="neutered"
               defaultValue={
                 pet?.neutered === null ? "" : String(pet?.neutered)
               }
-              className="min-w-0 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+              className="min-w-0 rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
             >
               <option value="">모름</option>
               <option value="true">완료</option>
@@ -417,12 +417,12 @@ export function PetForm({
         </div>
       </fieldset>
 
-      {error && <p className="text-center text-sm text-red-500">{error}</p>}
+      {error && <p className="text-center text-sm text-danger">{error}</p>}
 
       <button
         type="submit"
         disabled={isPending || uploading}
-        className="flex items-center justify-center gap-2 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-50"
+        className="flex items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-sm font-medium text-white transition hover:bg-primary-hover disabled:opacity-50"
       >
         {isPending && <Spinner />}
         {isEdit ? "수정" : "등록"}

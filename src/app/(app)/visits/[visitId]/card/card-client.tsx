@@ -191,12 +191,12 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   if (!hasPhotos) {
     return (
       <div>
-        <h1 className="text-xl font-bold text-stone-900">완료 카드</h1>
-        <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm text-center">
+        <h1 className="text-xl font-bold text-ink">완료 카드</h1>
+        <div className="mt-6 rounded-lg bg-white p-6 text-center">
           <p className="text-4xl">📷</p>
-          <p className="mt-3 text-sm font-medium text-stone-700">시술 사진을 등록해주세요</p>
-          <p className="mt-1 text-xs text-stone-500">사진을 등록하면 완료 카드를 만들 수 있어요</p>
-          <label className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-stone-900 px-6 py-2.5 text-sm font-medium text-white cursor-pointer hover:bg-stone-800">
+          <p className="mt-3 text-sm font-medium text-ink-secondary">시술 사진을 등록해주세요</p>
+          <p className="mt-1 text-xs text-ink-caption">사진을 등록하면 완료 카드를 만들 수 있어요</p>
+          <label className="mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-white cursor-pointer hover:bg-primary-hover">
             {isPending && <Spinner />} 사진 추가
             <input type="file" accept="image/*" onChange={handleFirstUpload} className="hidden" />
           </label>
@@ -208,17 +208,17 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   // === 1장 이상: 카드 편집 ===
   return (
     <div>
-      <h1 className="text-xl font-bold text-stone-900">완료 카드</h1>
+      <h1 className="text-xl font-bold text-ink">완료 카드</h1>
 
       {/* 템플릿/비율 */}
       <div className="mt-4 flex flex-wrap gap-2 items-center">
-        <div className="flex rounded-lg bg-stone-100 p-0.5">
-          <button onClick={() => setTemplate("minimal")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${template === "minimal" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>미니멀</button>
-          <button onClick={() => setTemplate("photo")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${template === "photo" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>포토</button>
+        <div className="flex rounded-lg bg-border-light p-0.5">
+          <button onClick={() => setTemplate("minimal")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${template === "minimal" ? "bg-white text-ink" : "text-ink-caption"}`}>미니멀</button>
+          <button onClick={() => setTemplate("photo")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${template === "photo" ? "bg-white text-ink" : "text-ink-caption"}`}>포토</button>
         </div>
-        <div className="flex rounded-lg bg-stone-100 p-0.5">
-          <button onClick={() => setRatio("4:5")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${ratio === "4:5" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>4:5</button>
-          <button onClick={() => setRatio("9:16")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${ratio === "9:16" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>9:16</button>
+        <div className="flex rounded-lg bg-border-light p-0.5">
+          <button onClick={() => setRatio("4:5")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${ratio === "4:5" ? "bg-white text-ink" : "text-ink-caption"}`}>4:5</button>
+          <button onClick={() => setRatio("9:16")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${ratio === "9:16" ? "bg-white text-ink" : "text-ink-caption"}`}>9:16</button>
         </div>
       </div>
 
@@ -227,11 +227,11 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
         <div className="mt-2 flex gap-1.5">
           {[...afterPhotos.map((p) => ({ ...p, t: "after" as const })), ...beforePhotos.map((p) => ({ ...p, t: "before" as const }))].map((photo, i) => (
             <div key={photo.path} className="relative h-12 w-12 shrink-0">
-              <div className={`h-full w-full overflow-hidden rounded-lg border-2 border-stone-900`}>
+              <div className={`h-full w-full overflow-hidden rounded-lg border-2 border-primary`}>
                 <img src={photo.url} alt="" className="h-full w-full object-cover" />
               </div>
               {baMode && (
-                <span className={`absolute bottom-0 left-0 right-0 rounded-b-lg text-center text-[8px] font-bold text-white leading-tight pointer-events-none ${photo.t === "before" ? "bg-black/50" : "bg-stone-900/50"}`}>
+                <span className={`absolute bottom-0 left-0 right-0 rounded-b-lg text-center text-[8px] font-bold text-white leading-tight pointer-events-none ${photo.t === "before" ? "bg-black/50" : "bg-primary/50"}`}>
                   {photo.t === "before" ? "전" : "후"}
                 </span>
               )}
@@ -244,9 +244,9 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
 
       {/* 삭제 확인 */}
       {confirmDelete && (
-        <div className="mt-2 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2">
-          <p className="flex-1 text-xs text-red-700">이 사진을 삭제할까요?</p>
-          <button onClick={() => setConfirmDelete(null)} className="text-xs text-stone-500">취소</button>
+        <div className="mt-2 flex items-center gap-2 rounded-lg bg-danger-light px-3 py-2">
+          <p className="flex-1 text-xs text-danger">이 사진을 삭제할까요?</p>
+          <button onClick={() => setConfirmDelete(null)} className="text-xs text-ink-caption">취소</button>
           <button onClick={handleDelete} disabled={isPending}
             className="flex items-center gap-1 rounded-lg bg-red-500 px-2.5 py-1 text-xs font-medium text-white disabled:opacity-50">
             {isPending && <Spinner className="h-3 w-3" />}삭제</button>
@@ -258,7 +258,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
         {totalPhotos === 1 && !hasBothPhotos && (
           <button
             onClick={() => toggleBaMode(!baMode)}
-            className={`self-start rounded-lg px-3 py-1.5 text-xs font-medium transition ${baMode ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"}`}
+            className={`self-start rounded-lg px-3 py-1.5 text-xs font-medium transition ${baMode ? "bg-primary text-white" : "bg-border-light text-ink-secondary hover:bg-border"}`}
           >
             {baMode ? "비포/애프터 모드 ON" : "비포/애프터 카드 만들기"}
           </button>
@@ -291,7 +291,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
 
         {/* 단일 모드에서 사진이 1장이고 BA 아닐 때: 추가 가능 */}
         {!baMode && totalPhotos < 2 && (
-          <label className="self-start inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-[11px] font-medium text-stone-600 cursor-pointer hover:bg-stone-50">
+          <label className="self-start inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[11px] font-medium text-ink-secondary cursor-pointer hover:bg-bg">
             {isPending && <Spinner className="h-3 w-3" />}
             + 사진 추가
             <input type="file" accept="image/*" onChange={handleFirstUpload} className="hidden" />
@@ -303,14 +303,14 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
       <div className="mt-3 flex flex-wrap gap-1.5">
         {MESSAGES.map((m) => (
           <button key={m} onClick={() => { setMessage(m); setCustomMsg(""); }}
-            className={`rounded-lg px-2.5 py-1 text-xs transition ${message === m && !customMsg ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600"}`}>{m}</button>
+            className={`rounded-lg px-2.5 py-1 text-xs transition ${message === m && !customMsg ? "bg-primary text-white" : "bg-border-light text-ink-secondary"}`}>{m}</button>
         ))}
       </div>
       <input type="text" value={customMsg} onChange={(e) => setCustomMsg(e.target.value)}
-        placeholder="직접 입력" className="mt-1.5 w-full min-w-0 rounded-lg border border-stone-200 px-3 py-1.5 text-xs outline-none focus:border-stone-400" />
+        placeholder="직접 입력" className="mt-1.5 w-full min-w-0 rounded-lg border border-border px-3 py-1.5 text-xs outline-none focus:border-primary" />
 
       {/* 카드 미리보기 */}
-      <div className="mx-auto mt-4 w-full overflow-hidden rounded-2xl" style={{ maxWidth: 400, aspectRatio: `${size.w} / ${size.h}` }}>
+      <div className="mx-auto mt-4 w-full overflow-hidden rounded-lg" style={{ maxWidth: 400, aspectRatio: `${size.w} / ${size.h}` }}>
         <div ref={renderRef} className="relative h-full w-full origin-top-left"
           style={{ width: size.w, height: size.h, transform: `scale(var(--card-scale))`, "--card-scale": "1" } as React.CSSProperties}>
           {template === "minimal" ? <MinimalCard {...cardProps} w={size.w} h={size.h} /> : <PhotoCard {...cardProps} w={size.w} h={size.h} />}
@@ -319,13 +319,13 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
       </div>
 
       <button onClick={handleDownload} disabled={downloading}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-stone-900 py-3 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50">
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50">
         {downloading && <Spinner />} 이미지 저장
       </button>
 
       {previewUrl && (
-        <div className="mt-3 rounded-xl border border-stone-200 p-2">
-          <p className="mb-1 text-center text-[11px] text-stone-400">길게 눌러 저장할 수 있어요</p>
+        <div className="mt-3 rounded-md border border-border p-2">
+          <p className="mb-1 text-center text-[11px] text-ink-disabled">길게 눌러 저장할 수 있어요</p>
           <img src={previewUrl} alt="완료 카드" className="w-full rounded-lg" />
         </div>
       )}
