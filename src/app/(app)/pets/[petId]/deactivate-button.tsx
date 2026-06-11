@@ -19,7 +19,7 @@ export function DeactivateButton({ petId }: { petId: string }) {
     return (
       <button
         onClick={() => setConfirm(true)}
-        className="flex-1 rounded-xl border border-red-200 py-2.5 text-center text-sm font-medium text-red-500 transition hover:bg-red-50"
+        className="flex-1 rounded-button border border-status-danger/30 py-2.5 text-center text-[15px] font-medium text-status-danger transition-colors hover:bg-status-danger-subtle"
       >
         비활성화
       </button>
@@ -30,14 +30,14 @@ export function DeactivateButton({ petId }: { petId: string }) {
     <div className="flex flex-1 gap-1.5">
       <button
         onClick={() => setConfirm(false)}
-        className="flex-1 rounded-xl border border-stone-200 py-2.5 text-xs font-medium text-stone-500"
+        className="flex-1 rounded-button border border-border py-2.5 text-[13px] font-medium text-ink-secondary"
       >
         취소
       </button>
       <button
         onClick={handleDeactivate}
         disabled={isPending}
-        className="flex-1 rounded-xl bg-red-500 py-2.5 text-xs font-medium text-white disabled:opacity-50"
+        className="flex-1 rounded-button bg-status-danger py-2.5 text-[13px] font-medium text-white disabled:opacity-50"
       >
         {isPending ? "처리 중..." : "확인"}
       </button>
