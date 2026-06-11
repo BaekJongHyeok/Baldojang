@@ -1,26 +1,20 @@
 type BadgeProps = {
-  variant?: "default" | "success" | "warning" | "danger" | "info";
+  variant?: "default" | "primary" | "success" | "warning" | "danger";
   children: React.ReactNode;
   className?: string;
 };
 
-const variantStyles = {
-  default: "bg-warm-100 text-ink-secondary",
-  success: "bg-status-success-subtle text-status-success",
-  warning: "bg-status-warning-subtle text-status-warning",
-  danger: "bg-status-danger-subtle text-status-danger",
-  info: "bg-status-info-subtle text-status-info",
+const variants = {
+  default: "bg-border-light text-ink-secondary",
+  primary: "bg-primary-light text-primary",
+  success: "bg-success-light text-success",
+  warning: "bg-warning-light text-warning",
+  danger: "bg-danger-light text-danger",
 } as const;
 
-export function Badge({
-  variant = "default",
-  children,
-  className = "",
-}: BadgeProps) {
+export function Badge({ variant = "default", children, className = "" }: BadgeProps) {
   return (
-    <span
-      className={`inline-flex items-center rounded-badge px-2 py-0.5 text-[11px] font-medium ${variantStyles[variant]} ${className}`}
-    >
+    <span className={`inline-flex items-center rounded-sm px-1.5 py-0.5 text-[11px] font-medium ${variants[variant]} ${className}`}>
       {children}
     </span>
   );

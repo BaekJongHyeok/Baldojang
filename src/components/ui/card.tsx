@@ -1,21 +1,9 @@
-type CardProps = React.HTMLAttributes<HTMLDivElement> & {
-  padding?: "none" | "sm" | "md";
-};
+type CardProps = React.HTMLAttributes<HTMLDivElement>;
 
-const paddingStyles = {
-  none: "",
-  sm: "p-4",
-  md: "p-5",
-} as const;
-
-export function Card({
-  padding = "md",
-  className = "",
-  ...props
-}: CardProps) {
+export function Card({ className = "", ...props }: CardProps) {
   return (
     <div
-      className={`rounded-card bg-surface-card ${paddingStyles[padding]} ${className}`}
+      className={`rounded-lg border border-border bg-white ${className}`}
       {...props}
     />
   );

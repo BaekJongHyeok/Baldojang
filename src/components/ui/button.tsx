@@ -1,22 +1,22 @@
 import { Spinner } from "../spinner";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "ghost" | "destructive";
+  variant?: "primary" | "secondary" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
 };
 
-const variantStyles = {
-  primary: "bg-accent text-white hover:bg-accent-hover",
-  secondary: "bg-warm-100 text-ink hover:bg-warm-200",
-  ghost: "text-ink-secondary hover:bg-warm-100",
-  destructive: "bg-status-danger text-white hover:opacity-90",
+const variants = {
+  primary: "bg-primary text-white hover:bg-primary-hover",
+  secondary: "border border-border bg-white text-ink hover:bg-border-light",
+  ghost: "text-ink-secondary hover:bg-border-light",
+  danger: "bg-danger text-white hover:opacity-90",
 } as const;
 
-const sizeStyles = {
-  sm: "h-8 px-3 text-[13px] gap-1.5 rounded-[10px]",
-  md: "h-10 px-4 text-[15px] gap-2 rounded-button",
-  lg: "h-12 px-6 text-[15px] gap-2 rounded-button",
+const sizes = {
+  sm: "h-8 px-3 text-[12px] gap-1.5 rounded-sm",
+  md: "h-9 px-4 text-[14px] gap-2 rounded-md",
+  lg: "h-10 px-5 text-[14px] gap-2 rounded-md",
 } as const;
 
 export function Button({
@@ -30,11 +30,11 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center font-medium transition-all duration-150 ease-out press-scale disabled:opacity-50 disabled:pointer-events-none ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
+      className={`inline-flex items-center justify-center font-medium transition-colors duration-150 disabled:opacity-40 disabled:pointer-events-none ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={disabled || loading}
       {...props}
     >
-      {loading && <Spinner className="h-4 w-4" />}
+      {loading && <Spinner className="h-3.5 w-3.5" />}
       {children}
     </button>
   );

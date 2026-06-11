@@ -2,86 +2,55 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* ── Semantic Colors ── */
-  --color-surface: #FAF8F5;
-  --color-surface-card: #FFFFFF;
-  --color-surface-hover: #F5F0EB;
+  /* ── Colors: 토스/공비서 그레이스케일 ── */
+  --color-bg: #F7F8FA;
+  --color-white: #FFFFFF;
+  --color-ink: #191F28;
+  --color-ink-secondary: #4E5968;
+  --color-ink-caption: #8B95A1;
+  --color-ink-disabled: #B0B8C1;
+  --color-border: #E5E8EB;
+  --color-border-light: #F2F4F6;
 
-  --color-ink: #1A1815;
-  --color-ink-secondary: #6B6560;
-  --color-ink-tertiary: #9C9590;
-  --color-ink-faint: #C4BFB8;
+  /* 액센트: 신뢰감 블루 */
+  --color-primary: #3182F6;
+  --color-primary-hover: #1B64DA;
+  --color-primary-light: #EBF2FF;
 
-  --color-accent: #C4632A;
-  --color-accent-hover: #B05525;
-  --color-accent-subtle: #FAF0EB;
+  /* 상태 */
+  --color-danger: #F04452;
+  --color-danger-light: #FFF0F1;
+  --color-warning: #F59E0B;
+  --color-warning-light: #FFF8E1;
+  --color-success: #22C55E;
+  --color-success-light: #ECFDF5;
 
-  --color-border: #E8E3DE;
-  --color-border-light: #F0EBE6;
-
-  /* ── Status Colors (muted) ── */
-  --color-status-success: #4A7C59;
-  --color-status-success-subtle: #EDF5EF;
-  --color-status-warning: #9A6B1E;
-  --color-status-warning-subtle: #FBF4E4;
-  --color-status-danger: #B5403A;
-  --color-status-danger-subtle: #FDF0EF;
-  --color-status-info: #3B6FC2;
-  --color-status-info-subtle: #EEF3FC;
-
-  /* ── Warm Gray Scale ── */
-  --color-warm-50: #FAF8F5;
-  --color-warm-100: #F0EBE6;
-  --color-warm-200: #E8E3DE;
-  --color-warm-300: #D4CEC7;
-  --color-warm-400: #9C9590;
-  --color-warm-500: #6B6560;
-  --color-warm-600: #4A4540;
-  --color-warm-700: #33302C;
-  --color-warm-800: #24211E;
-  --color-warm-900: #1A1815;
-
-  /* ── Typography ── */
+  /* 타이포 */
   --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', sans-serif;
 
-  /* ── Border Radius ── */
-  --radius-card: 16px;
-  --radius-button: 12px;
-  --radius-input: 10px;
-  --radius-badge: 8px;
+  /* 라운드 */
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --radius-sm: 6px;
 
-  /* ── Shadows ── */
-  --shadow-float: 0 4px 24px rgba(26, 24, 21, 0.08), 0 1px 4px rgba(26, 24, 21, 0.04);
+  /* 그림자: 다이얼로그/FAB에만 */
+  --shadow-modal: 0 8px 30px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 /* ── Base ── */
 body {
-  background: var(--color-surface);
+  background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Utility: tabular numbers for data ── */
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
-}
+/* ── Utilities ── */
+.tabular-nums { font-variant-numeric: tabular-nums; }
 
-/* ── Motion: press feedback ── */
-@media (prefers-reduced-motion: no-preference) {
-  .press-scale {
-    transition: transform 150ms ease-out;
-  }
-  .press-scale:active {
-    transform: scale(0.97);
-  }
-}
-
-/* ── Motion: completion check animation ── */
-@keyframes circle-draw {
-  to { stroke-dashoffset: 0; }
-}
-@keyframes check-draw {
-  to { stroke-dashoffset: 0; }
-}
+/* ── Motion: completion check ── */
+@keyframes circle-draw { to { stroke-dashoffset: 0; } }
+@keyframes check-draw { to { stroke-dashoffset: 0; } }
