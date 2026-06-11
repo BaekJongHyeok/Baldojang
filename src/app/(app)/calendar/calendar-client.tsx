@@ -156,12 +156,14 @@ export function CalendarClient({
     const pet = pets.find((p) => p.id === petId);
     const svc = services.find((s) => s.id === serviceId);
     const tempId = `temp-${Date.now()}`;
+    const priceQuoted = fd.get("price_quoted") ? Number(fd.get("price_quoted")) : null;
     const optimistic: CalendarReservation = {
       id: tempId,
       starts_at: startsAt,
       ends_at: endsAt,
       status: "confirmed",
       memo,
+      price_quoted: priceQuoted,
       pet: { id: petId, name: pet?.name ?? "", photo_url: null },
       service: { name: svc?.name ?? "", duration_minutes: svc?.duration_minutes ?? 60 },
       customer: pet?.customer ?? null,
@@ -356,6 +358,7 @@ export function CalendarClient({
           startsAt={completeReservation.starts_at}
           endsAt={completeReservation.ends_at}
           slotMinutes={config.slotMinutes}
+          priceQuoted={completeReservation.price_quoted}
           onClose={() => setCompleteId(null)}
           onSubmit={handleComplete}
         />

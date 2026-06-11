@@ -180,6 +180,13 @@ export async function completeWithVisitAction(formData: FormData) {
   const behaviorMemo = formData.get("behavior_memo")
     ? String(formData.get("behavior_memo"))
     : null;
+  const paymentAmount = formData.get("payment_amount")
+    ? Number(formData.get("payment_amount"))
+    : null;
+  const paymentMethod = formData.get("payment_method")
+    ? String(formData.get("payment_method"))
+    : null;
+  const skipPayment = formData.get("skip_payment") === "true";
 
   // 예약 정보 조회
   const { data: reservation, error: fetchErr } = await supabase
@@ -192,20 +199,39 @@ export async function completeWithVisitAction(formData: FormData) {
     return { error: fetchErr?.message ?? "예약을 찾을 수 없습니다." };
   }
 
-  // visits 행을 먼저 생성
-  const { error: visitErr } = await supabase.from("visits").insert({
-    shop_id: staff.shop_id,
-    pet_id: reservation.pet_id,
-    reservation_id: reservationId,
-    service_id: reservation.service_id,
-    visited_at: reservation.starts_at,
-    price_final: reservation.price_quoted,
-    style_memo: styleMemo,
-    behavior_memo: behaviorMemo,
-  });
+  const priceFinal = paymentAmount ?? reservation.price_quoted;
 
-  if (visitErr) {
-    return { error: `방문 기록 생성 실패: ${visitErr.message}` };
+  // visits 행을 먼저 생성
+  const { data: visit, error: visitErr } = await supabase
+    .from("visits")
+    .insert({
+      shop_id: staff.shop_id,
+      pet_id: reservation.pet_id,
+      reservation_id: reservationId,
+      service_id: reservation.service_id,
+      visited_at: reservation.starts_at,
+      price_final: priceFinal,
+      style_memo: styleMemo,
+      behavior_memo: behaviorMemo,
+    })
+    .select("id")
+    .single();
+
+  if (visitErr || !visit) {
+    return { error: `방문 기록 생성 실패: ${visitErr?.message}` };
+  }
+
+  // 결제 기록 생성 (skip_payment가 아닐 때)
+  if (!skipPayment && paymentMethod && priceFinal != null) {
+    const { error: payErr } = await supabase.from("payments").insert({
+      shop_id: staff.shop_id,
+      visit_id: visit.id,
+      method: paymentMethod as "cash" | "card" | "transfer",
+      amount: priceFinal,
+    });
+    if (payErr) {
+      return { error: `결제 기록 생성 실패: ${payErr.message}` };
+    }
   }
 
   // 명시적 종료 시각으로 ends_at 업데이트
@@ -221,6 +247,8 @@ export async function completeWithVisitAction(formData: FormData) {
   }
 
   revalidatePath("/calendar");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
   revalidatePath(`/pets/${reservation.pet_id}`);
   return { success: true };
 }
