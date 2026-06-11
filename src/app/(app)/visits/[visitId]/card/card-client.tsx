@@ -197,21 +197,34 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
       {(visit.beforePhotos.length > 0 || visit.afterPhotos.length > 1) && (
         <div className="mt-2 flex gap-1.5 overflow-x-auto">
           {visit.beforePhotos.map((photo, i) => (
-            <div key={`b-${i}`} className="group relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 border-transparent opacity-70">
-              <img src={photo.url} alt="" className="h-full w-full object-cover" />
-              <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-center text-[8px] font-bold text-white leading-tight">전</span>
-              <button onClick={() => setConfirmDelete({ path: photo.path, type: "before" })}
-                className="absolute -right-0.5 -top-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white group-hover:flex">×</button>
+            <div key={`b-${i}`} className="relative h-12 w-12 shrink-0">
+              <div className="h-full w-full overflow-hidden rounded-lg opacity-70">
+                <img src={photo.url} alt="" className="h-full w-full object-cover" />
+              </div>
+              <span className="absolute bottom-0 left-0 right-0 rounded-b-lg bg-black/50 text-center text-[8px] font-bold text-white leading-tight">전</span>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete({ path: photo.path, type: "before" })}
+                className="absolute -right-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow"
+              >×</button>
             </div>
           ))}
           {visit.afterPhotos.map((photo, i) => (
-            <button key={`a-${i}`} onClick={() => setSelectedPhoto(i)}
-              className={`group relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 ${i === selectedPhoto ? "border-stone-900" : "border-transparent"}`}>
-              <img src={photo.url} alt="" className="h-full w-full object-cover" />
-              <span className="absolute bottom-0 left-0 right-0 bg-stone-900/50 text-center text-[8px] font-bold text-white leading-tight">후</span>
-              <span onClick={(e) => { e.stopPropagation(); setConfirmDelete({ path: photo.path, type: "after" }); }}
-                className="absolute -right-0.5 -top-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white group-hover:flex">×</span>
-            </button>
+            <div key={`a-${i}`} className="relative h-12 w-12 shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedPhoto(i)}
+                className={`h-full w-full overflow-hidden rounded-lg border-2 ${i === selectedPhoto ? "border-stone-900" : "border-transparent"}`}
+              >
+                <img src={photo.url} alt="" className="h-full w-full object-cover" />
+              </button>
+              <span className="absolute bottom-0 left-0 right-0 rounded-b-lg bg-stone-900/50 text-center text-[8px] font-bold text-white leading-tight pointer-events-none">후</span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setConfirmDelete({ path: photo.path, type: "after" }); }}
+                className="absolute -right-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow"
+              >×</button>
+            </div>
           ))}
         </div>
       )}
