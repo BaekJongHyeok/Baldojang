@@ -3,6 +3,7 @@
 import { useTransition, useState, useMemo } from "react";
 import Link from "next/link";
 import { sizeLabel } from "@/lib/utils";
+import { Spinner } from "@/components/spinner";
 import type { CalendarReservation, DayHours } from "@/lib/calendar-data";
 
 export type FormPet = {
@@ -170,7 +171,7 @@ export function ReservationForm({
       onClick={onClose}
     >
       <div
-        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-5 shadow-lg lg:rounded-2xl"
+        className={`max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-5 shadow-lg lg:rounded-2xl ${isPending ? "pointer-events-none" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex justify-center lg:hidden">
@@ -329,9 +330,10 @@ export function ReservationForm({
               type="button"
               onClick={handleSubmit}
               disabled={isPending}
-              className="flex-1 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50"
             >
-              {isPending ? "저장 중..." : isEdit ? "수정" : "예약"}
+              {isPending && <Spinner />}
+              {isEdit ? "수정" : "예약"}
             </button>
           </div>
         </div>

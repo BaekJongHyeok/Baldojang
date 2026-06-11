@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition, useState } from "react";
+import { Spinner } from "@/components/spinner";
 import { signInAction } from "@/lib/auth-actions";
 import Link from "next/link";
 
@@ -50,9 +51,10 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isPending}
-            className="mt-2 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-50"
+            className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-50"
           >
-            {isPending ? "로그인 중..." : "로그인"}
+            {isPending && <Spinner />}
+            로그인
           </button>
 
           {error && (

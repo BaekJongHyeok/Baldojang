@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { addDays, subDays, startOfWeek, format } from "date-fns";
 import type { CalendarReservation, ShopCalendarConfig, DayHours } from "@/lib/calendar-data";
 import { kstDateStr, formatDateKST } from "@/lib/calendar-utils";
+import { toast } from "sonner";
 import {
   createReservationAction,
   updateReservationAction,
@@ -75,12 +76,6 @@ export function CalendarClient({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [formState, setFormState] = useState<FormState>(null);
   const [completeId, setCompleteId] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-
-  function showToast(msg: string) {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
-  }
 
   // 서버 prop이 바뀌면 (router.refresh 등) 동기화
   // SSR re-render 시 serverReservations가 바뀌므로 key로 동기화
@@ -178,7 +173,7 @@ export function CalendarClient({
     const result = await createReservationAction(fd);
     if (result?.error) {
       setTempItems((prev) => prev.filter((r) => r.id !== tempId));
-      showToast(result.error);
+      toast.error(result.error);
       return result;
     }
     router.refresh();
@@ -208,7 +203,7 @@ export function CalendarClient({
     const result = await updateReservationAction(fd);
     if (result?.error) {
       setPatches((prev) => { const next = new Map(prev); next.delete(reservationId); return next; });
-      showToast(result.error);
+      toast.error(result.error);
       return result;
     }
     router.refresh();
@@ -225,7 +220,7 @@ export function CalendarClient({
     const result = await changeReservationStatusAction(fd);
     if (result?.error) {
       setPatches((prev) => { const next = new Map(prev); next.delete(reservationId); return next; });
-      showToast(result.error);
+      toast.error(result.error);
     } else {
       router.refresh();
     }
@@ -249,7 +244,7 @@ export function CalendarClient({
     const result = await completeWithVisitAction(fd);
     if (result?.error) {
       setPatches((prev) => { const next = new Map(prev); next.delete(reservationId); return next; });
-      showToast(result.error);
+      toast.error(result.error);
       return result;
     }
     router.refresh();
@@ -258,13 +253,6 @@ export function CalendarClient({
 
   return (
     <div className="-mx-4 -mt-6 sm:-mx-6 lg:-mx-8 lg:-mt-8">
-      {/* 토스트 */}
-      {toast && (
-        <div className="fixed top-4 left-1/2 z-[70] -translate-x-1/2 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-lg">
-          {toast}
-        </div>
-      )}
-
       {/* 헤더 */}
       <div className="sticky top-0 z-20 border-b border-stone-200 bg-white px-4 py-3">
         <div className="flex items-center justify-between gap-2">

@@ -1,7 +1,9 @@
 "use client";
 
 import { useTransition, useState } from "react";
+import { toast } from "sonner";
 import type { Json } from "@/types/database";
+import { Spinner } from "@/components/spinner";
 
 type Service = {
   id: string;
@@ -59,7 +61,9 @@ export function ServiceFormDialog({
       const result = await action(formData);
       if (result?.error) {
         setError(result.error);
+        toast.error(result.error);
       } else {
+        toast.success(service ? "시술이 수정되었습니다." : "시술이 추가되었습니다.");
         onClose();
       }
     });
@@ -67,7 +71,7 @@ export function ServiceFormDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
+      <div className={`w-full max-w-md rounded-2xl bg-white p-6 shadow-lg ${isPending ? "pointer-events-none" : ""}`}>
         <h2 className="text-lg font-bold text-stone-900">
           {service ? "시술 수정" : "시술 추가"}
         </h2>
@@ -203,9 +207,10 @@ export function ServiceFormDialog({
             <button
               type="submit"
               disabled={isPending}
-              className="flex-1 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-50"
             >
-              {isPending ? "저장 중..." : "저장"}
+              {isPending && <Spinner />}
+              저장
             </button>
           </div>
         </form>

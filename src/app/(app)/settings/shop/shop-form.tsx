@@ -1,7 +1,9 @@
 "use client";
 
 import { useTransition, useState } from "react";
+import { toast } from "sonner";
 import { updateShopAction } from "@/lib/settings-actions";
+import { Spinner } from "@/components/spinner";
 
 const DAYS = [
   { key: "mon", label: "월" },
@@ -62,14 +64,16 @@ export function ShopSettingsForm({
       const result = await updateShopAction(formData);
       if (result?.error) {
         setMessage({ type: "error", text: result.error });
+        toast.error(result.error);
       } else {
         setMessage({ type: "success", text: "저장되었습니다." });
+        toast.success("샵 정보가 저장되었습니다.");
       }
     });
   }
 
   return (
-    <form action={handleSubmit} className="flex flex-col gap-5">
+    <form action={handleSubmit} className={`flex flex-col gap-5 ${isPending ? "pointer-events-none" : ""}`}>
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-stone-700">샵 이름</span>
         <input
@@ -175,9 +179,10 @@ export function ShopSettingsForm({
       <button
         type="submit"
         disabled={isPending}
-        className="mt-2 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-50"
+        className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-50"
       >
-        {isPending ? "저장 중..." : "저장"}
+        {isPending && <Spinner />}
+        저장
       </button>
 
       {message && (

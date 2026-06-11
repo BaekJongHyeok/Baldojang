@@ -1,8 +1,10 @@
 "use client";
 
 import { useTransition, useState, useCallback, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { formatPhone, resizeImage } from "@/lib/utils";
 import { lookupCustomerAction } from "@/lib/pet-actions";
+import { Spinner } from "@/components/spinner";
 import { createClient } from "@/lib/supabase/client";
 
 const BREEDS = [
@@ -169,12 +171,15 @@ export function PetForm({
     setError(null);
     startTransition(async () => {
       const result = await action(formData);
-      if (result?.error) setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+        toast.error(result.error);
+      }
     });
   }
 
   return (
-    <form action={handleSubmit} className="flex flex-col gap-6">
+    <form action={handleSubmit} className={`flex flex-col gap-6 ${isPending ? "pointer-events-none" : ""}`}>
       {/* 보호자 섹션 */}
       {!isEdit && (
         <fieldset className="flex flex-col gap-3 rounded-2xl bg-white p-5 shadow-sm">
@@ -417,9 +422,10 @@ export function PetForm({
       <button
         type="submit"
         disabled={isPending || uploading}
-        className="rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-50"
+        className="flex items-center justify-center gap-2 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-50"
       >
-        {isPending ? "저장 중..." : isEdit ? "수정" : "등록"}
+        {isPending && <Spinner />}
+        {isEdit ? "수정" : "등록"}
       </button>
     </form>
   );
