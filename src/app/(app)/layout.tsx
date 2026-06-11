@@ -31,10 +31,10 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-bg">
       <AppNav shopName={shopName} />
-      <main className="pb-20 lg:pl-56 lg:pb-0">
-        <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <main className="pb-16 lg:pl-[200px] lg:pb-0">
+        <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
           {children}
         </div>
       </main>
