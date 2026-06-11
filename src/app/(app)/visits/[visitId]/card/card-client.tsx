@@ -65,6 +65,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
         pixelRatio: 1,
         cacheBust: true,
         fetchRequestInit: { mode: "cors" },
+        style: { transform: "scale(1)", transformOrigin: "top left" },
       });
       setPreviewUrl(dataUrl);
       const link = document.createElement("a");
