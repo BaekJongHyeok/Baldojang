@@ -162,14 +162,19 @@ export default async function PetChartPage({
                   key={v.id}
                   className="border-l-2 border-stone-200 pl-3"
                 >
-                  <p className="text-xs text-stone-400">
-                    {new Date(v.visited_at).toLocaleDateString("ko-KR")}
-                    {service && (
-                      <span className="ml-1.5 font-medium text-stone-600">
-                        {service.name}
-                      </span>
-                    )}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-stone-400">
+                      {new Date(v.visited_at).toLocaleDateString("ko-KR")}
+                      {service && (
+                        <span className="ml-1.5 font-medium text-stone-600">
+                          {service.name}
+                        </span>
+                      )}
+                    </p>
+                    <Link href={`/visits/${v.id}/card`} className="text-[10px] font-medium text-stone-500 hover:text-stone-700">
+                      카드
+                    </Link>
+                  </div>
                   {v.style_memo && (
                     <p className="mt-1 text-sm text-stone-700">
                       {v.style_memo}

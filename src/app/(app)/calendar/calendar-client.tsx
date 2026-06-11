@@ -268,6 +268,13 @@ export function CalendarClient({
       }
     }
 
+    // 완료 카드 안내
+    if (result.visitId) {
+      toast("완료 카드를 만들어보세요", {
+        action: { label: "카드 만들기", onClick: () => router.push(`/visits/${result.visitId}/card`) },
+      });
+    }
+
     router.refresh();
     return { success: true };
   }, [router, passes]);

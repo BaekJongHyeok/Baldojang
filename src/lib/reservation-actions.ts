@@ -295,5 +295,5 @@ export async function completeWithVisitAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/reports");
   revalidatePath(`/pets/${reservation.pet_id}`);
-  return { success: true };
+  return { success: true, visitId: visit.id };
 }
