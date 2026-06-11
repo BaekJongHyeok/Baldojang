@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import type { CalendarReservation, DayHours } from "@/lib/calendar-data";
 import { kstHourMin, nowKSTMinutes } from "@/lib/calendar-utils";
 
@@ -75,6 +75,22 @@ export function DayView({
       containerRef.current.scrollTop = Math.max(0, nowTop - 100);
     }
   }, [isToday, nowTop]);
+
+  // DEV: 겹침 검증
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    const active = reservations.filter((r) => r.status !== "cancelled");
+    for (let i = 0; i < active.length; i++) {
+      for (let j = i + 1; j < active.length; j++) {
+        const a = active[i], b = active[j];
+        if (a.starts_at < b.ends_at && b.starts_at < a.ends_at) {
+          console.warn(
+            `[Calendar overlap] "${a.pet.name}" (${a.starts_at}~${a.ends_at}) ↔ "${b.pet.name}" (${b.starts_at}~${b.ends_at})`,
+          );
+        }
+      }
+    }
+  }, [reservations]);
 
   return (
     <div ref={containerRef} className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>

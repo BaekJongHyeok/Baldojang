@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { addDays, subDays, startOfWeek, format } from "date-fns";
 import type { CalendarReservation, ShopCalendarConfig, DayHours } from "@/lib/calendar-data";
@@ -42,7 +42,33 @@ export function CalendarClient({
   services: FormService[];
 }) {
   const router = useRouter();
-  const [localReservations, setLocalReservations] = useState(serverReservations);
+  // 낙관적 패치: 서버 데이터 위에 로컬 오버라이드를 적용
+  // patches: Map<id, partial update> 또는 추가(temp-*) 항목
+  const [patches, setPatches] = useState<Map<string, Partial<CalendarReservation> | "remove">>(new Map());
+  const [tempItems, setTempItems] = useState<CalendarReservation[]>([]);
+
+  // 서버 prop이 바뀌면 (router.refresh 성공) 낙관적 패치 초기화
+  const prevServerRef = useRef(serverReservations);
+  useEffect(() => {
+    if (prevServerRef.current !== serverReservations) {
+      prevServerRef.current = serverReservations;
+      setPatches(new Map());
+      setTempItems([]);
+    }
+  }, [serverReservations]);
+
+  // 서버 데이터 + 패치 병합
+  const localReservations = useMemo(() => {
+    const merged = serverReservations
+      .filter((r) => patches.get(r.id) !== "remove")
+      .map((r) => {
+        const patch = patches.get(r.id);
+        if (patch && patch !== "remove") return { ...r, ...patch };
+        return r;
+      });
+    return [...merged, ...tempItems];
+  }, [serverReservations, patches, tempItems]);
+
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [view, setView] = useState<"day" | "week">("day");
   const [showCancelled, setShowCancelled] = useState(false);
@@ -146,17 +172,15 @@ export function CalendarClient({
       customer: pet?.customer ?? null,
     };
 
-    // 즉시 반영 + 폼 닫기
-    setLocalReservations((prev) => [...prev, optimistic]);
+    setTempItems((prev) => [...prev, optimistic]);
     setFormState(null);
 
     const result = await createReservationAction(fd);
     if (result?.error) {
-      setLocalReservations((prev) => prev.filter((r) => r.id !== tempId));
+      setTempItems((prev) => prev.filter((r) => r.id !== tempId));
       showToast(result.error);
       return result;
     }
-    // 서버에서 실제 데이터로 교체
     router.refresh();
     return { success: true };
   }, [pets, services, router]);
@@ -169,31 +193,30 @@ export function CalendarClient({
     const memo = fd.get("memo") ? String(fd.get("memo")) : null;
     const svc = services.find((s) => s.id === serviceId);
 
-    const prev = localReservations;
-    setLocalReservations((list) =>
-      list.map((r) =>
-        r.id === reservationId
-          ? { ...r, starts_at: startsAt, ends_at: endsAt, memo, service: { name: svc?.name ?? r.service.name, duration_minutes: svc?.duration_minutes ?? r.service.duration_minutes } }
-          : r
-      ),
-    );
+    setPatches((prev) => {
+      const next = new Map(prev);
+      next.set(reservationId, {
+        starts_at: startsAt,
+        ends_at: endsAt,
+        memo,
+        service: { name: svc?.name ?? "", duration_minutes: svc?.duration_minutes ?? 60 },
+      });
+      return next;
+    });
     setFormState(null);
 
     const result = await updateReservationAction(fd);
     if (result?.error) {
-      setLocalReservations(prev);
+      setPatches((prev) => { const next = new Map(prev); next.delete(reservationId); return next; });
       showToast(result.error);
       return result;
     }
     router.refresh();
     return { success: true };
-  }, [services, localReservations, router]);
+  }, [services, router]);
 
   const handleStatusChange = useCallback(async (reservationId: string, status: "no_show" | "cancelled") => {
-    const prev = localReservations;
-    setLocalReservations((list) =>
-      list.map((r) => (r.id === reservationId ? { ...r, status } : r)),
-    );
+    setPatches((prev) => { const next = new Map(prev); next.set(reservationId, { status }); return next; });
     setSelectedId(null);
 
     const fd = new FormData();
@@ -201,37 +224,37 @@ export function CalendarClient({
     fd.set("status", status);
     const result = await changeReservationStatusAction(fd);
     if (result?.error) {
-      setLocalReservations(prev);
+      setPatches((prev) => { const next = new Map(prev); next.delete(reservationId); return next; });
       showToast(result.error);
     } else {
       router.refresh();
     }
-  }, [localReservations, router]);
+  }, [router]);
 
   const handleComplete = useCallback(async (fd: FormData): Promise<{ error?: string; success?: boolean }> => {
     const reservationId = String(fd.get("reservation_id"));
     const actualEndsAt = fd.get("actual_ends_at") ? String(fd.get("actual_ends_at")) : null;
 
-    const prev = localReservations;
-    setLocalReservations((list) =>
-      list.map((r) =>
-        r.id === reservationId
-          ? { ...r, status: "completed" as const, ends_at: actualEndsAt ?? r.ends_at }
-          : r
-      ),
-    );
+    setPatches((prev) => {
+      const next = new Map(prev);
+      next.set(reservationId, {
+        status: "completed" as const,
+        ...(actualEndsAt ? { ends_at: actualEndsAt } : {}),
+      });
+      return next;
+    });
     setCompleteId(null);
     setSelectedId(null);
 
     const result = await completeWithVisitAction(fd);
     if (result?.error) {
-      setLocalReservations(prev);
+      setPatches((prev) => { const next = new Map(prev); next.delete(reservationId); return next; });
       showToast(result.error);
       return result;
     }
     router.refresh();
     return { success: true };
-  }, [localReservations, router]);
+  }, [router]);
 
   return (
     <div className="-mx-4 -mt-6 sm:-mx-6 lg:-mx-8 lg:-mt-8">
