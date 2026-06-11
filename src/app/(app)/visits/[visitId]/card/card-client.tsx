@@ -45,6 +45,10 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   const [template, setTemplate] = useState<"minimal" | "photo">("minimal");
   const [ratio, setRatio] = useState<"4:5" | "9:16">("4:5");
   const [showBefore, setShowBefore] = useState(false);
+
+  // 로컬 사진 상태 (즉시 갱신용)
+  const [beforePhotos, setBeforePhotos] = useState(visit.beforePhotos);
+  const [afterPhotos, setAfterPhotos] = useState(visit.afterPhotos);
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [message, setMessage] = useState(MESSAGES[0]);
   const [customMsg, setCustomMsg] = useState("");
@@ -54,8 +58,8 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   const [uploadType, setUploadType] = useState<"before" | "after">("after");
 
   const brandColor = shop.brandColor || "#292524";
-  const hasPhotos = visit.afterPhotos.length > 0;
-  const mainPhoto = visit.afterPhotos[selectedPhoto]?.url ?? visit.afterPhotos[0]?.url ?? "";
+  const hasPhotos = afterPhotos.length > 0;
+  const mainPhoto = afterPhotos[selectedPhoto]?.url ?? afterPhotos[0]?.url ?? "";
   const displayMsg = customMsg || message;
   const size = CARD_SIZES[ratio];
 
@@ -116,28 +120,43 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
 
   function handleDelete() {
     if (!confirmDelete) return;
+    const { path, type } = confirmDelete;
+
+    // 낙관적 제거
+    const prevBefore = beforePhotos;
+    const prevAfter = afterPhotos;
+    if (type === "before") {
+      const next = beforePhotos.filter((p) => p.path !== path);
+      setBeforePhotos(next);
+      if (next.length === 0) setShowBefore(false);
+    } else {
+      const next = afterPhotos.filter((p) => p.path !== path);
+      setAfterPhotos(next);
+      if (selectedPhoto >= next.length) setSelectedPhoto(Math.max(0, next.length - 1));
+    }
+    setConfirmDelete(null);
+
     const fd = new FormData();
     fd.set("visit_id", visit.id);
-    fd.set("path", confirmDelete.path);
-    fd.set("type", confirmDelete.type);
+    fd.set("path", path);
+    fd.set("type", type);
     startTransition(async () => {
       const result = await deleteVisitPhotoAction(fd);
-      if (result?.error) toast.error(result.error);
-      else {
-        toast.success("사진이 삭제되었습니다.");
-        if (confirmDelete.type === "after" && selectedPhoto >= visit.afterPhotos.length - 1) {
-          setSelectedPhoto(Math.max(0, selectedPhoto - 1));
-        }
+      if (result?.error) {
+        toast.error(result.error);
+        // 롤백
+        setBeforePhotos(prevBefore);
+        setAfterPhotos(prevAfter);
+      } else {
         router.refresh();
       }
-      setConfirmDelete(null);
     });
   }
 
   // 카드 공통 props
   const cardProps = {
     photo: mainPhoto,
-    beforePhoto: showBefore && visit.beforePhotos.length > 0 ? visit.beforePhotos[0].url : null,
+    beforePhoto: showBefore && beforePhotos.length > 0 ? beforePhotos[0].url : null,
     petName: pet.name,
     breed: pet.breed,
     serviceName,
@@ -186,7 +205,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
           <button onClick={() => setRatio("4:5")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${ratio === "4:5" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>4:5</button>
           <button onClick={() => setRatio("9:16")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${ratio === "9:16" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>9:16</button>
         </div>
-        {visit.beforePhotos.length > 0 && (
+        {beforePhotos.length > 0 && (
           <label className="flex items-center gap-1.5 text-xs text-stone-600">
             <input type="checkbox" checked={showBefore} onChange={(e) => setShowBefore(e.target.checked)} className="rounded" />
             Before/After
@@ -194,9 +213,9 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
         )}
       </div>
 
-      {(visit.beforePhotos.length > 0 || visit.afterPhotos.length > 1) && (
+      {(beforePhotos.length > 0 || afterPhotos.length > 1) && (
         <div className="mt-2 flex gap-1.5 overflow-x-auto">
-          {visit.beforePhotos.map((photo, i) => (
+          {beforePhotos.map((photo, i) => (
             <div key={`b-${i}`} className="relative h-12 w-12 shrink-0">
               <div className="h-full w-full overflow-hidden rounded-lg opacity-70">
                 <img src={photo.url} alt="" className="h-full w-full object-cover" />
@@ -209,7 +228,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
               >×</button>
             </div>
           ))}
-          {visit.afterPhotos.map((photo, i) => (
+          {afterPhotos.map((photo, i) => (
             <div key={`a-${i}`} className="relative h-12 w-12 shrink-0">
               <button
                 type="button"
@@ -252,7 +271,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
 
       {/* 사진 추가 / Before 안내 */}
       <div className="mt-3">
-        {visit.beforePhotos.length > 0 ? (
+        {beforePhotos.length > 0 ? (
           <div className="flex gap-2 items-center">
             <div className="flex rounded-lg bg-stone-100 p-0.5">
               <button onClick={() => setUploadType("before")} className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${uploadType === "before" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>전</button>
