@@ -84,7 +84,6 @@ export function ReservationForm({
   const selectedPet = pets.find((p) => p.id === petId);
   const selectedService = services.find((s) => s.id === serviceId);
 
-  // 검색 필터
   const filteredPets = useMemo(() => {
     if (!petSearch.trim()) return pets;
     const q = petSearch.trim().toLowerCase();
@@ -98,7 +97,6 @@ export function ReservationForm({
 
   const slots = hours ? buildSlots(hours, slotMinutes) : [];
 
-  // 시술 선택 시 종료시각 자동계산
   function handleServiceChange(sid: string) {
     setServiceId(sid);
     const svc = services.find((s) => s.id === sid);
@@ -122,7 +120,6 @@ export function ReservationForm({
     }
   }
 
-  // 클라이언트 충돌 경고 (cancelled 제외 모든 상태 차단)
   const hasConflict = useMemo(() => {
     if (!startTime || !endTime) return false;
     const sISO = `${date}T${startTime}:00+09:00`;
@@ -161,24 +158,20 @@ export function ReservationForm({
       if (result?.error) {
         setError(result.error);
       }
-      // onSubmit handles closing and optimistic update
     });
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 px-4 lg:items-center"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/25 px-4 lg:items-center" onClick={onClose}>
       <div
-        className={`max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-5 shadow-lg lg:rounded-2xl ${isPending ? "pointer-events-none" : ""}`}
+        className={`max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-[20px] bg-surface-card p-5 shadow-float lg:rounded-card ${isPending ? "pointer-events-none" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex justify-center lg:hidden">
-          <div className="h-1 w-8 rounded-full bg-stone-200" />
+          <div className="h-1 w-8 rounded-full bg-warm-300" />
         </div>
 
-        <h2 className="text-lg font-bold text-stone-900">
+        <h2 className="text-[18px] font-bold text-ink">
           {isEdit ? "예약 수정" : "새 예약"}
         </h2>
 
@@ -186,7 +179,7 @@ export function ReservationForm({
           {/* 펫 선택 */}
           {!isEdit && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-stone-700">펫 선택</span>
+              <span className="text-[13px] font-medium text-ink-secondary">펫 선택</span>
               {!petId ? (
                 <>
                   <input
@@ -194,13 +187,13 @@ export function ReservationForm({
                     value={petSearch}
                     onChange={(e) => setPetSearch(e.target.value)}
                     placeholder="이름, 보호자, 전화번호 검색"
-                    className="min-w-0 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+                    className="min-w-0 rounded-input border border-border px-4 py-2.5 text-[15px] text-ink outline-none transition-colors duration-150 focus:border-accent focus:ring-1 focus:ring-accent/20"
                   />
-                  <div className="max-h-40 overflow-y-auto rounded-xl border border-stone-100">
+                  <div className="max-h-40 overflow-y-auto rounded-input border border-border-light">
                     {filteredPets.length === 0 ? (
-                      <div className="p-3 text-center text-xs text-stone-400">
+                      <div className="p-3 text-center text-[13px] text-ink-tertiary">
                         검색 결과 없음 ·{" "}
-                        <Link href="/pets/new?returnTo=/calendar" className="text-stone-700 underline">
+                        <Link href="/pets/new?returnTo=/calendar" className="font-medium text-accent hover:underline">
                           새 펫 등록
                         </Link>
                       </div>
@@ -210,15 +203,17 @@ export function ReservationForm({
                           key={p.id}
                           type="button"
                           onClick={() => { setPetId(p.id); setPetSearch(""); }}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-stone-50"
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-[15px] transition-colors hover:bg-surface-hover"
                         >
-                          <span className="font-medium text-stone-900">{p.name}</span>
-                          <span className="text-xs text-stone-400">
+                          <span className="font-medium text-ink">{p.name}</span>
+                          <span className="text-[13px] text-ink-tertiary">
                             {[p.breed, sizeLabel(p.size)].filter(Boolean).join(" · ")}
                             {p.customer && ` · ${p.customer.name}`}
                           </span>
                           {p.caution_tags.length > 0 && (
-                            <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                            <span className="ml-auto flex h-4 w-4 items-center justify-center rounded-full bg-status-danger-subtle">
+                              <svg className="h-2.5 w-2.5 text-status-danger" fill="none" viewBox="0 0 16 16" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8 4v4m0 3h.01" /></svg>
+                            </span>
                           )}
                         </button>
                       ))
@@ -226,14 +221,14 @@ export function ReservationForm({
                   </div>
                 </>
               ) : (
-                <div className="flex items-center justify-between rounded-xl bg-stone-50 px-3 py-2">
+                <div className="flex items-center justify-between rounded-input bg-surface px-3 py-2">
                   <div>
-                    <span className="text-sm font-medium text-stone-900">{selectedPet?.name}</span>
-                    <span className="ml-1.5 text-xs text-stone-500">
+                    <span className="text-[15px] font-medium text-ink">{selectedPet?.name}</span>
+                    <span className="ml-1.5 text-[13px] text-ink-tertiary">
                       {selectedPet?.customer && `· ${selectedPet.customer.name}`}
                     </span>
                   </div>
-                  <button type="button" onClick={() => setPetId("")} className="text-xs text-stone-400 hover:text-stone-600">
+                  <button type="button" onClick={() => setPetId("")} className="text-[13px] text-ink-tertiary hover:text-ink-secondary">
                     변경
                   </button>
                 </div>
@@ -241,7 +236,7 @@ export function ReservationForm({
               {selectedPet && selectedPet.caution_tags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {selectedPet.caution_tags.map((tag) => (
-                    <span key={tag} className="rounded bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+                    <span key={tag} className="rounded-badge bg-status-danger-subtle px-2 py-0.5 text-[11px] font-medium text-status-danger">
                       {tag}
                     </span>
                   ))}
@@ -252,11 +247,11 @@ export function ReservationForm({
 
           {/* 시술 선택 */}
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-stone-700">시술</span>
+            <span className="text-[13px] font-medium text-ink-secondary">시술</span>
             <select
               value={serviceId}
               onChange={(e) => handleServiceChange(e.target.value)}
-              className="min-w-0 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+              className="min-w-0 rounded-input border border-border px-4 py-2.5 text-[15px] text-ink outline-none transition-colors duration-150 focus:border-accent focus:ring-1 focus:ring-accent/20"
             >
               <option value="">선택</option>
               {services.map((s) => (
@@ -266,7 +261,7 @@ export function ReservationForm({
               ))}
             </select>
             {priceQuoted != null && (
-              <p className="text-xs text-stone-500">
+              <p className="text-[13px] text-ink-tertiary">
                 예상 금액: {priceQuoted.toLocaleString()}원
               </p>
             )}
@@ -275,11 +270,11 @@ export function ReservationForm({
           {/* 시간 */}
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-stone-700">시작</span>
+              <span className="text-[13px] font-medium text-ink-secondary">시작</span>
               <select
                 value={startTime}
                 onChange={(e) => handleStartChange(e.target.value)}
-                className="min-w-0 rounded-xl border border-stone-200 px-3 py-2.5 text-sm outline-none focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+                className="min-w-0 rounded-input border border-border px-3 py-2.5 text-[15px] text-ink outline-none transition-colors duration-150 focus:border-accent focus:ring-1 focus:ring-accent/20"
               >
                 <option value="">선택</option>
                 {slots.map((s) => (
@@ -288,41 +283,41 @@ export function ReservationForm({
               </select>
             </label>
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-stone-700">종료</span>
+              <span className="text-[13px] font-medium text-ink-secondary">종료</span>
               <input
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="min-w-0 rounded-xl border border-stone-200 px-3 py-2.5 text-sm outline-none focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+                className="min-w-0 rounded-input border border-border px-3 py-2.5 text-[15px] text-ink outline-none transition-colors duration-150 focus:border-accent focus:ring-1 focus:ring-accent/20"
               />
             </label>
           </div>
 
           {hasConflict && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+            <p className="rounded-input bg-status-danger-subtle px-3 py-2 text-[13px] font-medium text-status-danger">
               이 시간에 이미 예약이 있습니다. 제출 시 거부됩니다.
             </p>
           )}
 
           {/* 메모 */}
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-stone-700">메모</span>
+            <span className="text-[13px] font-medium text-ink-secondary">메모</span>
             <input
               type="text"
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
-              className="min-w-0 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+              className="min-w-0 rounded-input border border-border px-4 py-2.5 text-[15px] text-ink outline-none transition-colors duration-150 focus:border-accent focus:ring-1 focus:ring-accent/20"
               placeholder="선택 사항"
             />
           </label>
 
-          {error && <p className="text-center text-sm text-red-500">{error}</p>}
+          {error && <p className="text-center text-[13px] text-status-danger">{error}</p>}
 
           <div className="flex gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-xl border border-stone-200 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50"
+              className="flex-1 rounded-button border border-border py-2.5 text-[15px] font-medium text-ink transition-colors duration-150 hover:bg-surface-hover"
             >
               취소
             </button>
@@ -330,7 +325,7 @@ export function ReservationForm({
               type="button"
               onClick={handleSubmit}
               disabled={isPending}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-2 rounded-button bg-accent py-2.5 text-[15px] font-medium text-white press-scale transition-all duration-150 hover:bg-accent-hover disabled:opacity-50"
             >
               {isPending && <Spinner />}
               {isEdit ? "수정" : "예약"}

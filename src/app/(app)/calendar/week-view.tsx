@@ -14,15 +14,15 @@ function timeToMinutes(time: string): number {
 function statusColor(status: string) {
   switch (status) {
     case "confirmed":
-      return "bg-blue-100 border-blue-200 text-blue-900";
+      return "bg-accent-subtle border-accent/20 text-ink";
     case "completed":
-      return "bg-stone-100 border-stone-200 text-stone-500";
+      return "bg-warm-100 border-warm-200 text-ink-tertiary";
     case "no_show":
-      return "bg-red-100 border-red-200 text-red-800";
+      return "bg-status-danger-subtle border-status-danger/20 text-status-danger";
     case "cancelled":
-      return "bg-stone-100 border-stone-200 text-stone-400 line-through opacity-50";
+      return "bg-warm-100 border-warm-200 text-ink-faint line-through opacity-50";
     default:
-      return "bg-stone-100 border-stone-200";
+      return "bg-warm-100 border-warm-200";
   }
 }
 
@@ -82,45 +82,57 @@ export function WeekView({
   return (
     <div className="overflow-x-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
       <div className="min-w-[600px]">
-        <div className="sticky top-0 z-10 flex border-b border-stone-200 bg-white">
+        {/* 요일 헤더 */}
+        <div className="sticky top-0 z-10 flex border-b border-border bg-surface-card">
           <div className="w-10 shrink-0" />
-          {weekDays.map((d, i) => (
-            <button
-              key={d.date}
-              onClick={() => onSelectDate(d.date)}
-              className={`flex-1 py-2 text-center text-xs font-medium transition hover:bg-stone-50 ${
-                d.date === today ? "text-blue-600" : !d.hours ? "text-stone-300" : "text-stone-600"
-              }`}
-            >
-              <span className="block">{DAY_LABELS[i]}</span>
-              <span className={`block text-sm ${d.date === today ? "font-bold" : ""}`}>
-                {d.date.slice(8).replace(/^0/, "")}
-              </span>
-            </button>
-          ))}
+          {weekDays.map((d, i) => {
+            const isToday = d.date === today;
+            return (
+              <button
+                key={d.date}
+                onClick={() => onSelectDate(d.date)}
+                className={`flex-1 py-2 text-center text-[11px] font-medium transition-colors duration-150 hover:bg-surface-hover ${
+                  isToday ? "text-accent" : !d.hours ? "text-ink-faint" : "text-ink-secondary"
+                }`}
+              >
+                <span className="block">{DAY_LABELS[i]}</span>
+                <span
+                  className={`mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full text-[13px] tabular-nums ${
+                    isToday ? "bg-accent text-white font-bold" : "font-medium"
+                  }`}
+                >
+                  {d.date.slice(8).replace(/^0/, "")}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
+        {/* 그리드 */}
         <div className="relative flex" style={{ height: totalHeight }}>
+          {/* 시간 라벨 */}
           <div className="relative w-10 shrink-0">
             {slots.map((label, i) => (
-              <div key={i} className="absolute left-0 w-full text-right pr-1" style={{ top: i * SLOT_HEIGHT - 5 }}>
-                <span className="text-[9px] text-stone-400">{label}</span>
+              <div key={i} className="absolute left-0 w-full pr-1 text-right" style={{ top: i * SLOT_HEIGHT - 5 }}>
+                <span className="text-[9px] text-ink-faint tabular-nums">{label}</span>
               </div>
             ))}
           </div>
 
+          {/* 요일 컬럼 */}
           {weekDays.map((d) => {
             const isClosed = !d.hours;
             const dayRes = byDate[d.date] ?? [];
             return (
-              <div key={d.date} className="relative flex-1 border-l border-stone-100">
+              <div key={d.date} className="relative flex-1 border-l border-warm-100">
+                {/* 슬롯 라인 */}
                 {slots.map((_, i) => (
-                  <div key={i} className="absolute left-0 right-0 border-t border-stone-50" style={{ top: i * SLOT_HEIGHT }} />
+                  <div key={i} className="absolute left-0 right-0 border-t border-warm-50" style={{ top: i * SLOT_HEIGHT }} />
                 ))}
 
                 {isClosed && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-stone-50/80">
-                    <span className="text-[10px] text-stone-300">휴무</span>
+                  <div className="absolute inset-0 flex items-center justify-center bg-surface/80">
+                    <span className="text-[10px] text-ink-faint">휴무</span>
                   </div>
                 )}
 
@@ -136,12 +148,12 @@ export function WeekView({
                       <button
                         key={r.id}
                         onClick={() => onSelect(r.id)}
-                        className={`absolute inset-x-0.5 overflow-hidden rounded border px-0.5 py-px text-left ${statusColor(r.status)}`}
+                        className={`absolute inset-x-0.5 overflow-hidden rounded-badge border px-1 py-px text-left press-scale ${statusColor(r.status)}`}
                         style={{ top, height }}
                       >
-                        <p className="truncate text-[10px] font-semibold leading-tight">{r.pet.name}</p>
+                        <p className="truncate text-[10px] font-bold leading-tight">{r.pet.name}</p>
                         {height > 24 && (
-                          <p className="truncate text-[9px] opacity-75 leading-tight">{r.service.name}</p>
+                          <p className="truncate text-[9px] leading-tight opacity-70">{r.service.name}</p>
                         )}
                       </button>
                     );
