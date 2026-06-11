@@ -17,7 +17,7 @@ type Payment = {
 };
 
 type Reservation = { starts_at: string; status: string };
-type PassDeduction = { delta: number; created_at: string };
+type PassDeduction = { delta: number; created_at: string; passType: string };
 
 const RANGES = [
   { key: "today", label: "오늘" },
@@ -122,8 +122,11 @@ export function ReportsClient({
   }, [closingService]);
 
   const closingPrepaidTotal = useMemo(() => closingPrepaid.reduce((s, r) => s + r.amount, 0), [closingPrepaid]);
-  const closingDeductions = useMemo(() => {
-    return passDeductions.filter((d) => { const dt = kstDateStr(d.created_at); return dt >= closingFrom && dt <= closingTo; }).reduce((s, d) => s + Math.abs(d.delta), 0);
+  const closingDeductionData = useMemo(() => {
+    const inRange = passDeductions.filter((d) => { const dt = kstDateStr(d.created_at); return dt >= closingFrom && dt <= closingTo; });
+    const amountTotal = inRange.filter((d) => d.passType === "amount").reduce((s, d) => s + Math.abs(d.delta), 0);
+    const countTotal = inRange.filter((d) => d.passType === "count").reduce((s, d) => s + Math.abs(d.delta), 0);
+    return { amountTotal, countTotal };
   }, [passDeductions, closingFrom, closingTo]);
 
   const closingRes = useMemo(() => reservations.filter((r) => { const d = kstDateStr(r.starts_at); return d >= closingFrom && d <= closingTo; }), [reservations, closingFrom, closingTo]);
@@ -151,9 +154,9 @@ export function ReportsClient({
   // CSV
   function exportPaymentsCsv() {
     const target = tab === "closing" ? closingPayments : filtered;
-    const header = "일시,펫 이름,시술명,결제수단,금액";
+    const header = "구분,일시,이름,시술/항목,결제수단,금액";
     const rows = target.map((p) =>
-      `${formatTimestampKST(p.paid_at, "yyyy-MM-dd HH:mm")},${p.petName},${p.serviceName},${METHOD_LABELS[p.method] ?? p.method},${p.amount}`
+      `${p.hasVisit ? "시술" : "선불권 판매"},${formatTimestampKST(p.paid_at, "yyyy-MM-dd HH:mm")},${p.petName},${p.serviceName},${METHOD_LABELS[p.method] ?? p.method},${p.amount}`
     );
     downloadCsv(`결제내역_${tab === "closing" ? closingMonth : from}_${to}.csv`, [header, ...rows].join("\n"));
   }
@@ -166,7 +169,8 @@ export function ReportsClient({
       ...closingMethodStats.map((m) => `  ${m.label},${m.amount}`),
       "",
       "선불권 판매(선수금)," + closingPrepaidTotal,
-      "선불권 차감(매출인식)," + closingDeductions,
+      "선불권 차감(매출인식)," + closingDeductionData.amountTotal,
+      "횟수권 차감," + closingDeductionData.countTotal + "회",
       "미사용 잔액(부채)," + unusedPassBalance,
       "",
       "완료," + completedCount + "건",
@@ -280,7 +284,10 @@ export function ReportsClient({
           {/* 선불권 */}
           <Section title="선불권">
             <Row label="판매액 (선수금 유입)" value={`₩${closingPrepaidTotal.toLocaleString()}`} />
-            <Row label="차감액 (매출 인식)" value={`₩${closingDeductions.toLocaleString()}`} />
+            <Row label="차감액 (매출 인식)" value={`₩${closingDeductionData.amountTotal.toLocaleString()}`} />
+            {closingDeductionData.countTotal > 0 && (
+              <Row label="횟수권 차감" value={`${closingDeductionData.countTotal}회`} />
+            )}
             <Row label="미사용 잔액 총계 (부채)" value={`₩${unusedPassBalance.toLocaleString()}`} bold />
           </Section>
 

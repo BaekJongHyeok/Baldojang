@@ -21,16 +21,17 @@ export default async function ReportsPage() {
   const fromISO = new Date(twelveMonthsAgo + "T00:00:00+09:00").toISOString();
   const toISO = new Date(today + "T23:59:59+09:00").toISOString();
 
-  // 결제 데이터 (CSV용 펫 이름 포함)
+  // 결제 데이터 (CSV용 펫/보호자 이름 포함)
   const { data: payments } = await supabase
     .from("payments")
-    .select("amount, method, paid_at, visit_id, visits(services(name), pets(name))")
+    .select("amount, method, paid_at, visit_id, pass_id, visits(services(name), pets(name)), passes(name, customers(name))")
     .eq("shop_id", staff.shop_id)
     .gte("paid_at", fromISO)
     .lte("paid_at", toISO)
     .order("paid_at");
 
   const rows = (payments ?? []).map((p) => {
+    const visitId = (p as Record<string, unknown>).visit_id as string | null;
     const visit = Array.isArray(p.visits) ? p.visits[0] : p.visits;
     const svc = visit?.services
       ? Array.isArray(visit.services) ? visit.services[0] : visit.services
@@ -38,13 +39,18 @@ export default async function ReportsPage() {
     const pet = visit?.pets
       ? Array.isArray(visit.pets) ? visit.pets[0] : visit.pets
       : null;
+    const pass = Array.isArray(p.passes) ? p.passes[0] : p.passes;
+    const passCustomer = pass?.customers
+      ? Array.isArray(pass.customers) ? pass.customers[0] : pass.customers
+      : null;
+    const hasVisit = !!visitId;
     return {
       amount: p.amount,
       method: p.method as string,
       paid_at: p.paid_at,
-      serviceName: svc?.name ?? "기타",
-      petName: pet?.name ?? "",
-      hasVisit: !!(p as Record<string, unknown>).visit_id,
+      serviceName: hasVisit ? (svc?.name ?? "기타") : "선불권 판매",
+      petName: hasVisit ? (pet?.name ?? "") : (passCustomer?.name ?? "-"),
+      hasVisit,
     };
   });
 
@@ -64,10 +70,10 @@ export default async function ReportsPage() {
     .gte("created_at", fromISO)
     .lte("created_at", toISO);
 
-  // 선불권 차감 (pass_logs delta < 0)
+  // 선불권 차감 (pass_logs delta < 0, passes.type 포함)
   const { data: passLogs } = await supabase
     .from("pass_logs")
-    .select("delta, created_at")
+    .select("delta, created_at, passes(type)")
     .lt("delta", 0)
     .gte("created_at", fromISO)
     .lte("created_at", toISO);
@@ -89,10 +95,14 @@ export default async function ReportsPage() {
         status: r.status as string,
       }))}
       newPetsCount={(pets ?? []).length}
-      passDeductions={(passLogs ?? []).map((l) => ({
-        delta: l.delta,
-        created_at: l.created_at,
-      }))}
+      passDeductions={(passLogs ?? []).map((l) => {
+        const lPass = Array.isArray(l.passes) ? l.passes[0] : l.passes;
+        return {
+          delta: l.delta,
+          created_at: l.created_at,
+          passType: (lPass?.type as string) ?? "amount",
+        };
+      })}
       unusedPassBalance={unusedBalance}
       today={today}
     />
