@@ -1,26 +1,79 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* ── Semantic Colors ── */
+  --color-surface: #FAF8F5;
+  --color-surface-card: #FFFFFF;
+  --color-surface-hover: #F5F0EB;
+
+  --color-ink: #1A1815;
+  --color-ink-secondary: #6B6560;
+  --color-ink-tertiary: #9C9590;
+  --color-ink-faint: #C4BFB8;
+
+  --color-accent: #C4632A;
+  --color-accent-hover: #B05525;
+  --color-accent-subtle: #FAF0EB;
+
+  --color-border: #E8E3DE;
+  --color-border-light: #F0EBE6;
+
+  /* ── Status Colors (muted) ── */
+  --color-status-success: #4A7C59;
+  --color-status-success-subtle: #EDF5EF;
+  --color-status-warning: #9A6B1E;
+  --color-status-warning-subtle: #FBF4E4;
+  --color-status-danger: #B5403A;
+  --color-status-danger-subtle: #FDF0EF;
+  --color-status-info: #3B6FC2;
+  --color-status-info-subtle: #EEF3FC;
+
+  /* ── Warm Gray Scale ── */
+  --color-warm-50: #FAF8F5;
+  --color-warm-100: #F0EBE6;
+  --color-warm-200: #E8E3DE;
+  --color-warm-300: #D4CEC7;
+  --color-warm-400: #9C9590;
+  --color-warm-500: #6B6560;
+  --color-warm-600: #4A4540;
+  --color-warm-700: #33302C;
+  --color-warm-800: #24211E;
+  --color-warm-900: #1A1815;
+
+  /* ── Typography ── */
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', sans-serif;
+
+  /* ── Border Radius ── */
+  --radius-card: 16px;
+  --radius-button: 12px;
+  --radius-input: 10px;
+  --radius-badge: 8px;
+
+  /* ── Shadows ── */
+  --shadow-float: 0 4px 24px rgba(26, 24, 21, 0.08), 0 1px 4px rgba(26, 24, 21, 0.04);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ── Base ── */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Utility: tabular numbers for data ── */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Motion: press feedback ── */
+@media (prefers-reduced-motion: no-preference) {
+  .press-scale {
+    transition: transform 150ms ease-out;
+  }
+  .press-scale:active {
+    transform: scale(0.97);
+  }
 }
