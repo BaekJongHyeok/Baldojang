@@ -42,7 +42,7 @@ export function CalendarClient({
   today: string;
   pets: FormPet[];
   services: FormService[];
-  passes: { id: string; type: string; name: string; balance: number | null; remaining: number | null; customerId: string }[];
+  passes: { id: string; type: string; name: string; balance: number | null; remaining: number | null; expires_at: string | null; customerId: string }[];
 }) {
   const router = useRouter();
   // 낙관적 패치: 서버 데이터 위에 로컬 오버라이드를 적용
@@ -251,9 +251,26 @@ export function CalendarClient({
       toast.error(result.error);
       return result;
     }
+
+    // 선불권 소진 안내
+    const passId = String(fd.get("pass_id") ?? "");
+    const passType = String(fd.get("pass_type") ?? "");
+    const passAmount = Number(fd.get("pass_amount") ?? 0);
+    if (passId) {
+      const usedPass = passes.find((p) => p.id === passId);
+      if (usedPass) {
+        const newBalance = passType === "amount"
+          ? (usedPass.balance ?? 0) - passAmount
+          : (usedPass.remaining ?? 0) - 1;
+        if (newBalance <= 0) {
+          toast.info("선불권이 모두 소진되었습니다. 재충전을 권유해보세요.");
+        }
+      }
+    }
+
     router.refresh();
     return { success: true };
-  }, [router]);
+  }, [router, passes]);
 
   return (
     <div className="-mx-4 -mt-6 sm:-mx-6 lg:-mx-8 lg:-mt-8">
@@ -363,7 +380,7 @@ export function CalendarClient({
           priceQuoted={completeReservation.price_quoted}
           passes={completeReservation.customer
             ? passes.filter((p) => p.customerId === completeReservation.customer!.id).map((p) => ({
-                id: p.id, type: p.type, name: p.name, balance: p.balance, remaining: p.remaining,
+                id: p.id, type: p.type, name: p.name, balance: p.balance, remaining: p.remaining, expires_at: p.expires_at,
               }))
             : []}
           onClose={() => setCompleteId(null)}

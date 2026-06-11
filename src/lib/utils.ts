@@ -28,6 +28,21 @@ export function sizeLabel(size: string | null): string {
   return "";
 }
 
+/** 패스 상태 판정 */
+export type PassStatus = "active" | "depleted" | "expired";
+
+export function getPassStatus(pass: {
+  type: string;
+  balance: number | null;
+  remaining: number | null;
+  expires_at: string | null;
+}): PassStatus {
+  if (pass.expires_at && new Date(pass.expires_at) < new Date()) return "expired";
+  if (pass.type === "amount" && (pass.balance ?? 0) <= 0) return "depleted";
+  if (pass.type === "count" && (pass.remaining ?? 0) <= 0) return "depleted";
+  return "active";
+}
+
 /** 클라이언트 이미지 리사이즈 (max 1024px) */
 export function resizeImage(file: File, maxSize = 1024): Promise<Blob> {
   return new Promise((resolve, reject) => {

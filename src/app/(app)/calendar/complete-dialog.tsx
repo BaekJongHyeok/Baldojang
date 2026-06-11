@@ -3,6 +3,7 @@
 import { useTransition, useState, useMemo } from "react";
 import { kstHourMin, formatTimestampKST } from "@/lib/calendar-utils";
 import { Spinner } from "@/components/spinner";
+import { getPassStatus } from "@/lib/utils";
 
 const METHODS = [
   { value: "card", label: "카드" },
@@ -16,6 +17,7 @@ export type PassOption = {
   name: string;
   balance: number | null;
   remaining: number | null;
+  expires_at: string | null;
 };
 
 function buildEndSlots(startsAt: string, endsAt: string, slotMinutes: number): string[] {
@@ -78,6 +80,7 @@ export function CompleteDialog({
   const [actualEnd, setActualEnd] = useState(defaultEnd);
 
   // 결제
+  const activePasses = useMemo(() => passes.filter((p) => getPassStatus(p) === "active"), [passes]);
   const [amount, setAmount] = useState(priceQuoted ?? 0);
   const [method, setMethod] = useState<string>("card");
   const [skipPayment, setSkipPayment] = useState(false);
@@ -85,7 +88,7 @@ export function CompleteDialog({
   const [selectedPassId, setSelectedPassId] = useState("");
   const [extraMethod, setExtraMethod] = useState("card");
 
-  const selectedPass = passes.find((p) => p.id === selectedPassId);
+  const selectedPass = activePasses.find((p) => p.id === selectedPassId);
   const passBalance = selectedPass?.type === "amount" ? (selectedPass.balance ?? 0) : 0;
   const passDeductAmount = selectedPass?.type === "amount" ? Math.min(amount, passBalance) : 0;
   const extraAmount = selectedPass?.type === "amount" ? Math.max(0, amount - passBalance) : 0;
@@ -161,19 +164,21 @@ export function CompleteDialog({
                 </div>
 
                 {/* 선불권 토글 */}
-                {passes.length > 0 && (
+                {activePasses.length > 0 ? (
                   <label className="flex items-center gap-1.5 text-xs text-stone-600">
                     <input type="checkbox" checked={usePass} onChange={(e) => setUsePass(e.target.checked)} className="rounded" />
                     선불권 사용
                   </label>
-                )}
+                ) : passes.length > 0 ? (
+                  <p className="text-[11px] text-stone-400">사용 가능한 선불권 없음</p>
+                ) : null}
 
-                {usePass && passes.length > 0 ? (
+                {usePass && activePasses.length > 0 ? (
                   <div className="flex flex-col gap-1.5">
                     <select value={selectedPassId} onChange={(e) => setSelectedPassId(e.target.value)}
                       className="min-w-0 rounded-lg border border-stone-200 px-3 py-1.5 text-xs outline-none focus:border-stone-400">
                       <option value="">선불권 선택</option>
-                      {passes.map((p) => (
+                      {activePasses.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name} — {p.type === "amount" ? `₩${(p.balance ?? 0).toLocaleString()}` : `${p.remaining ?? 0}회`}
                         </option>

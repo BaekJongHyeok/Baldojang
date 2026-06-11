@@ -1,9 +1,10 @@
 "use client";
 
-import { useTransition, useState } from "react";
+import { useTransition, useState, useMemo } from "react";
 import { toast } from "sonner";
 import { Spinner } from "@/components/spinner";
 import { createPassAction } from "@/lib/pass-actions";
+import { getPassStatus } from "@/lib/utils";
 
 type Pass = {
   id: string;
@@ -23,14 +24,21 @@ function isExpiringSoon(expiresAt: string | null): boolean {
   return diff > 0 && diff < 30 * 24 * 60 * 60 * 1000;
 }
 
-function isExpired(expiresAt: string | null): boolean {
-  if (!expiresAt) return false;
-  return new Date(expiresAt) < new Date();
-}
-
-export function PassSection({ customerId, passes: initialPasses }: { customerId: string; passes: Pass[] }) {
+export function PassSection({ customerId, passes }: { customerId: string; passes: Pass[] }) {
   const [showForm, setShowForm] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const { active, inactive } = useMemo(() => {
+    const a: Pass[] = [];
+    const i: Pass[] = [];
+    for (const p of passes) {
+      const status = getPassStatus(p);
+      if (status === "active") a.push(p);
+      else i.push(p);
+    }
+    return { active: a, inactive: i };
+  }, [passes]);
 
   // 폼 state
   const [type, setType] = useState<"amount" | "count">("amount");
@@ -142,31 +150,68 @@ export function PassSection({ customerId, passes: initialPasses }: { customerId:
         </div>
       )}
 
-      {/* 보유 목록 */}
+      {/* 활성 패스 */}
       <div className="mt-3 flex flex-col gap-2">
-        {initialPasses.length === 0 && !showForm && (
-          <p className="py-4 text-center text-xs text-stone-400">보유 중인 선불권이 없습니다</p>
+        {active.length === 0 && !showForm && (
+          <p className="py-4 text-center text-xs text-stone-400">사용 가능한 선불권이 없습니다</p>
         )}
-        {initialPasses.map((p) => {
-          const expired = isExpired(p.expires_at);
-          const expiringSoon = isExpiringSoon(p.expires_at);
-          return (
-            <div key={p.id} className={`rounded-xl bg-white p-3 shadow-sm ${expired ? "opacity-50" : ""}`}>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-stone-900">{p.name}</span>
-                {expired && <span className="rounded bg-stone-200 px-1.5 py-0.5 text-[10px] text-stone-500">만료</span>}
-                {expiringSoon && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">만료 임박</span>}
-              </div>
-              <p className="mt-1 text-xs text-stone-500">
-                {p.type === "amount"
-                  ? `잔액 ₩${(p.balance ?? 0).toLocaleString()} / ₩${(p.total_amount ?? 0).toLocaleString()}`
-                  : `잔여 ${p.remaining ?? 0}회 / ${p.total_count ?? 0}회`}
-                {p.expires_at && ` · ~${p.expires_at}`}
-              </p>
+        {active.map((p) => (
+          <div key={p.id} className="rounded-xl bg-white p-3 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-stone-900">{p.name}</span>
+              {isExpiringSoon(p.expires_at) && (
+                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">만료 임박</span>
+              )}
             </div>
-          );
-        })}
+            <p className="mt-1 text-xs text-stone-500">
+              {p.type === "amount"
+                ? `잔액 ₩${(p.balance ?? 0).toLocaleString()} / ₩${(p.total_amount ?? 0).toLocaleString()}`
+                : `잔여 ${p.remaining ?? 0}회 / ${p.total_count ?? 0}회`}
+              {p.expires_at && ` · ~${p.expires_at}`}
+            </p>
+          </div>
+        ))}
       </div>
+
+      {/* 소진/만료 패스 */}
+      {inactive.length > 0 && (
+        <div className="mt-3">
+          <button
+            onClick={() => setShowInactive(!showInactive)}
+            className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600"
+          >
+            <svg className={`h-3 w-3 transition ${showInactive ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+            지난 선불권 ({inactive.length})
+          </button>
+          {showInactive && (
+            <div className="mt-2 flex flex-col gap-1.5">
+              {inactive.map((p) => {
+                const status = getPassStatus(p);
+                return (
+                  <div key={p.id} className="rounded-xl bg-stone-50 p-3 opacity-60">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-stone-500">{p.name}</span>
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                        status === "expired" ? "bg-red-100 text-red-600" : "bg-stone-200 text-stone-500"
+                      }`}>
+                        {status === "expired" ? "만료" : "소진"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-stone-400">
+                      {p.type === "amount"
+                        ? `잔액 ₩${(p.balance ?? 0).toLocaleString()} / ₩${(p.total_amount ?? 0).toLocaleString()}`
+                        : `잔여 ${p.remaining ?? 0}회 / ${p.total_count ?? 0}회`}
+                      {p.expires_at && ` · ~${p.expires_at}`}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

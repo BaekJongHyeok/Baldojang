@@ -101,6 +101,7 @@ export default async function CalendarPage({
         name: p.name,
         balance: p.balance,
         remaining: p.remaining,
+        expires_at: p.expires_at,
         customerId: p.customer_id,
       }))}
     />
