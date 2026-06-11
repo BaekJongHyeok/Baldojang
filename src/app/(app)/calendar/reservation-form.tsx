@@ -12,7 +12,7 @@ export type FormPet = {
   breed: string | null;
   size: string | null;
   caution_tags: string[];
-  customer: { name: string; phone: string } | null;
+  customer: { id: string; name: string; phone: string } | null;
 };
 
 export type FormService = {

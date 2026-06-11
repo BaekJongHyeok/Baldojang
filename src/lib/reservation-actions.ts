@@ -221,16 +221,62 @@ export async function completeWithVisitAction(formData: FormData) {
     return { error: `방문 기록 생성 실패: ${visitErr?.message}` };
   }
 
-  // 결제 기록 생성 (skip_payment가 아닐 때)
-  if (!skipPayment && paymentMethod && priceFinal != null) {
-    const { error: payErr } = await supabase.from("payments").insert({
-      shop_id: staff.shop_id,
-      visit_id: visit.id,
-      method: paymentMethod as "cash" | "card" | "transfer",
-      amount: priceFinal,
-    });
-    if (payErr) {
-      return { error: `결제 기록 생성 실패: ${payErr.message}` };
+  // 결제 기록 생성
+  if (!skipPayment && priceFinal != null) {
+    const passId = formData.get("pass_id") ? String(formData.get("pass_id")) : null;
+    const passType = formData.get("pass_type") ? String(formData.get("pass_type")) : null;
+    const passAmount = formData.get("pass_amount") ? Number(formData.get("pass_amount")) : 0;
+    const extraMethod = formData.get("extra_method") ? String(formData.get("extra_method")) : null;
+    const extraAmount = formData.get("extra_amount") ? Number(formData.get("extra_amount")) : 0;
+
+    if (passId && passType) {
+      // 선불권 차감 (원자적 RPC)
+      if (passType === "amount" && passAmount > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: deductErr } = await (supabase.rpc as any)("deduct_pass_amount", {
+          p_pass_id: passId,
+          p_amount: passAmount,
+          p_visit_id: visit.id,
+          p_staff_id: user.id,
+        });
+        if (deductErr) return { error: `선불권 차감 실패: ${(deductErr as { message: string }).message}` };
+      } else if (passType === "count") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: deductErr } = await (supabase.rpc as any)("deduct_pass_count", {
+          p_pass_id: passId,
+          p_visit_id: visit.id,
+          p_staff_id: user.id,
+        });
+        if (deductErr) return { error: `횟수권 차감 실패: ${(deductErr as { message: string }).message}` };
+      }
+
+      // 선불권 결제 기록
+      await supabase.from("payments").insert({
+        shop_id: staff.shop_id,
+        visit_id: visit.id,
+        method: "pass" as const,
+        amount: passType === "count" ? 0 : passAmount,
+        pass_id: passId,
+      });
+
+      // 부족분 추가 결제
+      if (extraMethod && extraAmount > 0) {
+        await supabase.from("payments").insert({
+          shop_id: staff.shop_id,
+          visit_id: visit.id,
+          method: extraMethod as "cash" | "card" | "transfer",
+          amount: extraAmount,
+        });
+      }
+    } else if (paymentMethod) {
+      // 일반 결제
+      const { error: payErr } = await supabase.from("payments").insert({
+        shop_id: staff.shop_id,
+        visit_id: visit.id,
+        method: paymentMethod as "cash" | "card" | "transfer",
+        amount: priceFinal,
+      });
+      if (payErr) return { error: `결제 기록 생성 실패: ${payErr.message}` };
     }
   }
 

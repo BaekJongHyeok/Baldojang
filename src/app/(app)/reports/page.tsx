@@ -23,7 +23,7 @@ export default async function ReportsPage() {
 
   const { data: payments } = await supabase
     .from("payments")
-    .select("amount, method, paid_at, visits(services(name))")
+    .select("amount, method, paid_at, visit_id, visits(services(name))")
     .eq("shop_id", staff.shop_id)
     .gte("paid_at", fromISO)
     .lte("paid_at", toISO)
@@ -39,6 +39,7 @@ export default async function ReportsPage() {
       method: p.method as string,
       paid_at: p.paid_at,
       serviceName: svc?.name ?? "기타",
+      hasVisit: !!(p as Record<string, unknown>).visit_id,
     };
   });
 

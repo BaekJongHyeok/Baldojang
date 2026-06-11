@@ -33,6 +33,7 @@ export function CalendarClient({
   today,
   pets,
   services,
+  passes,
 }: {
   reservations: CalendarReservation[];
   allDays: DayInfo[];
@@ -41,6 +42,7 @@ export function CalendarClient({
   today: string;
   pets: FormPet[];
   services: FormService[];
+  passes: { id: string; type: string; name: string; balance: number | null; remaining: number | null; customerId: string }[];
 }) {
   const router = useRouter();
   // 낙관적 패치: 서버 데이터 위에 로컬 오버라이드를 적용
@@ -359,6 +361,11 @@ export function CalendarClient({
           endsAt={completeReservation.ends_at}
           slotMinutes={config.slotMinutes}
           priceQuoted={completeReservation.price_quoted}
+          passes={completeReservation.customer
+            ? passes.filter((p) => p.customerId === completeReservation.customer!.id).map((p) => ({
+                id: p.id, type: p.type, name: p.name, balance: p.balance, remaining: p.remaining,
+              }))
+            : []}
           onClose={() => setCompleteId(null)}
           onSubmit={handleComplete}
         />

@@ -13,7 +13,7 @@ export type CalendarReservation = {
   price_quoted: number | null;
   pet: { id: string; name: string; photo_url: string | null };
   service: { name: string; duration_minutes: number };
-  customer: { name: string; phone: string } | null;
+  customer: { id: string; name: string; phone: string } | null;
 };
 
 export type ShopCalendarConfig = {
@@ -69,7 +69,7 @@ export async function getReservations(
   const { data } = await supabase
     .from("reservations")
     .select(
-      "id, starts_at, ends_at, status, memo, price_quoted, pets(id, name, photo_url, customers(name, phone)), services(name, duration_minutes)",
+      "id, starts_at, ends_at, status, memo, price_quoted, pets(id, name, photo_url, customers(id, name, phone)), services(name, duration_minutes)",
     )
     .eq("shop_id", shopId)
     .gte("starts_at", from)

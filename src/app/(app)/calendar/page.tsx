@@ -38,7 +38,7 @@ export default async function CalendarPage({
   const supabase = await createClient();
   const { data: pets } = await supabase
     .from("pets")
-    .select("id, name, breed, size, caution_tags, customer_id, customers(name, phone)")
+    .select("id, name, breed, size, caution_tags, customer_id, customers(id, name, phone)")
     .eq("shop_id", shopId)
     .eq("is_active", true)
     .order("name");
@@ -50,6 +50,13 @@ export default async function CalendarPage({
     .eq("shop_id", shopId)
     .eq("is_active", true)
     .order("sort_order");
+
+  // 활성 선불권 (완료 시 결제용)
+  const { data: allPasses } = await supabase
+    .from("passes")
+    .select("id, type, name, balance, remaining, expires_at, customer_id")
+    .eq("shop_id", shopId)
+    .or("expires_at.is.null,expires_at.gte." + new Date().toISOString().slice(0, 10));
 
   // 21일 날짜 정보
   const allDays = Array.from({ length: 21 }, (_, i) => {
@@ -68,7 +75,7 @@ export default async function CalendarPage({
       breed: p.breed,
       size: p.size as string | null,
       caution_tags: p.caution_tags,
-      customer: c ? { name: c.name, phone: c.phone } : null,
+      customer: c ? { id: c.id, name: c.name, phone: c.phone } : null,
     };
   });
 
@@ -88,6 +95,14 @@ export default async function CalendarPage({
       today={today}
       pets={formPets}
       services={formServices}
+      passes={(allPasses ?? []).map((p) => ({
+        id: p.id,
+        type: p.type as string,
+        name: p.name,
+        balance: p.balance,
+        remaining: p.remaining,
+        customerId: p.customer_id,
+      }))}
     />
   );
 }

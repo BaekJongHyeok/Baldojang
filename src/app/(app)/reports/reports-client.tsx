@@ -12,6 +12,7 @@ type Payment = {
   method: string;
   paid_at: string;
   serviceName: string;
+  hasVisit: boolean; // false = 선불권 판매 (선수금)
 };
 
 const RANGES = [
@@ -53,24 +54,29 @@ export function ReportsClient({ payments, today }: { payments: Payment[]; today:
     });
   }, [payments, from, to]);
 
-  const totalRevenue = useMemo(() => filtered.reduce((s, r) => s + r.amount, 0), [filtered]);
-  const avgPerVisit = useMemo(() => filtered.length > 0 ? Math.round(totalRevenue / filtered.length) : 0, [totalRevenue, filtered]);
+  // 시술 매출 (visit이 있는 것) vs 선수금 (visit 없는 것 = 선불권 판매)
+  const servicePayments = useMemo(() => filtered.filter((r) => r.hasVisit), [filtered]);
+  const prepaidSales = useMemo(() => filtered.filter((r) => !r.hasVisit), [filtered]);
+  const totalRevenue = useMemo(() => servicePayments.reduce((s, r) => s + r.amount, 0), [servicePayments]);
+  const prepaidTotal = useMemo(() => prepaidSales.reduce((s, r) => s + r.amount, 0), [prepaidSales]);
+  const passUsageCount = useMemo(() => servicePayments.filter((r) => r.method === "pass").length, [servicePayments]);
+  const avgPerVisit = useMemo(() => servicePayments.length > 0 ? Math.round(totalRevenue / servicePayments.length) : 0, [totalRevenue, servicePayments]);
 
   const serviceStats = useMemo(() => {
     const map: Record<string, { count: number; revenue: number }> = {};
-    for (const r of filtered) {
+    for (const r of servicePayments) {
       if (!map[r.serviceName]) map[r.serviceName] = { count: 0, revenue: 0 };
       map[r.serviceName].count++;
       map[r.serviceName].revenue += r.amount;
     }
     return Object.entries(map).map(([name, s]) => ({ name, ...s })).sort((a, b) => b.revenue - a.revenue);
-  }, [filtered]);
+  }, [servicePayments]);
 
   const methodStats = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const r of filtered) map[r.method] = (map[r.method] ?? 0) + r.amount;
+    for (const r of servicePayments) map[r.method] = (map[r.method] ?? 0) + r.amount;
     return Object.entries(map).map(([method, amount]) => ({ method, label: METHOD_LABELS[method] ?? method, amount }));
-  }, [filtered]);
+  }, [servicePayments]);
 
   const { dailyData, maxDaily } = useMemo(() => {
     const days = eachDayOfInterval({ start: new Date(from + "T00:00:00Z"), end: new Date(to + "T00:00:00Z") });
@@ -122,6 +128,27 @@ export function ReportsClient({ payments, today }: { payments: Payment[]; today:
           <p className="text-[11px] text-stone-500">평균 객단가</p>
         </div>
       </div>
+
+      {/* 선불권 */}
+      {(prepaidTotal > 0 || passUsageCount > 0) && (
+        <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+          <p className="text-xs font-bold text-stone-500">선불권</p>
+          <div className="mt-3 flex flex-col gap-2 text-sm">
+            {prepaidTotal > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-stone-700">선불권 판매 (선수금)</span>
+                <span className="font-medium text-stone-900">₩{prepaidTotal.toLocaleString()}</span>
+              </div>
+            )}
+            {passUsageCount > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-stone-700">횟수권 사용</span>
+                <span className="font-medium text-stone-900">{passUsageCount}건</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {showDailyChart && dailyData.length > 1 && (
         <div className="mt-6 rounded-2xl bg-white p-4 shadow-sm">

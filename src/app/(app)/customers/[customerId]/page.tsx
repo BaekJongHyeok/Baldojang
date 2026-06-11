@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { formatPhone, sizeLabel } from "@/lib/utils";
 import { getPetPhotoUrls } from "@/lib/storage";
+import { PassSection } from "./pass-section";
 
 export default async function CustomerDetailPage({
   params,
@@ -27,6 +28,13 @@ export default async function CustomerDetailPage({
   const { data: pets } = await supabase
     .from("pets")
     .select("id, name, breed, size, photo_url, caution_tags, is_active")
+    .eq("customer_id", customerId)
+    .order("created_at", { ascending: false });
+
+  // 선불권 조회
+  const { data: passes } = await supabase
+    .from("passes")
+    .select("id, type, name, total_amount, balance, total_count, remaining, expires_at, created_at")
     .eq("customer_id", customerId)
     .order("created_at", { ascending: false });
 
@@ -132,6 +140,12 @@ export default async function CustomerDetailPage({
           )}
         </div>
       </div>
+
+      {/* 선불권 */}
+      <PassSection customerId={customerId} passes={(passes ?? []).map((p) => ({
+        ...p,
+        type: p.type as string,
+      }))} />
     </div>
   );
 }
