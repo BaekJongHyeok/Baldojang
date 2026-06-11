@@ -6,7 +6,7 @@ import { toPng } from "html-to-image";
 import { toast } from "sonner";
 import { formatTimestampKST } from "@/lib/calendar-utils";
 import { resizeImage } from "@/lib/utils";
-import { addVisitPhotosAction } from "@/lib/visit-actions";
+import { addVisitPhotosAction, deleteVisitPhotoAction } from "@/lib/visit-actions";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/spinner";
 
@@ -110,6 +110,28 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
     });
   }
 
+  const [confirmDelete, setConfirmDelete] = useState<{ path: string; type: "before" | "after" } | null>(null);
+
+  function handleDelete() {
+    if (!confirmDelete) return;
+    const fd = new FormData();
+    fd.set("visit_id", visit.id);
+    fd.set("path", confirmDelete.path);
+    fd.set("type", confirmDelete.type);
+    startTransition(async () => {
+      const result = await deleteVisitPhotoAction(fd);
+      if (result?.error) toast.error(result.error);
+      else {
+        toast.success("사진이 삭제되었습니다.");
+        if (confirmDelete.type === "after" && selectedPhoto >= visit.afterPhotos.length - 1) {
+          setSelectedPhoto(Math.max(0, selectedPhoto - 1));
+        }
+        router.refresh();
+      }
+      setConfirmDelete(null);
+    });
+  }
+
   // 카드 공통 props
   const cardProps = {
     photo: mainPhoto,
@@ -173,18 +195,34 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
       {(visit.beforePhotos.length > 0 || visit.afterPhotos.length > 1) && (
         <div className="mt-2 flex gap-1.5 overflow-x-auto">
           {visit.beforePhotos.map((url, i) => (
-            <div key={`b-${i}`} className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 border-transparent opacity-70">
+            <div key={`b-${i}`} className="group relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 border-transparent opacity-70">
               <img src={url} alt="" className="h-full w-full object-cover" />
               <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-center text-[8px] font-bold text-white leading-tight">전</span>
+              <button onClick={() => setConfirmDelete({ path: visit.beforePhotos[i] ?? "", type: "before" })}
+                className="absolute -right-0.5 -top-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white group-hover:flex">×</button>
             </div>
           ))}
           {visit.afterPhotos.map((url, i) => (
             <button key={`a-${i}`} onClick={() => setSelectedPhoto(i)}
-              className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 ${i === selectedPhoto ? "border-stone-900" : "border-transparent"}`}>
+              className={`group relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 ${i === selectedPhoto ? "border-stone-900" : "border-transparent"}`}>
               <img src={url} alt="" className="h-full w-full object-cover" />
               <span className="absolute bottom-0 left-0 right-0 bg-stone-900/50 text-center text-[8px] font-bold text-white leading-tight">후</span>
+              <span onClick={(e) => { e.stopPropagation(); setConfirmDelete({ path: visit.afterPhotos[i] ?? "", type: "after" }); }}
+                className="absolute -right-0.5 -top-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white group-hover:flex">×</span>
             </button>
           ))}
+        </div>
+      )}
+
+      {/* 삭제 확인 */}
+      {confirmDelete && (
+        <div className="mt-2 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2">
+          <p className="flex-1 text-xs text-red-700">이 사진을 삭제할까요?</p>
+          <button onClick={() => setConfirmDelete(null)} className="text-xs text-stone-500">취소</button>
+          <button onClick={handleDelete} disabled={isPending}
+            className="flex items-center gap-1 rounded-lg bg-red-500 px-2.5 py-1 text-xs font-medium text-white disabled:opacity-50">
+            {isPending && <Spinner className="h-3 w-3" />}삭제
+          </button>
         </div>
       )}
 
@@ -340,6 +378,41 @@ function MinimalCard({ photo, beforePhoto, petName, breed, serviceName, date, me
 }
 
 function PhotoCard({ photo, beforePhoto, petName, serviceName, date, message, shopName, brandColor, w, h }: CardTemplateProps) {
+  const textColor = brandColor === "#292524" ? "#f5f0eb" : brandColor;
+  const photoH = Math.round(h * 0.65);
+  const gap = 2;
+
+  if (beforePhoto) {
+    // 좌우 50:50 분할 모드
+    return (
+      <div style={{ width: w, height: h, display: "flex", flexDirection: "column", overflow: "hidden", background: "#111" }}>
+        {/* 상단 로고 */}
+        <div style={{ padding: `${w * 0.03}px ${w * 0.044}px`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+          <span style={{ fontSize: w * 0.022, fontWeight: 700, color: "white" }}>{shopName}</span>
+          <span style={{ fontSize: w * 0.015, color: "rgba(255,255,255,0.6)" }}>{date}</span>
+        </div>
+        {/* 사진 분할 */}
+        <div style={{ height: photoH, display: "flex", gap, flexShrink: 0 }}>
+          <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+            <img src={beforePhoto} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+            <span style={{ position: "absolute", bottom: w * 0.015, left: w * 0.015, background: "rgba(0,0,0,0.6)", color: "white", padding: `${w * 0.004}px ${w * 0.012}px`, borderRadius: w * 0.006, fontSize: w * 0.013, fontWeight: 700, letterSpacing: 1 }}>BEFORE</span>
+          </div>
+          <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+            <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+            <span style={{ position: "absolute", bottom: w * 0.015, left: w * 0.015, background: brandColor, color: "white", padding: `${w * 0.004}px ${w * 0.012}px`, borderRadius: w * 0.006, fontSize: w * 0.013, fontWeight: 700, letterSpacing: 1 }}>AFTER</span>
+          </div>
+        </div>
+        {/* 하단 텍스트 */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: `0 ${w * 0.044}px`, overflow: "hidden" }}>
+          <p style={{ fontSize: w * 0.044, fontWeight: 800, color: "white", letterSpacing: -1, lineHeight: 1.2 }}>{petName}</p>
+          <p style={{ fontSize: w * 0.02, color: "rgba(255,255,255,0.7)", marginTop: h * 0.005 }}>{serviceName}</p>
+          <p style={{ fontSize: w * 0.02, color: textColor, marginTop: h * 0.012, fontWeight: 600 }}>{message}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 단일 사진 풀블리드
   return (
     <div style={{ width: w, height: h, position: "relative", overflow: "hidden" }}>
       <img src={photo} alt="" crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
@@ -348,16 +421,10 @@ function PhotoCard({ photo, beforePhoto, petName, serviceName, date, message, sh
         <span style={{ fontSize: w * 0.022, fontWeight: 700, color: "white", textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>{shopName}</span>
         <span style={{ fontSize: w * 0.015, color: "rgba(255,255,255,0.8)" }}>{date}</span>
       </div>
-      {beforePhoto && (
-        <div style={{ position: "absolute", top: w * 0.093, right: w * 0.044, width: w * 0.185, height: w * 0.24, borderRadius: w * 0.015, overflow: "hidden", border: "3px solid white", boxShadow: "0 4px 16px rgba(0,0,0,0.3)" }}>
-          <img src={beforePhoto} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          <span style={{ position: "absolute", bottom: w * 0.007, left: w * 0.007, background: "rgba(0,0,0,0.6)", color: "white", padding: `${w * 0.002}px ${w * 0.007}px`, borderRadius: w * 0.006, fontSize: w * 0.01, fontWeight: 600 }}>Before</span>
-        </div>
-      )}
       <div style={{ position: "absolute", bottom: w * 0.044, left: w * 0.044, right: w * 0.044, textAlign: "center" }}>
         <p style={{ fontSize: w * 0.048, fontWeight: 800, color: "white", textShadow: "0 2px 12px rgba(0,0,0,0.5)", letterSpacing: -1, lineHeight: 1.2 }}>{petName}</p>
         <p style={{ fontSize: w * 0.02, color: "rgba(255,255,255,0.9)", marginTop: h * 0.006 }}>{serviceName}</p>
-        <p style={{ fontSize: w * 0.02, color: brandColor === "#292524" ? "#f5f0eb" : brandColor, marginTop: h * 0.015, fontWeight: 600 }}>{message}</p>
+        <p style={{ fontSize: w * 0.02, color: textColor, marginTop: h * 0.015, fontWeight: 600 }}>{message}</p>
       </div>
     </div>
   );
