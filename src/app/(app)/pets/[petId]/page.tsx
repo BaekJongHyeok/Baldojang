@@ -139,53 +139,75 @@ export default async function PetChartPage({
           {!visits || visits.length === 0 ? (
             <p className="px-4 py-10 text-center text-[14px] text-ink-caption">방문 기록이 없습니다</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-[14px]">
-                <thead>
-                  <tr className="border-b border-border-light bg-border-light text-[12px] font-medium text-ink-caption">
-                    <th className="px-4 py-2">날짜</th>
-                    <th className="px-4 py-2">시술</th>
-                    <th className="px-4 py-2">사진</th>
-                    <th className="px-4 py-2">메모</th>
-                    <th className="px-4 py-2 text-right">카드</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visits.map((v) => {
-                    const service = Array.isArray(v.services) ? v.services[0] : v.services;
-                    const photoCount = v.before_photos.length + v.after_photos.length;
-                    return (
-                      <tr key={v.id} className="border-b border-border-light last:border-b-0 hover:bg-bg transition-colors">
-                        <td className="px-4 py-2.5 tabular-nums text-ink-secondary whitespace-nowrap">
-                          {new Date(v.visited_at).toLocaleDateString("ko-KR")}
-                        </td>
-                        <td className="px-4 py-2.5 text-ink">{service?.name ?? "—"}</td>
-                        <td className="px-4 py-2.5">
-                          {photoCount > 0 ? (
-                            <div className="flex gap-1">
-                              {v.before_photos.slice(0, 2).map((url, i) => (
-                                <img key={`b-${i}`} src={url} alt="전" className="h-8 w-8 rounded-sm object-cover" />
-                              ))}
-                              {v.after_photos.slice(0, 2).map((url, i) => (
-                                <img key={`a-${i}`} src={url} alt="후" className="h-8 w-8 rounded-sm object-cover" />
-                              ))}
+            <>
+              {/* 데스크톱 테이블 */}
+              <div className="hidden lg:block">
+                <table className="w-full text-left text-[14px]">
+                  <thead>
+                    <tr className="border-b border-border-light bg-border-light text-[12px] font-medium text-ink-caption">
+                      <th className="px-4 py-2">날짜</th>
+                      <th className="px-4 py-2">시술</th>
+                      <th className="px-4 py-2">사진</th>
+                      <th className="px-4 py-2">메모</th>
+                      <th className="px-4 py-2 text-right">카드</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visits.map((v) => {
+                      const service = Array.isArray(v.services) ? v.services[0] : v.services;
+                      const photoCount = v.before_photos.length + v.after_photos.length;
+                      return (
+                        <tr key={v.id} className="border-b border-border-light last:border-b-0 hover:bg-bg transition-colors">
+                          <td className="px-4 py-2.5 tabular-nums text-ink-secondary whitespace-nowrap">{new Date(v.visited_at).toLocaleDateString("ko-KR")}</td>
+                          <td className="px-4 py-2.5 text-ink">{service?.name ?? "—"}</td>
+                          <td className="px-4 py-2.5">
+                            {photoCount > 0 ? (
+                              <div className="flex gap-1">
+                                {v.before_photos.slice(0, 2).map((url, i) => <img key={`b-${i}`} src={url} alt="전" className="h-8 w-8 rounded-sm object-cover" />)}
+                                {v.after_photos.slice(0, 2).map((url, i) => <img key={`a-${i}`} src={url} alt="후" className="h-8 w-8 rounded-sm object-cover" />)}
+                              </div>
+                            ) : <span className="text-ink-disabled">—</span>}
+                          </td>
+                          <td className="px-4 py-2.5 text-ink-secondary max-w-[200px] truncate">{v.style_memo || v.behavior_memo || "—"}</td>
+                          <td className="px-4 py-2.5 text-right"><Link href={`/visits/${v.id}/card`} className="text-[12px] font-medium text-primary hover:underline">보기</Link></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {/* 모바일 리스트 */}
+              <div className="lg:hidden">
+                {visits.map((v) => {
+                  const service = Array.isArray(v.services) ? v.services[0] : v.services;
+                  const photoCount = v.before_photos.length + v.after_photos.length;
+                  return (
+                    <Link
+                      key={v.id}
+                      href={`/visits/${v.id}/card`}
+                      className="flex items-center justify-between border-b border-border-light px-4 py-3 last:border-b-0 transition-colors active:bg-bg"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[14px] font-semibold text-ink">{service?.name ?? "—"}</span>
+                          {photoCount > 0 && (
+                            <div className="flex gap-0.5">
+                              {v.before_photos.slice(0, 1).map((url, i) => <img key={`b-${i}`} src={url} alt="전" className="h-6 w-6 rounded-sm object-cover" />)}
+                              {v.after_photos.slice(0, 1).map((url, i) => <img key={`a-${i}`} src={url} alt="후" className="h-6 w-6 rounded-sm object-cover" />)}
                             </div>
-                          ) : (
-                            <span className="text-ink-disabled">—</span>
                           )}
-                        </td>
-                        <td className="px-4 py-2.5 text-ink-secondary max-w-[200px] truncate">
-                          {v.style_memo || v.behavior_memo || "—"}
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          <Link href={`/visits/${v.id}/card`} className="text-[12px] font-medium text-primary hover:underline">보기</Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                        <p className="mt-0.5 truncate text-[12px] text-ink-caption">
+                          {new Date(v.visited_at).toLocaleDateString("ko-KR")}
+                          {(v.style_memo || v.behavior_memo) && ` · ${v.style_memo || v.behavior_memo}`}
+                        </p>
+                      </div>
+                      <span className="ml-3 shrink-0 text-[12px] font-medium text-primary">카드</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       </div>

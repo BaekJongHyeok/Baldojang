@@ -92,46 +92,70 @@ export default async function DashboardPage() {
             <Link href="/calendar?new=1" className="mt-2 inline-block text-[13px] font-medium text-primary hover:underline">예약 등록하기</Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[14px]">
-              <thead>
-                <tr className="border-b border-border-light bg-border-light text-[12px] font-medium text-ink-caption">
-                  <th className="px-4 py-2">시간</th>
-                  <th className="px-4 py-2">펫</th>
-                  <th className="px-4 py-2">시술</th>
-                  <th className="px-4 py-2">상태</th>
-                  <th className="px-4 py-2 text-right">액션</th>
-                </tr>
-              </thead>
-              <tbody>
-                {active.map((r) => {
-                  const pet = Array.isArray(r.pets) ? r.pets[0] : r.pets;
-                  const svc = Array.isArray(r.services) ? r.services[0] : r.services;
-                  return (
-                    <tr key={r.id} className="border-b border-border-light last:border-b-0 hover:bg-border-light/50 transition-colors">
-                      <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-ink-secondary">
-                        {formatTimestampKST(r.starts_at, "HH:mm")}–{formatTimestampKST(r.ends_at, "HH:mm")}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <Link href={`/pets/${(r as Record<string, unknown>).pet_id ?? ""}`} className="font-medium text-ink hover:text-primary">
-                          {pet?.name ?? "?"}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-2.5 text-ink-secondary">{svc?.name ?? ""}</td>
-                      <td className="px-4 py-2.5">
-                        <span className={`inline-flex rounded-sm px-1.5 py-0.5 text-[11px] font-medium ${statusClass(r.status)}`}>
-                          {statusLabel(r.status)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-right">
-                        <Link href={`/calendar?date=${today}`} className="text-[12px] font-medium text-primary hover:underline">보기</Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            {/* 데스크톱 테이블 */}
+            <div className="hidden lg:block">
+              <table className="w-full text-left text-[14px]">
+                <thead>
+                  <tr className="border-b border-border-light bg-border-light text-[12px] font-medium text-ink-caption">
+                    <th className="px-4 py-2">시간</th>
+                    <th className="px-4 py-2">펫</th>
+                    <th className="px-4 py-2">시술</th>
+                    <th className="px-4 py-2">상태</th>
+                    <th className="px-4 py-2 text-right">액션</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {active.map((r) => {
+                    const pet = Array.isArray(r.pets) ? r.pets[0] : r.pets;
+                    const svc = Array.isArray(r.services) ? r.services[0] : r.services;
+                    return (
+                      <tr key={r.id} className="border-b border-border-light last:border-b-0 hover:bg-border-light/50 transition-colors">
+                        <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-ink-secondary">
+                          {formatTimestampKST(r.starts_at, "HH:mm")}–{formatTimestampKST(r.ends_at, "HH:mm")}
+                        </td>
+                        <td className="px-4 py-2.5 font-medium text-ink">{pet?.name ?? "?"}</td>
+                        <td className="px-4 py-2.5 text-ink-secondary">{svc?.name ?? ""}</td>
+                        <td className="px-4 py-2.5">
+                          <span className={`inline-flex rounded-sm px-1.5 py-0.5 text-[11px] font-medium ${statusClass(r.status)}`}>
+                            {statusLabel(r.status)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <Link href={`/calendar?date=${today}`} className="text-[12px] font-medium text-primary hover:underline">보기</Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {/* 모바일 리스트 */}
+            <div className="lg:hidden">
+              {active.map((r) => {
+                const pet = Array.isArray(r.pets) ? r.pets[0] : r.pets;
+                const svc = Array.isArray(r.services) ? r.services[0] : r.services;
+                return (
+                  <Link
+                    key={r.id}
+                    href={`/calendar?date=${today}`}
+                    className="flex items-center justify-between border-b border-border-light px-4 py-3 last:border-b-0 transition-colors active:bg-border-light/50"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] tabular-nums text-ink-caption">{formatTimestampKST(r.starts_at, "HH:mm")}</span>
+                        <span className="truncate text-[14px] font-semibold text-ink">{pet?.name ?? "?"}</span>
+                      </div>
+                      <p className="mt-0.5 text-[12px] text-ink-caption">{svc?.name ?? ""}</p>
+                    </div>
+                    <span className={`ml-3 shrink-0 rounded-sm px-1.5 py-0.5 text-[11px] font-medium ${statusClass(r.status)}`}>
+                      {statusLabel(r.status)}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 

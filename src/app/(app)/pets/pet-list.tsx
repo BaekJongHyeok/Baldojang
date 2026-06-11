@@ -66,75 +66,91 @@ export function PetListClient({ pets }: { pets: Pet[] }) {
         </label>
       </div>
 
-      {/* 테이블 */}
+      {/* 테이블/리스트 */}
       <div className="mt-4 overflow-hidden rounded-lg border border-border bg-white">
         {filtered.length === 0 ? (
           <p className="px-4 py-10 text-center text-[14px] text-ink-caption">
             {search ? "검색 결과가 없습니다." : "등록된 펫이 없습니다."}
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[14px]">
-              <thead>
-                <tr className="border-b border-border bg-border-light text-[12px] font-medium text-ink-caption">
-                  <th className="px-4 py-2.5">펫</th>
-                  <th className="px-4 py-2.5">견종</th>
-                  <th className="px-4 py-2.5 hidden sm:table-cell">보호자</th>
-                  <th className="px-4 py-2.5 hidden sm:table-cell">연락처</th>
-                  <th className="px-4 py-2.5">마지막 방문</th>
-                  <th className="px-4 py-2.5 w-8">주의</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((pet) => {
-                  const customer = getCustomer(pet);
-                  const hasCaution = pet.caution_tags.length > 0;
-                  return (
-                    <tr
-                      key={pet.id}
-                      className={`border-b border-border-light last:border-b-0 hover:bg-bg transition-colors ${!pet.is_active ? "opacity-50" : ""}`}
-                    >
-                      <td className="px-4 py-2.5">
-                        <Link href={`/pets/${pet.id}`} className="flex items-center gap-2.5 hover:text-primary">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-border-light text-[12px] font-bold text-ink-caption overflow-hidden">
-                            {pet.photoSignedUrl ? (
-                              <img src={pet.photoSignedUrl} alt="" className="h-full w-full object-cover" />
-                            ) : (
-                              (pet.breed ?? pet.name).charAt(0)
-                            )}
-                          </div>
-                          <span className="font-medium text-ink">{pet.name}</span>
-                        </Link>
-                      </td>
-                      <td className="px-4 py-2.5 text-ink-secondary">
-                        {[pet.breed, sizeLabel(pet.size)].filter(Boolean).join(" · ") || "—"}
-                      </td>
-                      <td className="px-4 py-2.5 text-ink-secondary hidden sm:table-cell">
-                        {customer?.name ?? "—"}
-                      </td>
-                      <td className="px-4 py-2.5 text-ink-secondary hidden sm:table-cell tabular-nums">
-                        {customer ? formatPhone(customer.phone) : "—"}
-                      </td>
-                      <td className="px-4 py-2.5 text-ink-caption tabular-nums">
-                        {pet.lastVisit
-                          ? new Date(pet.lastVisit).toLocaleDateString("ko-KR")
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-2.5 text-center">
+          <>
+            {/* 데스크톱 테이블 */}
+            <div className="hidden lg:block">
+              <table className="w-full text-left text-[14px]">
+                <thead>
+                  <tr className="border-b border-border bg-border-light text-[12px] font-medium text-ink-caption">
+                    <th className="px-4 py-2.5">펫</th>
+                    <th className="px-4 py-2.5">견종</th>
+                    <th className="px-4 py-2.5">보호자</th>
+                    <th className="px-4 py-2.5">연락처</th>
+                    <th className="px-4 py-2.5">마지막 방문</th>
+                    <th className="px-4 py-2.5 w-8">주의</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((pet) => {
+                    const customer = getCustomer(pet);
+                    const hasCaution = pet.caution_tags.length > 0;
+                    return (
+                      <tr key={pet.id} className={`border-b border-border-light last:border-b-0 hover:bg-bg transition-colors ${!pet.is_active ? "opacity-50" : ""}`}>
+                        <td className="px-4 py-2.5">
+                          <Link href={`/pets/${pet.id}`} className="flex items-center gap-2.5 hover:text-primary">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-border-light text-[12px] font-bold text-ink-caption overflow-hidden">
+                              {pet.photoSignedUrl ? <img src={pet.photoSignedUrl} alt="" className="h-full w-full object-cover" /> : (pet.breed ?? pet.name).charAt(0)}
+                            </div>
+                            <span className="font-medium text-ink">{pet.name}</span>
+                          </Link>
+                        </td>
+                        <td className="px-4 py-2.5 text-ink-secondary">{[pet.breed, sizeLabel(pet.size)].filter(Boolean).join(" · ") || "—"}</td>
+                        <td className="px-4 py-2.5 text-ink-secondary">{customer?.name ?? "—"}</td>
+                        <td className="px-4 py-2.5 text-ink-secondary tabular-nums">{customer ? formatPhone(customer.phone) : "—"}</td>
+                        <td className="px-4 py-2.5 text-ink-caption tabular-nums">{pet.lastVisit ? new Date(pet.lastVisit).toLocaleDateString("ko-KR") : "—"}</td>
+                        <td className="px-4 py-2.5 text-center">
+                          {hasCaution && (
+                            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-danger-light">
+                              <svg className="h-3 w-3 text-danger" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {/* 모바일 리스트 */}
+            <div className="lg:hidden">
+              {filtered.map((pet) => {
+                const customer = getCustomer(pet);
+                const hasCaution = pet.caution_tags.length > 0;
+                return (
+                  <Link
+                    key={pet.id}
+                    href={`/pets/${pet.id}`}
+                    className={`flex items-center gap-3 border-b border-border-light px-4 py-3 last:border-b-0 transition-colors active:bg-bg ${!pet.is_active ? "opacity-50" : ""}`}
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-border-light text-[14px] font-bold text-ink-caption overflow-hidden">
+                      {pet.photoSignedUrl ? <img src={pet.photoSignedUrl} alt="" className="h-full w-full object-cover" /> : (pet.breed ?? pet.name).charAt(0)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate text-[14px] font-semibold text-ink">{pet.name}</span>
                         {hasCaution && (
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-danger-light">
-                            <svg className="h-3 w-3 text-danger" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                            </svg>
+                          <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-danger-light">
+                            <svg className="h-2.5 w-2.5 text-danger" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
                           </span>
                         )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                      <p className="mt-0.5 truncate text-[12px] text-ink-caption">
+                        {[pet.breed, sizeLabel(pet.size), customer?.name, pet.lastVisit ? new Date(pet.lastVisit).toLocaleDateString("ko-KR") : null].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                    <svg className="h-4 w-4 shrink-0 text-ink-disabled" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                  </Link>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>
