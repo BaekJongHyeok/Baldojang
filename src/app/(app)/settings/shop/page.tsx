@@ -19,7 +19,7 @@ export default async function ShopSettingsPage() {
 
   const { data: shop } = await supabase
     .from("shops")
-    .select("name, phone, address, open_hours, slot_minutes")
+    .select("name, phone, address, open_hours, slot_minutes, default_cycle_weeks")
     .eq("id", staff.shop_id)
     .single();
 
@@ -40,7 +40,7 @@ export default async function ShopSettingsPage() {
           address={shop.address ?? ""}
           openHours={openHours}
           slotMinutes={shop.slot_minutes}
-          defaultCycleWeeks={5}
+          defaultCycleWeeks={shop.default_cycle_weeks}
         />
       </div>
     </div>

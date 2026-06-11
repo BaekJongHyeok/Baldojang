@@ -56,7 +56,8 @@ export default async function DashboardPage() {
   const todayRevenue = (todayPayments ?? []).reduce((sum, p) => sum + p.amount, 0);
 
   // 재방문 대상 수 (간이 계산: 마지막 visit + default_cycle_weeks 경과한 활성 펫)
-  const defCycle = 5; // 0005 마이그레이션 후 shops.default_cycle_weeks에서 조회
+  const { data: shopCfg } = await supabase.from("shops").select("default_cycle_weeks").eq("id", staff.shop_id).single();
+  const defCycle = shopCfg?.default_cycle_weeks ?? 5;
   const cutoff = new Date(Date.now() - (defCycle - 1) * 7 * 24 * 60 * 60 * 1000).toISOString();
   const { data: oldVisits } = await supabase
     .from("visits")

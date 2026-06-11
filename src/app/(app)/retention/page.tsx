@@ -15,7 +15,8 @@ export default async function RetentionPage() {
   if (!staff) redirect("/dashboard");
 
   // 샵 기본 주기
-  const defaultCycle = 5; // 0005 마이그레이션 후 shops.default_cycle_weeks에서 조회
+  const { data: shop } = await supabase.from("shops").select("default_cycle_weeks").eq("id", staff.shop_id).single();
+  const defaultCycle = shop?.default_cycle_weeks ?? 5;
 
   // 활성 펫 + 마지막 visit + 시술 + 보호자
   const { data: pets } = await supabase
@@ -44,14 +45,12 @@ export default async function RetentionPage() {
 
   // 최근 연락 기록 (2주 이내)
   const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-  // retention_contacts (0005 마이그레이션 후 사용 가능)
-  let contacts: { pet_id: string }[] = [];
-  try {
-    const { data } = await (supabase as any).from("retention_contacts").select("pet_id, contacted_at").gte("contacted_at", twoWeeksAgo);
-    contacts = data ?? [];
-  } catch { /* 테이블 미생성 시 무시 */ }
+  const { data: contacts } = await supabase
+    .from("retention_contacts")
+    .select("pet_id, contacted_at")
+    .gte("contacted_at", twoWeeksAgo);
 
-  const contactedSet = new Set((contacts ?? []).map((c) => c.pet_id));
+  const contactedSet = new Set((contacts ?? []).map((c: { pet_id: string }) => c.pet_id));
 
   // pet별 마지막 visit 매핑
   const lastVisitMap: Record<string, { visited_at: string; serviceName: string; cycleWeeks: number }> = {};

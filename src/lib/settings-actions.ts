@@ -42,7 +42,7 @@ export async function updateShopAction(formData: FormData) {
       address,
       slot_minutes: slotMinutes,
       open_hours: openHours,
-      ...({ default_cycle_weeks: defaultCycleWeeks } as Record<string, number>),
+      default_cycle_weeks: defaultCycleWeeks,
     })
     .eq("id", staff.shop_id);
 

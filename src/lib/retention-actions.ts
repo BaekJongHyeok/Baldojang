@@ -10,7 +10,7 @@ export async function markContactedAction(formData: FormData) {
 
   const petId = String(formData.get("pet_id"));
 
-  const { error } = await (supabase as any).from("retention_contacts").insert({
+  const { error } = await supabase.from("retention_contacts").insert({
     pet_id: petId,
     staff_id: user.id,
   });

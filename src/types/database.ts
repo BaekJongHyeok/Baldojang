@@ -414,6 +414,45 @@ export type Database = {
           },
         ]
       }
+      retention_contacts: {
+        Row: {
+          contacted_at: string
+          created_at: string
+          id: string
+          pet_id: string
+          staff_id: string | null
+        }
+        Insert: {
+          contacted_at?: string
+          created_at?: string
+          id?: string
+          pet_id: string
+          staff_id?: string | null
+        }
+        Update: {
+          contacted_at?: string
+          created_at?: string
+          id?: string
+          pet_id?: string
+          staff_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retention_contacts_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "retention_contacts_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           created_at: string
@@ -463,6 +502,7 @@ export type Database = {
           address: string | null
           brand_color: string | null
           created_at: string
+          default_cycle_weeks: number
           id: string
           logo_url: string | null
           name: string
@@ -474,6 +514,7 @@ export type Database = {
           address?: string | null
           brand_color?: string | null
           created_at?: string
+          default_cycle_weeks?: number
           id?: string
           logo_url?: string | null
           name: string
@@ -485,6 +526,7 @@ export type Database = {
           address?: string | null
           brand_color?: string | null
           created_at?: string
+          default_cycle_weeks?: number
           id?: string
           logo_url?: string | null
           name?: string
