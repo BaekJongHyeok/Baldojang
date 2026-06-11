@@ -55,7 +55,6 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   const [downloading, setDownloading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [uploadType, setUploadType] = useState<"before" | "after">("after");
 
   const brandColor = shop.brandColor || "#292524";
   // 전체 사진 목록 (after 우선, before 이후)
@@ -92,28 +91,50 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
     }
   }, [size, pet.name, visit.visitedAt]);
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>, typeOverride?: "before" | "after") {
+  // 자동 타입 결정: after 우선 채움, 있으면 before
+  const nextUploadType: "before" | "after" | null = (() => {
+    if (afterPhotos.length === 0) return "after";
+    if (beforePhotos.length === 0) return "before";
+    return null; // 둘 다 차 있음
+  })();
+
+  const uploadLabel = nextUploadType === "after"
+    ? (beforePhotos.length > 0 ? "시술 후 사진 추가" : "시술 후 사진 추가")
+    : nextUploadType === "before"
+      ? "시술 전 사진 추가"
+      : "";
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
-    const type = typeOverride ?? uploadType;
+    if (!files || files.length === 0 || !nextUploadType) return;
+    const type = nextUploadType;
+    const file = files[0]; // 1장만
     startTransition(async () => {
       const supabase = createClient();
-      const urls: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const resized = await resizeImage(files[i], 1600);
-        const path = `${shopId}/${visit.id}/${type}-${Date.now()}-${i}.webp`;
-        const { error } = await supabase.storage.from("visit-photos").upload(path, resized, { contentType: "image/webp" });
-        if (error) { toast.error(`업로드 실패: ${error.message}`); return; }
-        urls.push(path);
-      }
+      const resized = await resizeImage(file, 1600);
+      const path = `${shopId}/${visit.id}/${type}-${Date.now()}.webp`;
+      const { error: upErr } = await supabase.storage.from("visit-photos").upload(path, resized, { contentType: "image/webp" });
+      if (upErr) { toast.error(`업로드 실패: ${upErr.message}`); return; }
+
+      // signed URL 생성 (즉시 표시용)
+      const { data: signed } = await supabase.storage.from("visit-photos").createSignedUrl(path, 3600);
+      const url = signed?.signedUrl ?? "";
+
       const fd = new FormData();
       fd.set("visit_id", visit.id);
       fd.set("type", type);
-      fd.set("urls", urls.join(","));
+      fd.set("urls", path);
       const result = await addVisitPhotosAction(fd);
       if (result?.error) {
         toast.error(result.error);
       } else {
+        // 즉시 로컬 상태 반영
+        const newPhoto = { path, url };
+        if (type === "before") {
+          setBeforePhotos((prev) => [...prev, newPhoto]);
+        } else {
+          setAfterPhotos((prev) => [...prev, newPhoto]);
+        }
         toast.success("사진이 등록되었습니다.");
         router.refresh();
       }
@@ -182,17 +203,11 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
           <p className="text-4xl">📷</p>
           <p className="mt-3 text-sm font-medium text-stone-700">시술 사진을 등록해주세요</p>
           <p className="mt-1 text-xs text-stone-500">시술 사진을 등록하면 완료 카드를 만들 수 있어요</p>
-          <div className="mt-4 flex flex-col gap-2">
-            <div className="flex gap-2 justify-center">
-              <button onClick={() => setUploadType("before")} className={`rounded-lg px-3 py-1 text-xs font-medium ${uploadType === "before" ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600"}`}>시술 전</button>
-              <button onClick={() => setUploadType("after")} className={`rounded-lg px-3 py-1 text-xs font-medium ${uploadType === "after" ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600"}`}>시술 후</button>
-            </div>
-            <label className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white cursor-pointer hover:bg-stone-800">
-              {isPending ? <Spinner /> : null}
-              사진 선택
-              <input type="file" accept="image/*" multiple onChange={(e) => handleUpload(e, uploadType)} className="hidden" />
-            </label>
-          </div>
+          <label className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-stone-900 px-6 py-2.5 text-sm font-medium text-white cursor-pointer hover:bg-stone-800">
+            {isPending ? <Spinner /> : null}
+            시술 후 사진 추가
+            <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+          </label>
         </div>
       </div>
     );
@@ -266,22 +281,18 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
         placeholder="직접 입력" className="mt-1.5 w-full min-w-0 rounded-lg border border-stone-200 px-3 py-1.5 text-xs outline-none focus:border-stone-400" />
 
       {/* 사진 추가 */}
-      <div className="mt-3 flex flex-col gap-2">
-        <div className="flex gap-2 items-center">
-          <div className="flex rounded-lg bg-stone-100 p-0.5">
-            <button onClick={() => setUploadType("before")} className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${uploadType === "before" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>전</button>
-            <button onClick={() => setUploadType("after")} className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${uploadType === "after" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>후</button>
-          </div>
-          <label className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-stone-600 cursor-pointer hover:bg-stone-50">
+      {nextUploadType && (
+        <div className="mt-3">
+          <label className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-[11px] font-medium text-stone-600 cursor-pointer hover:bg-stone-50">
             {isPending && <Spinner className="h-3 w-3" />}
-            + 사진 추가
-            <input type="file" accept="image/*" multiple onChange={(e) => handleUpload(e, uploadType)} className="hidden" />
+            + {uploadLabel}
+            <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
           </label>
+          {nextUploadType === "before" && (
+            <p className="mt-1 text-[11px] text-stone-400">전 사진을 추가하면 비포/애프터 카드를 만들 수 있어요</p>
+          )}
         </div>
-        {!canShowBeforeAfter && afterPhotos.length > 0 && beforePhotos.length === 0 && (
-          <p className="text-[11px] text-stone-400">전 사진을 추가하면 비포/애프터 카드를 만들 수 있어요</p>
-        )}
-      </div>
+      )}
 
       {/* 미리보기: aspect-ratio wrapper + 내부 카드를 100%로 채움 */}
       <div

@@ -22,7 +22,10 @@ export async function addVisitPhotosAction(formData: FormData) {
   if (!visit) return { error: "방문 기록을 찾을 수 없습니다." };
 
   const existing = type === "before" ? visit.before_photos : visit.after_photos;
-  const updated = [...existing, ...urls];
+  if (existing.length >= 1) {
+    return { error: `${type === "before" ? "전" : "후"} 사진은 1장만 등록할 수 있습니다. 기존 사진을 삭제 후 추가해주세요.` };
+  }
+  const updated = [...existing, urls[0]];
 
   const updateData = type === "before"
     ? { before_photos: updated }
