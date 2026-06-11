@@ -6,7 +6,7 @@ import { toPng } from "html-to-image";
 import { toast } from "sonner";
 import { formatTimestampKST } from "@/lib/calendar-utils";
 import { resizeImage } from "@/lib/utils";
-import { addVisitPhotosAction, deleteVisitPhotoAction } from "@/lib/visit-actions";
+import { addVisitPhotosAction, deleteVisitPhotoAction, moveVisitPhotoAction } from "@/lib/visit-actions";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/spinner";
 
@@ -20,171 +20,53 @@ const MESSAGES = [
 type PhotoItem = { path: string; url: string };
 
 type Props = {
-  visit: {
-    id: string;
-    visitedAt: string;
-    styleMemo: string | null;
-    beforePhotos: PhotoItem[];
-    afterPhotos: PhotoItem[];
-  };
+  visit: { id: string; visitedAt: string; styleMemo: string | null; beforePhotos: PhotoItem[]; afterPhotos: PhotoItem[] };
   pet: { id: string; name: string; breed: string };
   serviceName: string;
   shop: { name: string; phone: string; logoUrl: string | null; brandColor: string | null };
   shopId: string;
 };
 
-// 카드 실제 해상도
-const CARD_SIZES = {
-  "4:5": { w: 1080, h: 1350 },
-  "9:16": { w: 1080, h: 1920 },
-} as const;
+const CARD_SIZES = { "4:5": { w: 1080, h: 1350 }, "9:16": { w: 1080, h: 1920 } } as const;
 
 export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   const router = useRouter();
   const renderRef = useRef<HTMLDivElement>(null);
   const [template, setTemplate] = useState<"minimal" | "photo">("minimal");
   const [ratio, setRatio] = useState<"4:5" | "9:16">("4:5");
-  const [showBefore, setShowBefore] = useState(false);
 
-  // 로컬 사진 상태 (즉시 갱신용)
   const [beforePhotos, setBeforePhotos] = useState(visit.beforePhotos);
   const [afterPhotos, setAfterPhotos] = useState(visit.afterPhotos);
-  const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [message, setMessage] = useState(MESSAGES[0]);
   const [customMsg, setCustomMsg] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [confirmDelete, setConfirmDelete] = useState<{ path: string; type: "before" | "after" } | null>(null);
+
+  // 비포/애프터 모드
+  const [baMode, setBaMode] = useState(beforePhotos.length > 0 && afterPhotos.length > 0);
+  const [assignStep, setAssignStep] = useState<"ask" | "upload" | null>(null);
 
   const brandColor = shop.brandColor || "#292524";
-  // 전체 사진 목록 (after 우선, before 이후)
-  const allPhotos = [...afterPhotos.map((p) => ({ ...p, label: "후" as const })), ...beforePhotos.map((p) => ({ ...p, label: "전" as const }))];
-  const hasPhotos = allPhotos.length > 0;
-  const safeIdx = Math.min(selectedPhoto, allPhotos.length - 1);
-  const mainPhoto = allPhotos[safeIdx]?.url ?? "";
-  const canShowBeforeAfter = beforePhotos.length > 0 && afterPhotos.length > 0;
+  const totalPhotos = beforePhotos.length + afterPhotos.length;
+  const hasPhotos = totalPhotos > 0;
+  const hasBothPhotos = beforePhotos.length > 0 && afterPhotos.length > 0;
+
+  // 단일 모드: 카드에 표시할 사진 (어느 배열에 있든 첫 장)
+  const singlePhoto = afterPhotos[0]?.url ?? beforePhotos[0]?.url ?? "";
+
+  // BA 모드: before/after 각각
+  const beforeUrl = beforePhotos[0]?.url ?? null;
+  const afterUrl = afterPhotos[0]?.url ?? null;
+
   const displayMsg = customMsg || message;
   const size = CARD_SIZES[ratio];
 
-  const handleDownload = useCallback(async () => {
-    if (!renderRef.current) return;
-    setDownloading(true);
-    try {
-      const dataUrl = await toPng(renderRef.current, {
-        canvasWidth: size.w * 2,
-        canvasHeight: size.h * 2,
-        pixelRatio: 1,
-        cacheBust: true,
-        fetchRequestInit: { mode: "cors" },
-        style: { transform: "scale(1)", transformOrigin: "top left" },
-      });
-      setPreviewUrl(dataUrl);
-      const link = document.createElement("a");
-      link.download = `${pet.name}_${formatTimestampKST(visit.visitedAt, "yyyyMMdd")}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (err) {
-      toast.error("이미지 생성에 실패했습니다.");
-      console.error(err);
-    } finally {
-      setDownloading(false);
-    }
-  }, [size, pet.name, visit.visitedAt]);
-
-  // 자동 타입 결정: after 우선 채움, 있으면 before
-  const nextUploadType: "before" | "after" | null = (() => {
-    if (afterPhotos.length === 0) return "after";
-    if (beforePhotos.length === 0) return "before";
-    return null; // 둘 다 차 있음
-  })();
-
-  const uploadLabel = nextUploadType === "after"
-    ? (beforePhotos.length > 0 ? "시술 후 사진 추가" : "시술 후 사진 추가")
-    : nextUploadType === "before"
-      ? "시술 전 사진 추가"
-      : "";
-
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    if (!files || files.length === 0 || !nextUploadType) return;
-    const type = nextUploadType;
-    const file = files[0]; // 1장만
-    startTransition(async () => {
-      const supabase = createClient();
-      const resized = await resizeImage(file, 1600);
-      const path = `${shopId}/${visit.id}/${type}-${Date.now()}.webp`;
-      const { error: upErr } = await supabase.storage.from("visit-photos").upload(path, resized, { contentType: "image/webp" });
-      if (upErr) { toast.error(`업로드 실패: ${upErr.message}`); return; }
-
-      // signed URL 생성 (즉시 표시용)
-      const { data: signed } = await supabase.storage.from("visit-photos").createSignedUrl(path, 3600);
-      const url = signed?.signedUrl ?? "";
-
-      const fd = new FormData();
-      fd.set("visit_id", visit.id);
-      fd.set("type", type);
-      fd.set("urls", path);
-      const result = await addVisitPhotosAction(fd);
-      if (result?.error) {
-        toast.error(result.error);
-      } else {
-        // 즉시 로컬 상태 반영
-        const newPhoto = { path, url };
-        if (type === "before") {
-          setBeforePhotos((prev) => [...prev, newPhoto]);
-        } else {
-          setAfterPhotos((prev) => [...prev, newPhoto]);
-        }
-        toast.success("사진이 등록되었습니다.");
-        router.refresh();
-      }
-    });
-  }
-
-  const [confirmDelete, setConfirmDelete] = useState<{ path: string; type: "before" | "after" } | null>(null);
-
-  function handleDelete() {
-    if (!confirmDelete) return;
-    const { path, type } = confirmDelete;
-
-    // 낙관적 제거
-    const prevBefore = beforePhotos;
-    const prevAfter = afterPhotos;
-    if (type === "before") {
-      const next = beforePhotos.filter((p) => p.path !== path);
-      setBeforePhotos(next);
-      if (next.length === 0) setShowBefore(false);
-    } else {
-      setAfterPhotos(afterPhotos.filter((p) => p.path !== path));
-    }
-    // selectedPhoto 보정 (allPhotos가 줄어들므로)
-    const totalAfter = type === "after" ? afterPhotos.length - 1 : afterPhotos.length;
-    const totalBefore = type === "before" ? beforePhotos.length - 1 : beforePhotos.length;
-    const newTotal = totalAfter + totalBefore;
-    if (selectedPhoto >= newTotal) setSelectedPhoto(Math.max(0, newTotal - 1));
-    setConfirmDelete(null);
-
-    const fd = new FormData();
-    fd.set("visit_id", visit.id);
-    fd.set("path", path);
-    fd.set("type", type);
-    startTransition(async () => {
-      const result = await deleteVisitPhotoAction(fd);
-      if (result?.error) {
-        toast.error(result.error);
-        // 롤백
-        setBeforePhotos(prevBefore);
-        setAfterPhotos(prevAfter);
-      } else {
-        router.refresh();
-      }
-    });
-  }
-
-  // 카드 공통 props
+  // 카드 props
   const cardProps = {
-    photo: mainPhoto,
-    beforePhoto: showBefore && beforePhotos.length > 0 ? beforePhotos[0].url : null,
+    photo: baMode && afterUrl ? afterUrl : singlePhoto,
+    beforePhoto: baMode && hasBothPhotos ? beforeUrl : null,
     petName: pet.name,
     breed: pet.breed,
     serviceName,
@@ -195,6 +77,117 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
     brandColor,
   };
 
+  const handleDownload = useCallback(async () => {
+    if (!renderRef.current) return;
+    setDownloading(true);
+    try {
+      const dataUrl = await toPng(renderRef.current, {
+        canvasWidth: size.w * 2, canvasHeight: size.h * 2, pixelRatio: 1,
+        cacheBust: true, fetchRequestInit: { mode: "cors" },
+        style: { transform: "scale(1)", transformOrigin: "top left" },
+      });
+      setPreviewUrl(dataUrl);
+      const link = document.createElement("a");
+      link.download = `${pet.name}_${formatTimestampKST(visit.visitedAt, "yyyyMMdd")}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch { toast.error("이미지 생성에 실패했습니다."); }
+    finally { setDownloading(false); }
+  }, [size, pet.name, visit.visitedAt]);
+
+  async function uploadPhoto(file: File, type: "before" | "after") {
+    const supabase = createClient();
+    const resized = await resizeImage(file, 1600);
+    const path = `${shopId}/${visit.id}/${type}-${Date.now()}.webp`;
+    const { error: upErr } = await supabase.storage.from("visit-photos").upload(path, resized, { contentType: "image/webp" });
+    if (upErr) { toast.error(`업로드 실패: ${upErr.message}`); return null; }
+    const { data: signed } = await supabase.storage.from("visit-photos").createSignedUrl(path, 3600);
+    const url = signed?.signedUrl ?? "";
+    const fd = new FormData();
+    fd.set("visit_id", visit.id); fd.set("type", type); fd.set("urls", path);
+    const result = await addVisitPhotosAction(fd);
+    if (result?.error) { toast.error(result.error); return null; }
+    return { path, url };
+  }
+
+  // 0장 → 사진 추가 (after로 저장)
+  function handleFirstUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    startTransition(async () => {
+      const photo = await uploadPhoto(file, "after");
+      if (photo) { setAfterPhotos([photo]); toast.success("사진이 등록되었습니다."); router.refresh(); }
+    });
+  }
+
+  // BA 모드: 기존 사진 타입 지정
+  function handleAssignType(type: "before" | "after") {
+    const existingPhoto = afterPhotos[0] ?? beforePhotos[0];
+    if (!existingPhoto) return;
+    const currentType = afterPhotos.length > 0 ? "after" : "before";
+    if (currentType === type) {
+      setAssignStep("upload");
+      return;
+    }
+    // 이동 필요
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("visit_id", visit.id); fd.set("path", existingPhoto.path);
+      fd.set("from", currentType); fd.set("to", type);
+      const result = await moveVisitPhotoAction(fd);
+      if (result?.error) { toast.error(result.error); return; }
+      if (type === "before") {
+        setBeforePhotos([existingPhoto]); setAfterPhotos([]);
+      } else {
+        setAfterPhotos([existingPhoto]); setBeforePhotos([]);
+      }
+      setAssignStep("upload");
+      router.refresh();
+    });
+  }
+
+  // BA 모드: 나머지 사진 업로드
+  function handleSecondUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const type = afterPhotos.length === 0 ? "after" : "before";
+    startTransition(async () => {
+      const photo = await uploadPhoto(file, type);
+      if (photo) {
+        if (type === "before") setBeforePhotos([photo]);
+        else setAfterPhotos([photo]);
+        setAssignStep(null);
+        toast.success("비포/애프터 카드가 준비되었습니다!");
+        router.refresh();
+      }
+    });
+  }
+
+  function handleDelete() {
+    if (!confirmDelete) return;
+    const { path, type } = confirmDelete;
+    const prevB = beforePhotos, prevA = afterPhotos;
+    if (type === "before") setBeforePhotos(beforePhotos.filter((p) => p.path !== path));
+    else setAfterPhotos(afterPhotos.filter((p) => p.path !== path));
+    if (type === "before" && beforePhotos.length <= 1) { setBaMode(false); setAssignStep(null); }
+    if (type === "after" && afterPhotos.length <= 1 && beforePhotos.length === 0) { setBaMode(false); setAssignStep(null); }
+    setConfirmDelete(null);
+    const fd = new FormData();
+    fd.set("visit_id", visit.id); fd.set("path", path); fd.set("type", type);
+    startTransition(async () => {
+      const result = await deleteVisitPhotoAction(fd);
+      if (result?.error) { toast.error(result.error); setBeforePhotos(prevB); setAfterPhotos(prevA); }
+      else router.refresh();
+    });
+  }
+
+  function toggleBaMode(on: boolean) {
+    setBaMode(on);
+    if (on && totalPhotos === 1) setAssignStep("ask");
+    else setAssignStep(null);
+  }
+
+  // === 0장: 안내 화면 ===
   if (!hasPhotos) {
     return (
       <div>
@@ -202,22 +195,22 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
         <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm text-center">
           <p className="text-4xl">📷</p>
           <p className="mt-3 text-sm font-medium text-stone-700">시술 사진을 등록해주세요</p>
-          <p className="mt-1 text-xs text-stone-500">시술 사진을 등록하면 완료 카드를 만들 수 있어요</p>
+          <p className="mt-1 text-xs text-stone-500">사진을 등록하면 완료 카드를 만들 수 있어요</p>
           <label className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-stone-900 px-6 py-2.5 text-sm font-medium text-white cursor-pointer hover:bg-stone-800">
-            {isPending ? <Spinner /> : null}
-            시술 후 사진 추가
-            <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+            {isPending && <Spinner />} 사진 추가
+            <input type="file" accept="image/*" onChange={handleFirstUpload} className="hidden" />
           </label>
         </div>
       </div>
     );
   }
 
+  // === 1장 이상: 카드 편집 ===
   return (
     <div>
       <h1 className="text-xl font-bold text-stone-900">완료 카드</h1>
 
-      {/* 컨트롤 */}
+      {/* 템플릿/비율 */}
       <div className="mt-4 flex flex-wrap gap-2 items-center">
         <div className="flex rounded-lg bg-stone-100 p-0.5">
           <button onClick={() => setTemplate("minimal")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${template === "minimal" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>미니멀</button>
@@ -227,33 +220,23 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
           <button onClick={() => setRatio("4:5")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${ratio === "4:5" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>4:5</button>
           <button onClick={() => setRatio("9:16")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${ratio === "9:16" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>9:16</button>
         </div>
-        {canShowBeforeAfter && (
-          <label className="flex items-center gap-1.5 text-xs text-stone-600">
-            <input type="checkbox" checked={showBefore} onChange={(e) => setShowBefore(e.target.checked)} className="rounded" />
-            Before/After
-          </label>
-        )}
       </div>
 
-      {allPhotos.length > 1 && (
-        <div className="mt-2 flex gap-1.5 overflow-x-auto">
-          {allPhotos.map((photo, i) => (
-            <div key={`${photo.label}-${i}`} className="relative h-12 w-12 shrink-0">
-              <button
-                type="button"
-                onClick={() => setSelectedPhoto(i)}
-                className={`h-full w-full overflow-hidden rounded-lg border-2 ${i === safeIdx ? "border-stone-900" : "border-transparent"}`}
-              >
+      {/* 사진 썸네일 (baMode일 때만 배지) */}
+      {totalPhotos > 0 && (
+        <div className="mt-2 flex gap-1.5">
+          {[...afterPhotos.map((p) => ({ ...p, t: "after" as const })), ...beforePhotos.map((p) => ({ ...p, t: "before" as const }))].map((photo, i) => (
+            <div key={photo.path} className="relative h-12 w-12 shrink-0">
+              <div className={`h-full w-full overflow-hidden rounded-lg border-2 border-stone-900`}>
                 <img src={photo.url} alt="" className="h-full w-full object-cover" />
-              </button>
-              <span className={`absolute bottom-0 left-0 right-0 rounded-b-lg text-center text-[8px] font-bold text-white leading-tight pointer-events-none ${photo.label === "전" ? "bg-black/50" : "bg-stone-900/50"}`}>
-                {photo.label}
-              </span>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setConfirmDelete({ path: photo.path, type: photo.label === "전" ? "before" : "after" }); }}
-                className="absolute -right-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow"
-              >×</button>
+              </div>
+              {baMode && (
+                <span className={`absolute bottom-0 left-0 right-0 rounded-b-lg text-center text-[8px] font-bold text-white leading-tight pointer-events-none ${photo.t === "before" ? "bg-black/50" : "bg-stone-900/50"}`}>
+                  {photo.t === "before" ? "전" : "후"}
+                </span>
+              )}
+              <button type="button" onClick={() => setConfirmDelete({ path: photo.path, type: photo.t })}
+                className="absolute -right-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow">×</button>
             </div>
           ))}
         </div>
@@ -266,11 +249,57 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
           <button onClick={() => setConfirmDelete(null)} className="text-xs text-stone-500">취소</button>
           <button onClick={handleDelete} disabled={isPending}
             className="flex items-center gap-1 rounded-lg bg-red-500 px-2.5 py-1 text-xs font-medium text-white disabled:opacity-50">
-            {isPending && <Spinner className="h-3 w-3" />}삭제
-          </button>
+            {isPending && <Spinner className="h-3 w-3" />}삭제</button>
         </div>
       )}
 
+      {/* 비포/애프터 토글 & 설정 */}
+      <div className="mt-3 flex flex-col gap-2">
+        {totalPhotos === 1 && !hasBothPhotos && (
+          <button
+            onClick={() => toggleBaMode(!baMode)}
+            className={`self-start rounded-lg px-3 py-1.5 text-xs font-medium transition ${baMode ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"}`}
+          >
+            {baMode ? "비포/애프터 모드 ON" : "비포/애프터 카드 만들기"}
+          </button>
+        )}
+
+        {baMode && assignStep === "ask" && (
+          <div className="rounded-xl bg-blue-50 p-3">
+            <p className="text-xs font-medium text-blue-900">지금 있는 사진은?</p>
+            <div className="mt-2 flex gap-2">
+              <button onClick={() => handleAssignType("before")} disabled={isPending}
+                className="flex-1 rounded-lg border border-blue-200 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50">시술 전</button>
+              <button onClick={() => handleAssignType("after")} disabled={isPending}
+                className="flex-1 rounded-lg border border-blue-200 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50">시술 후</button>
+            </div>
+          </div>
+        )}
+
+        {baMode && assignStep === "upload" && (
+          <div className="rounded-xl bg-blue-50 p-3">
+            <p className="text-xs font-medium text-blue-900">
+              {afterPhotos.length === 0 ? "시술 후 사진을 추가해주세요" : "시술 전 사진을 추가해주세요"}
+            </p>
+            <label className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white cursor-pointer hover:bg-blue-700">
+              {isPending && <Spinner className="h-3 w-3" />}
+              {afterPhotos.length === 0 ? "시술 후 사진 추가" : "시술 전 사진 추가"}
+              <input type="file" accept="image/*" onChange={handleSecondUpload} className="hidden" />
+            </label>
+          </div>
+        )}
+
+        {/* 단일 모드에서 사진이 1장이고 BA 아닐 때: 추가 가능 */}
+        {!baMode && totalPhotos < 2 && (
+          <label className="self-start inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-[11px] font-medium text-stone-600 cursor-pointer hover:bg-stone-50">
+            {isPending && <Spinner className="h-3 w-3" />}
+            + 사진 추가
+            <input type="file" accept="image/*" onChange={handleFirstUpload} className="hidden" />
+          </label>
+        )}
+      </div>
+
+      {/* 문구 */}
       <div className="mt-3 flex flex-wrap gap-1.5">
         {MESSAGES.map((m) => (
           <button key={m} onClick={() => { setMessage(m); setCustomMsg(""); }}
@@ -280,40 +309,18 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
       <input type="text" value={customMsg} onChange={(e) => setCustomMsg(e.target.value)}
         placeholder="직접 입력" className="mt-1.5 w-full min-w-0 rounded-lg border border-stone-200 px-3 py-1.5 text-xs outline-none focus:border-stone-400" />
 
-      {/* 사진 추가 */}
-      {nextUploadType && (
-        <div className="mt-3">
-          <label className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-[11px] font-medium text-stone-600 cursor-pointer hover:bg-stone-50">
-            {isPending && <Spinner className="h-3 w-3" />}
-            + {uploadLabel}
-            <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
-          </label>
-          {nextUploadType === "before" && (
-            <p className="mt-1 text-[11px] text-stone-400">전 사진을 추가하면 비포/애프터 카드를 만들 수 있어요</p>
-          )}
-        </div>
-      )}
-
-      {/* 미리보기: aspect-ratio wrapper + 내부 카드를 100%로 채움 */}
-      <div
-        className="mx-auto mt-4 w-full overflow-hidden rounded-2xl"
-        style={{ maxWidth: 400, aspectRatio: `${size.w} / ${size.h}` }}
-      >
-        <div
-          ref={renderRef}
-          className="relative h-full w-full origin-top-left"
-          style={{ width: size.w, height: size.h, transform: `scale(var(--card-scale))`, "--card-scale": "1" } as React.CSSProperties}
-        >
+      {/* 카드 미리보기 */}
+      <div className="mx-auto mt-4 w-full overflow-hidden rounded-2xl" style={{ maxWidth: 400, aspectRatio: `${size.w} / ${size.h}` }}>
+        <div ref={renderRef} className="relative h-full w-full origin-top-left"
+          style={{ width: size.w, height: size.h, transform: `scale(var(--card-scale))`, "--card-scale": "1" } as React.CSSProperties}>
           {template === "minimal" ? <MinimalCard {...cardProps} w={size.w} h={size.h} /> : <PhotoCard {...cardProps} w={size.w} h={size.h} />}
         </div>
-        {/* JS로 scale 계산 */}
         <ScaleInjector targetW={size.w} />
       </div>
 
       <button onClick={handleDownload} disabled={downloading}
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-stone-900 py-3 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50">
-        {downloading && <Spinner />}
-        이미지 저장
+        {downloading && <Spinner />} 이미지 저장
       </button>
 
       {previewUrl && (
@@ -326,20 +333,10 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   );
 }
 
-/** 부모 wrapper의 실제 폭을 측정해서 CSS 변수로 scale 주입 */
+// === 유틸 ===
+
 function ScaleInjector({ targetW }: { targetW: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  return (
-    <div ref={ref} className="absolute inset-0 pointer-events-none" style={{ zIndex: -1 }}>
-      <style>{`
-        @container (min-width: 0px) {
-          /* fallback */
-        }
-      `}</style>
-      {/* ResizeObserver로 scale 계산 */}
-      <ScaleObserver targetW={targetW} />
-    </div>
-  );
+  return <div className="absolute inset-0 pointer-events-none" style={{ zIndex: -1 }}><ScaleObserver targetW={targetW} /></div>;
 }
 
 function ScaleObserver({ targetW }: { targetW: number }) {
@@ -350,14 +347,12 @@ function ScaleObserver({ targetW }: { targetW: number }) {
     const wrapper = el.closest("[style*='aspect-ratio']") as HTMLElement | null;
     if (!wrapper) return;
     const update = () => {
-      const containerW = wrapper.clientWidth;
-      const scale = containerW / targetW;
+      const scale = wrapper.clientWidth / targetW;
       const inner = wrapper.querySelector("[style*='--card-scale']") as HTMLElement | null;
       if (inner) inner.style.setProperty("--card-scale", String(scale));
     };
     update();
-    const ro = new ResizeObserver(update);
-    ro.observe(wrapper);
+    new ResizeObserver(update).observe(wrapper);
   }, [targetW]);
   return <div ref={refCb} />;
 }
@@ -365,22 +360,12 @@ function ScaleObserver({ targetW }: { targetW: number }) {
 // === 템플릿 ===
 
 type CardTemplateProps = {
-  photo: string;
-  beforePhoto: string | null;
-  petName: string;
-  breed: string;
-  serviceName: string;
-  date: string;
-  message: string;
-  shopName: string;
-  shopPhone: string;
-  brandColor: string;
-  w: number;
-  h: number;
+  photo: string; beforePhoto: string | null; petName: string; breed: string;
+  serviceName: string; date: string; message: string; shopName: string; shopPhone: string; brandColor: string; w: number; h: number;
 };
 
 function MinimalCard({ photo, beforePhoto, petName, breed, serviceName, date, message, shopName, shopPhone, brandColor, w, h }: CardTemplateProps) {
-  const p = Math.round(w * 0.055); // ~60px at 1080
+  const p = Math.round(w * 0.055);
   const photoH = Math.round(h * (beforePhoto ? 0.45 : 0.55));
   return (
     <div style={{ width: w, height: h, background: "#FFFBF5", display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", overflow: "hidden" }}>
@@ -413,19 +398,14 @@ function MinimalCard({ photo, beforePhoto, petName, breed, serviceName, date, me
 function PhotoCard({ photo, beforePhoto, petName, serviceName, date, message, shopName, brandColor, w, h }: CardTemplateProps) {
   const textColor = brandColor === "#292524" ? "#f5f0eb" : brandColor;
   const photoH = Math.round(h * 0.65);
-  const gap = 2;
-
   if (beforePhoto) {
-    // 좌우 50:50 분할 모드
     return (
       <div style={{ width: w, height: h, display: "flex", flexDirection: "column", overflow: "hidden", background: "#111" }}>
-        {/* 상단 로고 */}
         <div style={{ padding: `${w * 0.03}px ${w * 0.044}px`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <span style={{ fontSize: w * 0.022, fontWeight: 700, color: "white" }}>{shopName}</span>
           <span style={{ fontSize: w * 0.015, color: "rgba(255,255,255,0.6)" }}>{date}</span>
         </div>
-        {/* 사진 분할 */}
-        <div style={{ height: photoH, display: "flex", gap, flexShrink: 0 }}>
+        <div style={{ height: photoH, display: "flex", gap: 2, flexShrink: 0 }}>
           <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
             <img src={beforePhoto} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
             <span style={{ position: "absolute", bottom: w * 0.015, left: w * 0.015, background: "rgba(0,0,0,0.6)", color: "white", padding: `${w * 0.004}px ${w * 0.012}px`, borderRadius: w * 0.006, fontSize: w * 0.013, fontWeight: 700, letterSpacing: 1 }}>BEFORE</span>
@@ -435,7 +415,6 @@ function PhotoCard({ photo, beforePhoto, petName, serviceName, date, message, sh
             <span style={{ position: "absolute", bottom: w * 0.015, left: w * 0.015, background: brandColor, color: "white", padding: `${w * 0.004}px ${w * 0.012}px`, borderRadius: w * 0.006, fontSize: w * 0.013, fontWeight: 700, letterSpacing: 1 }}>AFTER</span>
           </div>
         </div>
-        {/* 하단 텍스트 */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: `0 ${w * 0.044}px`, overflow: "hidden" }}>
           <p style={{ fontSize: w * 0.044, fontWeight: 800, color: "white", letterSpacing: -1, lineHeight: 1.2 }}>{petName}</p>
           <p style={{ fontSize: w * 0.02, color: "rgba(255,255,255,0.7)", marginTop: h * 0.005 }}>{serviceName}</p>
@@ -444,8 +423,6 @@ function PhotoCard({ photo, beforePhoto, petName, serviceName, date, message, sh
       </div>
     );
   }
-
-  // 단일 사진 풀블리드
   return (
     <div style={{ width: w, height: h, position: "relative", overflow: "hidden" }}>
       <img src={photo} alt="" crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
