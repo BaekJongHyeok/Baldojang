@@ -41,7 +41,7 @@ export default async function EditPetPage({
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-stone-900">펫 수정</h1>
+      <h1 className="text-[20px] font-bold text-ink">펫 수정</h1>
       <div className="mt-6">
         <PetForm
           action={updatePetAction}
