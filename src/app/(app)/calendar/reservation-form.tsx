@@ -164,11 +164,11 @@ export function ReservationForm({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/25 px-4 lg:items-center" onClick={onClose}>
       <div
-        className={`max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-[20px] bg-surface-card p-5 shadow-float lg:rounded-card ${isPending ? "pointer-events-none" : ""}`}
+        className={`max-h-[85vh] w-full max-w-md overflow-y-auto border-t border-border bg-white p-5 shadow-modal lg:rounded-lg lg:border ${isPending ? "pointer-events-none" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex justify-center lg:hidden">
-          <div className="h-1 w-8 rounded-full bg-warm-300" />
+          <div className="h-1 w-8 rounded-full bg-border" />
         </div>
 
         <h2 className="text-[18px] font-bold text-ink">
@@ -176,10 +176,10 @@ export function ReservationForm({
         </h2>
 
         <div className="mt-4 flex flex-col gap-4">
-          {/* 펫 선택 */}
+          {/* pet select */}
           {!isEdit && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium text-ink-secondary">펫 선택</span>
+              <span className="text-[12px] font-medium text-ink-secondary">펫 선택</span>
               {!petId ? (
                 <>
                   <input
@@ -187,13 +187,13 @@ export function ReservationForm({
                     value={petSearch}
                     onChange={(e) => setPetSearch(e.target.value)}
                     placeholder="이름, 보호자, 전화번호 검색"
-                    className="min-w-0 rounded-input border border-border px-4 py-2.5 text-[15px] text-ink outline-none transition-colors duration-150 focus:border-accent focus:ring-1 focus:ring-accent/20"
+                    className="min-w-0 rounded-md border border-border px-4 py-2.5 text-[14px] text-ink outline-none transition-colors duration-150 focus:border-primary focus:ring-1 focus:ring-primary/20"
                   />
-                  <div className="max-h-40 overflow-y-auto rounded-input border border-border-light">
+                  <div className="max-h-40 overflow-y-auto rounded-md border border-border">
                     {filteredPets.length === 0 ? (
-                      <div className="p-3 text-center text-[13px] text-ink-tertiary">
+                      <div className="p-3 text-center text-[13px] text-ink-caption">
                         검색 결과 없음 ·{" "}
-                        <Link href="/pets/new?returnTo=/calendar" className="font-medium text-accent hover:underline">
+                        <Link href="/pets/new?returnTo=/calendar" className="font-medium text-primary hover:underline">
                           새 펫 등록
                         </Link>
                       </div>
@@ -203,16 +203,16 @@ export function ReservationForm({
                           key={p.id}
                           type="button"
                           onClick={() => { setPetId(p.id); setPetSearch(""); }}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-[15px] transition-colors hover:bg-surface-hover"
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-[14px] transition-colors hover:bg-bg"
                         >
                           <span className="font-medium text-ink">{p.name}</span>
-                          <span className="text-[13px] text-ink-tertiary">
+                          <span className="text-[13px] text-ink-caption">
                             {[p.breed, sizeLabel(p.size)].filter(Boolean).join(" · ")}
                             {p.customer && ` · ${p.customer.name}`}
                           </span>
                           {p.caution_tags.length > 0 && (
-                            <span className="ml-auto flex h-4 w-4 items-center justify-center rounded-full bg-status-danger-subtle">
-                              <svg className="h-2.5 w-2.5 text-status-danger" fill="none" viewBox="0 0 16 16" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8 4v4m0 3h.01" /></svg>
+                            <span className="ml-auto flex h-4 w-4 items-center justify-center rounded-full bg-danger-light">
+                              <svg className="h-2.5 w-2.5 text-danger" fill="none" viewBox="0 0 16 16" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8 4v4m0 3h.01" /></svg>
                             </span>
                           )}
                         </button>
@@ -221,14 +221,14 @@ export function ReservationForm({
                   </div>
                 </>
               ) : (
-                <div className="flex items-center justify-between rounded-input bg-surface px-3 py-2">
+                <div className="flex items-center justify-between rounded-md bg-bg px-3 py-2">
                   <div>
-                    <span className="text-[15px] font-medium text-ink">{selectedPet?.name}</span>
-                    <span className="ml-1.5 text-[13px] text-ink-tertiary">
+                    <span className="text-[14px] font-medium text-ink">{selectedPet?.name}</span>
+                    <span className="ml-1.5 text-[13px] text-ink-caption">
                       {selectedPet?.customer && `· ${selectedPet.customer.name}`}
                     </span>
                   </div>
-                  <button type="button" onClick={() => setPetId("")} className="text-[13px] text-ink-tertiary hover:text-ink-secondary">
+                  <button type="button" onClick={() => setPetId("")} className="text-[13px] text-ink-caption hover:text-ink-secondary">
                     변경
                   </button>
                 </div>
@@ -236,7 +236,7 @@ export function ReservationForm({
               {selectedPet && selectedPet.caution_tags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {selectedPet.caution_tags.map((tag) => (
-                    <span key={tag} className="rounded-badge bg-status-danger-subtle px-2 py-0.5 text-[11px] font-medium text-status-danger">
+                    <span key={tag} className="rounded-sm bg-danger-light px-2 py-0.5 text-[11px] font-medium text-danger">
                       {tag}
                     </span>
                   ))}
@@ -245,13 +245,13 @@ export function ReservationForm({
             </div>
           )}
 
-          {/* 시술 선택 */}
+          {/* service select */}
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-ink-secondary">시술</span>
+            <span className="text-[12px] font-medium text-ink-secondary">시술</span>
             <select
               value={serviceId}
               onChange={(e) => handleServiceChange(e.target.value)}
-              className="min-w-0 rounded-input border border-border px-4 py-2.5 text-[15px] text-ink outline-none transition-colors duration-150 focus:border-accent focus:ring-1 focus:ring-accent/20"
+              className="min-w-0 rounded-md border border-border px-4 py-2.5 text-[14px] text-ink outline-none transition-colors duration-150 focus:border-primary focus:ring-1 focus:ring-primary/20"
             >
               <option value="">선택</option>
               {services.map((s) => (
@@ -261,20 +261,20 @@ export function ReservationForm({
               ))}
             </select>
             {priceQuoted != null && (
-              <p className="text-[13px] text-ink-tertiary">
+              <p className="text-[13px] text-ink-caption">
                 예상 금액: {priceQuoted.toLocaleString()}원
               </p>
             )}
           </label>
 
-          {/* 시간 */}
+          {/* time */}
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium text-ink-secondary">시작</span>
+              <span className="text-[12px] font-medium text-ink-secondary">시작</span>
               <select
                 value={startTime}
                 onChange={(e) => handleStartChange(e.target.value)}
-                className="min-w-0 rounded-input border border-border px-3 py-2.5 text-[15px] text-ink outline-none transition-colors duration-150 focus:border-accent focus:ring-1 focus:ring-accent/20"
+                className="min-w-0 rounded-md border border-border px-3 py-2.5 text-[14px] text-ink outline-none transition-colors duration-150 focus:border-primary focus:ring-1 focus:ring-primary/20"
               >
                 <option value="">선택</option>
                 {slots.map((s) => (
@@ -283,41 +283,41 @@ export function ReservationForm({
               </select>
             </label>
             <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium text-ink-secondary">종료</span>
+              <span className="text-[12px] font-medium text-ink-secondary">종료</span>
               <input
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="min-w-0 rounded-input border border-border px-3 py-2.5 text-[15px] text-ink outline-none transition-colors duration-150 focus:border-accent focus:ring-1 focus:ring-accent/20"
+                className="min-w-0 rounded-md border border-border px-3 py-2.5 text-[14px] text-ink outline-none transition-colors duration-150 focus:border-primary focus:ring-1 focus:ring-primary/20"
               />
             </label>
           </div>
 
           {hasConflict && (
-            <p className="rounded-input bg-status-danger-subtle px-3 py-2 text-[13px] font-medium text-status-danger">
+            <p className="rounded-md bg-danger-light px-3 py-2 text-[13px] font-medium text-danger">
               이 시간에 이미 예약이 있습니다. 제출 시 거부됩니다.
             </p>
           )}
 
-          {/* 메모 */}
+          {/* memo */}
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-ink-secondary">메모</span>
+            <span className="text-[12px] font-medium text-ink-secondary">메모</span>
             <input
               type="text"
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
-              className="min-w-0 rounded-input border border-border px-4 py-2.5 text-[15px] text-ink outline-none transition-colors duration-150 focus:border-accent focus:ring-1 focus:ring-accent/20"
+              className="min-w-0 rounded-md border border-border px-4 py-2.5 text-[14px] text-ink outline-none transition-colors duration-150 focus:border-primary focus:ring-1 focus:ring-primary/20"
               placeholder="선택 사항"
             />
           </label>
 
-          {error && <p className="text-center text-[13px] text-status-danger">{error}</p>}
+          {error && <p className="text-center text-[13px] text-danger">{error}</p>}
 
           <div className="flex gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-button border border-border py-2.5 text-[15px] font-medium text-ink transition-colors duration-150 hover:bg-surface-hover"
+              className="flex-1 rounded-md border border-border py-2.5 text-[14px] font-medium text-ink transition-colors duration-150 hover:bg-bg"
             >
               취소
             </button>
@@ -325,7 +325,7 @@ export function ReservationForm({
               type="button"
               onClick={handleSubmit}
               disabled={isPending}
-              className="flex flex-1 items-center justify-center gap-2 rounded-button bg-accent py-2.5 text-[15px] font-medium text-white press-scale transition-all duration-150 hover:bg-accent-hover disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-[14px] font-medium text-white transition-all duration-150 hover:bg-primary-hover disabled:opacity-50"
             >
               {isPending && <Spinner />}
               {isEdit ? "수정" : "예약"}

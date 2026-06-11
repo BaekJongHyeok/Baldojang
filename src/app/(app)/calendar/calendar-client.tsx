@@ -273,57 +273,57 @@ export function CalendarClient({
 
   return (
     <div className="-mx-4 -mt-6 sm:-mx-6 lg:-mx-8 lg:-mt-8">
-      {/* ── 헤더 ── */}
-      <div className="sticky top-0 z-20 border-b border-border bg-surface-card px-4 py-3">
+      {/* -- header -- */}
+      <div className="sticky top-0 z-20 border-b border-border bg-white px-4 py-3">
         <div className="flex items-center justify-between gap-2">
-          {/* 일/주 토글 */}
-          <div className="flex rounded-button bg-warm-100 p-0.5">
+          {/* day/week toggle */}
+          <div className="flex rounded-md bg-border-light p-0.5">
             <button
               onClick={() => setView("day")}
-              className={`rounded-[10px] px-3 py-1 text-[13px] font-medium transition-all duration-150 ${
-                view === "day" ? "bg-surface-card text-ink shadow-sm" : "text-ink-tertiary"
+              className={`rounded-md px-3 py-1 text-[13px] font-medium transition-all duration-150 ${
+                view === "day" ? "border border-border bg-white text-ink" : "text-ink-caption"
               }`}
             >
               일간
             </button>
             <button
               onClick={() => setView("week")}
-              className={`rounded-[10px] px-3 py-1 text-[13px] font-medium transition-all duration-150 ${
-                view === "week" ? "bg-surface-card text-ink shadow-sm" : "text-ink-tertiary"
+              className={`rounded-md px-3 py-1 text-[13px] font-medium transition-all duration-150 ${
+                view === "week" ? "border border-border bg-white text-ink" : "text-ink-caption"
               }`}
             >
               주간
             </button>
           </div>
 
-          {/* 날짜 네비 */}
+          {/* date nav */}
           {view === "day" ? (
             <div className="flex items-center gap-1">
-              <button onClick={() => navDay(-1)} className="rounded-button p-1.5 text-ink-tertiary transition-colors hover:bg-surface-hover"><ChevronLeft /></button>
-              <button onClick={() => navDay(0)} className="rounded-button px-2.5 py-1 text-[13px] font-medium text-accent transition-colors hover:bg-accent-subtle">오늘</button>
-              <button onClick={() => navDay(1)} className="rounded-button p-1.5 text-ink-tertiary transition-colors hover:bg-surface-hover"><ChevronRight /></button>
+              <button onClick={() => navDay(-1)} className="rounded-md p-1.5 text-ink-caption transition-colors hover:bg-bg"><ChevronLeft /></button>
+              <button onClick={() => navDay(0)} className="rounded-md px-2.5 py-1 text-[13px] font-medium text-primary transition-colors hover:bg-primary-light">오늘</button>
+              <button onClick={() => navDay(1)} className="rounded-md p-1.5 text-ink-caption transition-colors hover:bg-bg"><ChevronRight /></button>
             </div>
           ) : (
             <div className="flex items-center gap-1">
-              <button onClick={() => navWeek(-1)} className="rounded-button p-1.5 text-ink-tertiary transition-colors hover:bg-surface-hover"><ChevronLeft /></button>
-              <button onClick={() => navWeek(0)} className="rounded-button px-2.5 py-1 text-[13px] font-medium text-accent transition-colors hover:bg-accent-subtle">이번 주</button>
-              <button onClick={() => navWeek(1)} className="rounded-button p-1.5 text-ink-tertiary transition-colors hover:bg-surface-hover"><ChevronRight /></button>
+              <button onClick={() => navWeek(-1)} className="rounded-md p-1.5 text-ink-caption transition-colors hover:bg-bg"><ChevronLeft /></button>
+              <button onClick={() => navWeek(0)} className="rounded-md px-2.5 py-1 text-[13px] font-medium text-primary transition-colors hover:bg-primary-light">이번 주</button>
+              <button onClick={() => navWeek(1)} className="rounded-md p-1.5 text-ink-caption transition-colors hover:bg-bg"><ChevronRight /></button>
             </div>
           )}
 
-          {/* 우측 */}
+          {/* right actions */}
           <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 text-[11px] text-ink-faint">
+            <label className="flex items-center gap-1.5 text-[11px] text-ink-caption">
               <input type="checkbox" checked={showCancelled} onChange={(e) => setShowCancelled(e.target.checked)} className="rounded" />취소
             </label>
-            <button onClick={() => setFormState({ mode: "create" })} className="hidden rounded-button bg-accent px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover lg:block">
+            <button onClick={() => setFormState({ mode: "create" })} className="hidden rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-primary-hover lg:block">
               + 예약
             </button>
           </div>
         </div>
 
-        {/* 날짜 라벨 */}
-        <p className="mt-1.5 text-[15px] font-semibold text-ink">
+        {/* date label */}
+        <p className="mt-1.5 text-[14px] font-semibold text-ink">
           {view === "day"
             ? formatDateKST(selectedDate, "M월 d일 (EEEE)")
             : currentWeekDays.length >= 7
@@ -332,7 +332,7 @@ export function CalendarClient({
         </p>
       </div>
 
-      {/* ── 뷰 ── */}
+      {/* -- view -- */}
       {view === "day" ? (
         <DayView
           reservations={dayReservations}
@@ -353,7 +353,7 @@ export function CalendarClient({
         />
       )}
 
-      {/* ── 다이얼로그들 ── */}
+      {/* -- dialogs -- */}
       {selectedReservation && !formState && !completeId && (
         <ReservationDetail
           reservation={selectedReservation}

@@ -81,7 +81,7 @@ export function CompleteDialog({
   }, [endsAt, slotMinutes, endSlots]);
   const [actualEnd, setActualEnd] = useState(defaultEnd);
 
-  // 결제
+  // payment
   const activePasses = useMemo(() => passes.filter((p) => getPassStatus(p) === "active"), [passes]);
   const [amount, setAmount] = useState(priceQuoted ?? 0);
   const [method, setMethod] = useState<string>("card");
@@ -135,13 +135,13 @@ export function CompleteDialog({
     });
   }
 
-  /* ── 완료 확정 화면 ── */
+  /* -- completion celebration screen -- */
   if (done) {
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/25 px-4" onClick={onClose}>
-        <div className="w-full max-w-xs rounded-card bg-surface-card p-8 text-center shadow-float" onClick={(e) => e.stopPropagation()}>
-          {/* SVG 체크 드로잉 애니메이션 */}
-          <svg className="mx-auto h-16 w-16 text-status-success" viewBox="0 0 52 52">
+        <div className="w-full max-w-xs rounded-lg border border-border bg-white p-8 text-center shadow-modal" onClick={(e) => e.stopPropagation()}>
+          {/* SVG check drawing animation */}
+          <svg className="mx-auto h-16 w-16 text-success" viewBox="0 0 52 52">
             <circle
               cx="26" cy="26" r="24"
               fill="none"
@@ -173,7 +173,7 @@ export function CompleteDialog({
             {visitId && (
               <a
                 href={`/visits/${visitId}/card`}
-                className="flex items-center justify-center gap-1.5 rounded-button bg-accent py-2.5 text-[15px] font-medium text-white press-scale transition-transform duration-150"
+                className="flex items-center justify-center gap-1.5 rounded-md bg-primary py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-primary-hover"
               >
                 완료 카드 만들기
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -183,7 +183,7 @@ export function CompleteDialog({
             )}
             <button
               onClick={onClose}
-              className="rounded-button py-2 text-[15px] text-ink-tertiary transition-colors hover:bg-surface-hover"
+              className="rounded-md py-2 text-[14px] text-ink-caption transition-colors hover:bg-bg"
             >
               닫기
             </button>
@@ -193,16 +193,16 @@ export function CompleteDialog({
     );
   }
 
-  /* ── 입력 화면 (바텀시트) ── */
+  /* -- input screen (bottom sheet) -- */
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/25 lg:items-center lg:px-4" onClick={onClose}>
       <div
-        className={`flex w-full max-w-md flex-col rounded-t-[20px] bg-surface-card shadow-float lg:rounded-card ${isPending ? "pointer-events-none" : ""}`}
+        className={`flex w-full max-w-md flex-col border-t border-border bg-white shadow-modal lg:rounded-lg lg:border ${isPending ? "pointer-events-none" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* drag handle */}
         <div className="flex justify-center pt-3 pb-1 lg:hidden">
-          <div className="h-1 w-8 rounded-full bg-warm-300" />
+          <div className="h-1 w-8 rounded-full bg-border" />
         </div>
 
         {/* scrollable content */}
@@ -210,19 +210,19 @@ export function CompleteDialog({
           <h3 className="text-[18px] font-bold text-ink">시술 완료 — {petName}</h3>
 
           <div className="mt-4 flex flex-col gap-4">
-            {/* ── 1. 종료 시각 (슬롯 칩) ── */}
+            {/* -- 1. end time (slot chips) -- */}
             <div>
-              <p className="text-[13px] font-medium text-ink-secondary">실제 종료 시각</p>
+              <p className="text-[12px] font-medium text-ink-secondary">실제 종료 시각</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {endSlots.map((s) => (
                   <button
                     key={s}
                     type="button"
                     onClick={() => setActualEnd(s)}
-                    className={`rounded-button px-3 py-1.5 text-[13px] font-medium tabular-nums transition-all duration-150 ${
+                    className={`rounded-md px-3 py-1.5 text-[13px] font-medium tabular-nums transition-all duration-150 ${
                       actualEnd === s
-                        ? "bg-accent text-white"
-                        : "bg-warm-100 text-ink-secondary hover:bg-warm-200"
+                        ? "bg-primary text-white"
+                        : "border border-border bg-white text-ink-secondary hover:bg-bg"
                     }`}
                   >
                     {s}
@@ -231,11 +231,11 @@ export function CompleteDialog({
               </div>
             </div>
 
-            {/* ── 2. 결제 ── */}
-            <div className="rounded-card bg-surface p-4">
+            {/* -- 2. payment -- */}
+            <div className="rounded-md border border-border p-4">
               <div className="flex items-center justify-between">
                 <p className="text-[13px] font-bold text-ink-secondary">결제</p>
-                <label className="flex items-center gap-1.5 text-[11px] text-ink-faint">
+                <label className="flex items-center gap-1.5 text-[11px] text-ink-caption">
                   <input type="checkbox" checked={skipPayment} onChange={(e) => { setSkipPayment(e.target.checked); if (e.target.checked) setUsePass(false); }} className="rounded" />
                   나중에
                 </label>
@@ -243,7 +243,7 @@ export function CompleteDialog({
 
               {!skipPayment && (
                 <div className="mt-3 flex flex-col gap-3">
-                  {/* 금액 */}
+                  {/* amount */}
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
@@ -251,28 +251,28 @@ export function CompleteDialog({
                       onChange={(e) => setAmount(Number(e.target.value))}
                       min={0}
                       step={1000}
-                      className="min-w-0 flex-1 rounded-input border border-border px-3 py-2 text-[15px] text-ink tabular-nums outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                      className="min-w-0 flex-1 rounded-md border border-border px-3 py-2 text-[14px] text-ink tabular-nums outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/20"
                     />
-                    <span className="text-[15px] text-ink-tertiary">원</span>
+                    <span className="text-[14px] text-ink-caption">원</span>
                   </div>
 
-                  {/* 선불권 토글 */}
+                  {/* pass toggle */}
                   {activePasses.length > 0 ? (
                     <label className="flex items-center gap-1.5 text-[13px] text-ink-secondary">
                       <input type="checkbox" checked={usePass} onChange={(e) => setUsePass(e.target.checked)} className="rounded" />
                       선불권 사용
                     </label>
                   ) : passes.length > 0 ? (
-                    <p className="text-[11px] text-ink-faint">사용 가능한 선불권 없음</p>
+                    <p className="text-[11px] text-ink-disabled">사용 가능한 선불권 없음</p>
                   ) : null}
 
-                  {/* 선불권 선택 */}
+                  {/* pass select */}
                   {usePass && activePasses.length > 0 ? (
                     <div className="flex flex-col gap-2">
                       <select
                         value={selectedPassId}
                         onChange={(e) => setSelectedPassId(e.target.value)}
-                        className="min-w-0 rounded-input border border-border px-3 py-2 text-[13px] text-ink outline-none transition-colors focus:border-accent"
+                        className="min-w-0 rounded-md border border-border px-3 py-2 text-[13px] text-ink outline-none transition-colors focus:border-primary"
                       >
                         <option value="">선불권 선택</option>
                         {activePasses.map((p) => (
@@ -282,7 +282,7 @@ export function CompleteDialog({
                         ))}
                       </select>
                       {selectedPass && selectedPass.type === "amount" && (
-                        <div className="rounded-input bg-surface-card px-3 py-2 text-[13px] text-ink-secondary">
+                        <div className="rounded-md bg-bg px-3 py-2 text-[13px] text-ink-secondary">
                           차감 <span className="font-medium text-ink tabular-nums">₩{passDeductAmount.toLocaleString()}</span>
                           {extraAmount > 0 && (
                             <span className="ml-2">
@@ -290,7 +290,7 @@ export function CompleteDialog({
                               <select
                                 value={extraMethod}
                                 onChange={(e) => setExtraMethod(e.target.value)}
-                                className="ml-1 rounded-badge border border-border px-1.5 py-0.5 text-[11px]"
+                                className="ml-1 rounded-sm border border-border px-1.5 py-0.5 text-[11px]"
                               >
                                 {METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
                               </select>
@@ -305,17 +305,17 @@ export function CompleteDialog({
                       )}
                     </div>
                   ) : !usePass ? (
-                    /* 결제 수단 칩 */
+                    /* payment method chips */
                     <div className="flex gap-1.5">
                       {METHODS.map((m) => (
                         <button
                           key={m.value}
                           type="button"
                           onClick={() => setMethod(m.value)}
-                          className={`flex-1 rounded-button py-2 text-[13px] font-medium transition-all duration-150 ${
+                          className={`flex-1 rounded-md py-2 text-[13px] font-medium transition-all duration-150 ${
                             method === m.value
                               ? "bg-ink text-white"
-                              : "bg-warm-100 text-ink-secondary hover:bg-warm-200"
+                              : "border border-border bg-white text-ink-secondary hover:bg-bg"
                           }`}
                         >
                           {m.label}
@@ -327,15 +327,15 @@ export function CompleteDialog({
               )}
             </div>
 
-            {/* ── 3. 메모 (접이식) ── */}
+            {/* -- 3. memo (collapsible) -- */}
             <button
               type="button"
               onClick={() => setMemoOpen(!memoOpen)}
-              className="flex items-center justify-between rounded-card bg-surface px-4 py-3 text-[13px] font-medium text-ink-secondary transition-colors hover:bg-surface-hover"
+              className="flex items-center justify-between rounded-md border border-border px-4 py-3 text-[13px] font-medium text-ink-secondary transition-colors hover:bg-bg"
             >
               <span>메모 {(styleMemo || behaviorMemo) && "·"} {styleMemo && "스타일"} {behaviorMemo && "행동"}</span>
               <svg
-                className={`h-4 w-4 text-ink-faint transition-transform duration-150 ${memoOpen ? "rotate-180" : ""}`}
+                className={`h-4 w-4 text-ink-disabled transition-transform duration-150 ${memoOpen ? "rotate-180" : ""}`}
                 fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
@@ -344,39 +344,39 @@ export function CompleteDialog({
             {memoOpen && (
               <div className="flex flex-col gap-3 -mt-2">
                 <label className="flex flex-col gap-1">
-                  <span className="text-[13px] font-medium text-ink-secondary">스타일 메모</span>
+                  <span className="text-[12px] font-medium text-ink-secondary">스타일 메모</span>
                   <input
                     type="text"
                     value={styleMemo}
                     onChange={(e) => setStyleMemo(e.target.value)}
-                    className="min-w-0 rounded-input border border-border px-3 py-2 text-[15px] text-ink outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                    className="min-w-0 rounded-md border border-border px-3 py-2 text-[14px] text-ink outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/20"
                     placeholder="예: 얼굴 둥글게, 6mm"
                   />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[13px] font-medium text-ink-secondary">행동 메모</span>
+                  <span className="text-[12px] font-medium text-ink-secondary">행동 메모</span>
                   <input
                     type="text"
                     value={behaviorMemo}
                     onChange={(e) => setBehaviorMemo(e.target.value)}
-                    className="min-w-0 rounded-input border border-border px-3 py-2 text-[15px] text-ink outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                    className="min-w-0 rounded-md border border-border px-3 py-2 text-[14px] text-ink outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/20"
                     placeholder="예: 드라이 싫어함"
                   />
                 </label>
               </div>
             )}
 
-            {error && <p className="text-center text-[13px] text-status-danger">{error}</p>}
+            {error && <p className="text-center text-[13px] text-danger">{error}</p>}
           </div>
         </div>
 
-        {/* ── 하단 고정 버튼 ── */}
+        {/* -- bottom fixed button -- */}
         <div className="border-t border-border px-5 py-4">
           <button
             type="button"
             onClick={doComplete}
             disabled={isPending}
-            className="flex w-full items-center justify-center gap-2 rounded-button bg-accent py-3 text-[15px] font-medium text-white press-scale transition-all duration-150 hover:bg-accent-hover disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 text-[14px] font-medium text-white transition-all duration-150 hover:bg-primary-hover disabled:opacity-50"
           >
             {isPending && <Spinner />}시술 완료
           </button>
@@ -384,7 +384,7 @@ export function CompleteDialog({
             type="button"
             onClick={onClose}
             disabled={isPending}
-            className="mt-2 w-full rounded-button py-2 text-[15px] text-ink-tertiary transition-colors hover:bg-surface-hover disabled:opacity-50"
+            className="mt-2 w-full rounded-md py-2 text-[14px] text-ink-caption transition-colors hover:bg-bg disabled:opacity-50"
           >
             취소
           </button>
