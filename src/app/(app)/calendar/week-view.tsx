@@ -4,30 +4,23 @@ import { useMemo } from "react";
 import type { CalendarReservation, DayHours } from "@/lib/calendar-data";
 import { kstHourMin, kstDateStr } from "@/lib/calendar-utils";
 
-const SLOT_HEIGHT = 36;
+const ROW_HEIGHT = 36; // px per 30min
+const TIME_COL = 48;
 
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(":").map(Number);
-  return h * 60 + m;
-}
+function timeToMin(t: string) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
+function minToLabel(m: number) { return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; }
 
-function statusColor(status: string) {
-  switch (status) {
-    case "confirmed":
-      return "bg-primary-light border-primary/20 text-ink";
-    case "completed":
-      return "bg-border-light border-border text-ink-caption";
-    case "no_show":
-      return "bg-danger-light border-danger/20 text-danger";
-    case "cancelled":
-      return "bg-border-light border-border text-ink-disabled line-through opacity-50";
-    default:
-      return "bg-border-light border-border";
+function statusBar(s: string) {
+  switch (s) {
+    case "confirmed": return "bg-primary";
+    case "completed": return "bg-ink-disabled";
+    case "no_show": return "bg-danger";
+    case "cancelled": return "bg-ink-disabled";
+    default: return "bg-border";
   }
 }
 
 type WeekDay = { date: string; dayKey: string; hours: DayHours | null };
-
 const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
 
 export function WeekView({
@@ -45,62 +38,57 @@ export function WeekView({
   onSelectDate: (date: string) => void;
   onSelect: (id: string) => void;
 }) {
-  const { globalStart, globalEnd } = useMemo(() => {
-    let minOpen = 24 * 60;
-    let maxClose = 0;
+  const { gridStartHour, gridEndHour } = useMemo(() => {
+    let minOpen = 24, maxClose = 0;
     for (const d of weekDays) {
       if (d.hours) {
-        minOpen = Math.min(minOpen, timeToMinutes(d.hours.open));
-        maxClose = Math.max(maxClose, timeToMinutes(d.hours.close));
+        minOpen = Math.min(minOpen, Math.floor(timeToMin(d.hours.open) / 60));
+        maxClose = Math.max(maxClose, Math.ceil(timeToMin(d.hours.close) / 60));
       }
     }
-    if (minOpen >= maxClose) return { globalStart: 9 * 60, globalEnd: 18 * 60 };
-    return { globalStart: minOpen, globalEnd: maxClose };
+    if (minOpen >= maxClose) return { gridStartHour: 9, gridEndHour: 18 };
+    return { gridStartHour: Math.max(0, minOpen - 1), gridEndHour: Math.min(24, maxClose + 1) };
   }, [weekDays]);
 
-  const totalSlots = Math.ceil((globalEnd - globalStart) / slotMinutes);
-  const totalHeight = totalSlots * SLOT_HEIGHT;
-  const pxPerMin = totalHeight / (globalEnd - globalStart);
+  const gridStartMin = gridStartHour * 60;
+  const gridEndMin = gridEndHour * 60;
+  const totalHours = gridEndHour - gridStartHour;
+  const totalHeight = totalHours * 2 * ROW_HEIGHT;
+  const pxPerMin = totalHeight / (gridEndMin - gridStartMin);
 
-  const slots = Array.from({ length: totalSlots }, (_, i) => {
-    const min = globalStart + i * slotMinutes;
-    const h = Math.floor(min / 60);
-    const m = min % 60;
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-  });
+  // Hour/half-hour rows
+  const rows: { min: number; isHour: boolean; label: string }[] = [];
+  for (let h = gridStartHour; h < gridEndHour; h++) {
+    rows.push({ min: h * 60, isHour: true, label: `${String(h).padStart(2, "0")}:00` });
+    rows.push({ min: h * 60 + 30, isHour: false, label: "" });
+  }
 
   const byDate = useMemo(() => {
     const map: Record<string, CalendarReservation[]> = {};
-    for (const r of reservations) {
-      const ds = kstDateStr(r.starts_at);
-      if (!map[ds]) map[ds] = [];
-      map[ds].push(r);
-    }
+    for (const r of reservations) { const ds = kstDateStr(r.starts_at); if (!map[ds]) map[ds] = []; map[ds].push(r); }
     return map;
   }, [reservations]);
 
   return (
-    <div className="overflow-x-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
-      <div className="min-w-[600px]">
-        {/* day header */}
+    <div className="overflow-auto bg-white" style={{ maxHeight: "calc(100dvh - 100px)" }}>
+      <div style={{ minWidth: 700 }}>
+        {/* ── 요일 헤더 ── */}
         <div className="sticky top-0 z-10 flex border-b border-border bg-white">
-          <div className="w-10 shrink-0" />
+          <div style={{ width: TIME_COL }} className="shrink-0" />
           {weekDays.map((d, i) => {
             const isToday = d.date === today;
             return (
               <button
                 key={d.date}
                 onClick={() => onSelectDate(d.date)}
-                className={`flex-1 py-2 text-center text-[11px] font-medium transition-colors duration-150 hover:bg-bg ${
-                  isToday ? "text-primary" : !d.hours ? "text-ink-disabled" : "text-ink-secondary"
-                }`}
+                className={`flex-1 border-l border-border py-2 text-center transition-colors hover:bg-bg`}
               >
-                <span className="block">{DAY_LABELS[i]}</span>
-                <span
-                  className={`mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full text-[13px] tabular-nums ${
-                    isToday ? "bg-primary text-white font-bold" : "font-medium"
-                  }`}
-                >
+                <span className={`block text-[11px] font-medium ${isToday ? "text-primary" : !d.hours ? "text-ink-disabled" : "text-ink-caption"}`}>
+                  {DAY_LABELS[i]}
+                </span>
+                <span className={`mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-semibold tabular-nums ${
+                  isToday ? "bg-primary text-white" : "text-ink"
+                }`}>
                   {d.date.slice(8).replace(/^0/, "")}
                 </span>
               </button>
@@ -108,56 +96,77 @@ export function WeekView({
           })}
         </div>
 
-        {/* grid */}
+        {/* ── 그리드 ── */}
         <div className="relative flex" style={{ height: totalHeight }}>
-          {/* time labels */}
-          <div className="relative w-10 shrink-0">
-            {slots.map((label, i) => (
-              <div key={i} className="absolute left-0 w-full pr-1 text-right" style={{ top: i * SLOT_HEIGHT - 5 }}>
-                <span className="text-[11px] text-ink-disabled tabular-nums">{label}</span>
-              </div>
+          {/* 시간 컬럼 */}
+          <div className="relative shrink-0" style={{ width: TIME_COL }}>
+            {rows.map((row, i) => row.isHour && (
+              <span key={i} className="absolute right-3 text-[11px] text-ink-disabled tabular-nums" style={{ top: (row.min - gridStartMin) * pxPerMin - 7 }}>
+                {row.label}
+              </span>
             ))}
           </div>
 
-          {/* day columns */}
+          {/* 요일 컬럼들 */}
           {weekDays.map((d) => {
             const isClosed = !d.hours;
+            const openMin = d.hours ? timeToMin(d.hours.open) : 0;
+            const closeMin = d.hours ? timeToMin(d.hours.close) : 0;
             const dayRes = byDate[d.date] ?? [];
+
             return (
-              <div key={d.date} className="relative flex-1 border-l border-border-light">
-                {/* slot lines */}
-                {slots.map((_, i) => (
-                  <div key={i} className="absolute left-0 right-0 border-t border-border-light" style={{ top: i * SLOT_HEIGHT }} />
+              <div key={d.date} className="relative flex-1 border-l border-border">
+                {/* 그리드 라인 */}
+                {rows.map((row, i) => (
+                  <div
+                    key={i}
+                    className={`absolute left-0 right-0 ${row.isHour ? "border-t border-border" : "border-t border-dashed border-border-light"}`}
+                    style={{ top: (row.min - gridStartMin) * pxPerMin }}
+                  />
                 ))}
 
+                {/* 영업 외 해칭 */}
+                {!isClosed && gridStartMin < openMin && (
+                  <div className="absolute left-0 right-0 bg-border-light/50 z-[1]" style={{ top: 0, height: (openMin - gridStartMin) * pxPerMin }} />
+                )}
+                {!isClosed && closeMin < gridEndMin && (
+                  <div className="absolute left-0 right-0 bg-border-light/50 z-[1]" style={{ top: (closeMin - gridStartMin) * pxPerMin, bottom: 0 }} />
+                )}
+
+                {/* 휴무 */}
                 {isClosed && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-border-light/50">
-                    <span className="text-[10px] text-ink-disabled">휴무</span>
+                  <div className="absolute inset-0 z-[1] flex items-center justify-center bg-border-light/60">
+                    <span className="text-[11px] font-medium text-ink-disabled">휴무</span>
                   </div>
                 )}
 
-                {!isClosed &&
-                  dayRes.map((r) => {
-                    const s = kstHourMin(r.starts_at);
-                    const e = kstHourMin(r.ends_at);
-                    const rStartMin = s.hours * 60 + s.minutes;
-                    const rEndMin = e.hours * 60 + e.minutes;
-                    const top = (rStartMin - globalStart) * pxPerMin;
-                    const height = Math.max(18, (rEndMin - rStartMin) * pxPerMin);
-                    return (
-                      <button
-                        key={r.id}
-                        onClick={() => onSelect(r.id)}
-                        className={`absolute inset-x-0.5 overflow-hidden rounded-sm border px-1 py-px text-left ${statusColor(r.status)}`}
-                        style={{ top, height }}
-                      >
-                        <p className="truncate text-[10px] font-bold leading-tight">{r.pet.name}</p>
-                        {height > 24 && (
-                          <p className="truncate text-[9px] leading-tight opacity-70">{r.service.name}</p>
-                        )}
-                      </button>
-                    );
-                  })}
+                {/* 블록 */}
+                {!isClosed && dayRes.map((r) => {
+                  const s = kstHourMin(r.starts_at);
+                  const e = kstHourMin(r.ends_at);
+                  const rStartMin = s.hours * 60 + s.minutes;
+                  const rEndMin = e.hours * 60 + e.minutes;
+                  const top = (rStartMin - gridStartMin) * pxPerMin + 1;
+                  const height = Math.max(18, (rEndMin - rStartMin) * pxPerMin - 2);
+                  const isCancelled = r.status === "cancelled";
+
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => onSelect(r.id)}
+                      className={`absolute inset-x-0.5 z-[3] flex overflow-hidden rounded-sm border bg-white text-left transition-colors hover:border-ink-caption ${
+                        isCancelled ? "border-dashed border-border opacity-50" : "border-border"
+                      }`}
+                      style={{ top, height }}
+                    >
+                      <div className={`w-[2px] shrink-0 ${statusBar(r.status)}`} />
+                      <div className="min-w-0 flex-1 px-1 py-px">
+                        <p className={`truncate text-[10px] font-semibold leading-tight ${isCancelled ? "line-through text-ink-disabled" : "text-ink"}`}>{r.pet.name}</p>
+                        {height > 26 && <p className="truncate text-[9px] leading-tight text-ink-caption">{r.service.name}</p>}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             );
           })}

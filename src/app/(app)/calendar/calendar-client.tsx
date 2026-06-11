@@ -76,16 +76,12 @@ export function CalendarClient({
   const [completeId, setCompleteId] = useState<string | null>(null);
 
   const reservations = localReservations;
-
   const rangeStart = allDays[0].date;
   const rangeEnd = allDays[allDays.length - 1].date;
 
   function navigateTo(dateStr: string) {
-    if (dateStr >= rangeStart && dateStr <= rangeEnd) {
-      setSelectedDate(dateStr);
-    } else {
-      router.push(`/calendar?date=${dateStr}`);
-    }
+    if (dateStr >= rangeStart && dateStr <= rangeEnd) setSelectedDate(dateStr);
+    else router.push(`/calendar?date=${dateStr}`);
   }
 
   const currentWeekDays = useMemo(() => {
@@ -112,27 +108,16 @@ export function CalendarClient({
     if (currentWeekDays.length === 0) return [];
     const ws = currentWeekDays[0].date;
     const we = currentWeekDays[currentWeekDays.length - 1].date;
-    return filtered.filter((r) => {
-      const d = kstDateStr(r.starts_at);
-      return d >= ws && d <= we;
-    });
+    return filtered.filter((r) => { const d = kstDateStr(r.starts_at); return d >= ws && d <= we; });
   }, [filtered, currentWeekDays]);
 
-  const selectedReservation = useMemo(
-    () => reservations.find((r) => r.id === selectedId) ?? null,
-    [reservations, selectedId],
-  );
-
-  const completeReservation = useMemo(
-    () => reservations.find((r) => r.id === completeId) ?? null,
-    [reservations, completeId],
-  );
+  const selectedReservation = useMemo(() => reservations.find((r) => r.id === selectedId) ?? null, [reservations, selectedId]);
+  const completeReservation = useMemo(() => reservations.find((r) => r.id === completeId) ?? null, [reservations, completeId]);
 
   function navDay(offset: number) {
     if (offset === 0) { navigateTo(today); return; }
     navigateTo(format(addDays(new Date(selectedDate + "T00:00:00Z"), offset), "yyyy-MM-dd"));
   }
-
   function navWeek(offset: number) {
     if (offset === 0) { navigateTo(today); return; }
     const base = new Date(selectedDate + "T00:00:00Z");
@@ -140,7 +125,7 @@ export function CalendarClient({
     navigateTo(format(ws, "yyyy-MM-dd"));
   }
 
-  // --- 낙관적 업데이트 핸들러들 ---
+  // --- 낙관적 업데이트 핸들러들 (전부 기존 로직 유지) ---
 
   const handleCreate = useCallback(async (fd: FormData): Promise<{ error?: string; success?: boolean }> => {
     const petId = String(fd.get("pet_id"));
@@ -148,32 +133,15 @@ export function CalendarClient({
     const startsAt = String(fd.get("starts_at"));
     const endsAt = String(fd.get("ends_at"));
     const memo = fd.get("memo") ? String(fd.get("memo")) : null;
-
     const pet = pets.find((p) => p.id === petId);
     const svc = services.find((s) => s.id === serviceId);
     const tempId = `temp-${Date.now()}`;
     const priceQuoted = fd.get("price_quoted") ? Number(fd.get("price_quoted")) : null;
-    const optimistic: CalendarReservation = {
-      id: tempId,
-      starts_at: startsAt,
-      ends_at: endsAt,
-      status: "confirmed",
-      memo,
-      price_quoted: priceQuoted,
-      pet: { id: petId, name: pet?.name ?? "", photo_url: null },
-      service: { name: svc?.name ?? "", duration_minutes: svc?.duration_minutes ?? 60 },
-      customer: pet?.customer ?? null,
-    };
-
+    const optimistic: CalendarReservation = { id: tempId, starts_at: startsAt, ends_at: endsAt, status: "confirmed", memo, price_quoted: priceQuoted, pet: { id: petId, name: pet?.name ?? "", photo_url: null }, service: { name: svc?.name ?? "", duration_minutes: svc?.duration_minutes ?? 60 }, customer: pet?.customer ?? null };
     setTempItems((prev) => [...prev, optimistic]);
     setFormState(null);
-
     const result = await createReservationAction(fd);
-    if (result?.error) {
-      setTempItems((prev) => prev.filter((r) => r.id !== tempId));
-      toast.error(result.error);
-      return result;
-    }
+    if (result?.error) { setTempItems((prev) => prev.filter((r) => r.id !== tempId)); toast.error(result.error); return result; }
     router.refresh();
     return { success: true };
   }, [pets, services, router]);
@@ -185,25 +153,10 @@ export function CalendarClient({
     const endsAt = String(fd.get("ends_at"));
     const memo = fd.get("memo") ? String(fd.get("memo")) : null;
     const svc = services.find((s) => s.id === serviceId);
-
-    setPatches((prev) => {
-      const next = new Map(prev);
-      next.set(reservationId, {
-        starts_at: startsAt,
-        ends_at: endsAt,
-        memo,
-        service: { name: svc?.name ?? "", duration_minutes: svc?.duration_minutes ?? 60 },
-      });
-      return next;
-    });
+    setPatches((prev) => { const next = new Map(prev); next.set(reservationId, { starts_at: startsAt, ends_at: endsAt, memo, service: { name: svc?.name ?? "", duration_minutes: svc?.duration_minutes ?? 60 } }); return next; });
     setFormState(null);
-
     const result = await updateReservationAction(fd);
-    if (result?.error) {
-      setPatches((prev) => { const next = new Map(prev); next.delete(reservationId); return next; });
-      toast.error(result.error);
-      return result;
-    }
+    if (result?.error) { setPatches((prev) => { const next = new Map(prev); next.delete(reservationId); return next; }); toast.error(result.error); return result; }
     router.refresh();
     return { success: true };
   }, [services, router]);
@@ -211,128 +164,81 @@ export function CalendarClient({
   const handleStatusChange = useCallback(async (reservationId: string, status: "no_show" | "cancelled") => {
     setPatches((prev) => { const next = new Map(prev); next.set(reservationId, { status }); return next; });
     setSelectedId(null);
-
     const fd = new FormData();
     fd.set("reservation_id", reservationId);
     fd.set("status", status);
     const result = await changeReservationStatusAction(fd);
-    if (result?.error) {
-      setPatches((prev) => { const next = new Map(prev); next.delete(reservationId); return next; });
-      toast.error(result.error);
-    } else {
-      router.refresh();
-    }
+    if (result?.error) { setPatches((prev) => { const next = new Map(prev); next.delete(reservationId); return next; }); toast.error(result.error); }
+    else router.refresh();
   }, [router]);
 
   const handleComplete = useCallback(async (fd: FormData): Promise<{ error?: string; success?: boolean }> => {
     const reservationId = String(fd.get("reservation_id"));
     const actualEndsAt = fd.get("actual_ends_at") ? String(fd.get("actual_ends_at")) : null;
-
-    setPatches((prev) => {
-      const next = new Map(prev);
-      next.set(reservationId, {
-        status: "completed" as const,
-        ...(actualEndsAt ? { ends_at: actualEndsAt } : {}),
-      });
-      return next;
-    });
+    setPatches((prev) => { const next = new Map(prev); next.set(reservationId, { status: "completed" as const, ...(actualEndsAt ? { ends_at: actualEndsAt } : {}) }); return next; });
     setCompleteId(null);
     setSelectedId(null);
-
     const result = await completeWithVisitAction(fd);
-    if (result?.error) {
-      setPatches((prev) => { const next = new Map(prev); next.delete(reservationId); return next; });
-      toast.error(result.error);
-      return result;
-    }
-
+    if (result?.error) { setPatches((prev) => { const next = new Map(prev); next.delete(reservationId); return next; }); toast.error(result.error); return result; }
     const passId = String(fd.get("pass_id") ?? "");
     const passType = String(fd.get("pass_type") ?? "");
     const passAmount = Number(fd.get("pass_amount") ?? 0);
     if (passId) {
       const usedPass = passes.find((p) => p.id === passId);
       if (usedPass) {
-        const newBalance = passType === "amount"
-          ? (usedPass.balance ?? 0) - passAmount
-          : (usedPass.remaining ?? 0) - 1;
-        if (newBalance <= 0) {
-          toast.info("선불권이 모두 소진되었습니다. 재충전을 권유해보세요.");
-        }
+        const newBalance = passType === "amount" ? (usedPass.balance ?? 0) - passAmount : (usedPass.remaining ?? 0) - 1;
+        if (newBalance <= 0) toast.info("선불권이 모두 소진되었습니다. 재충전을 권유해보세요.");
       }
     }
-
-    if (result.visitId) {
-      toast("완료 카드를 만들어보세요", {
-        action: { label: "카드 만들기", onClick: () => router.push(`/visits/${result.visitId}/card`) },
-      });
-    }
-
+    if (result.visitId) toast("완료 카드를 만들어보세요", { action: { label: "카드 만들기", onClick: () => router.push(`/visits/${result.visitId}/card`) } });
     router.refresh();
     return { success: true };
   }, [router, passes]);
 
+  // --- 헤더 날짜 텍스트 ---
+  const dateDisplay = view === "day"
+    ? formatDateKST(selectedDate, "M월 d일 (EEEE)")
+    : currentWeekDays.length >= 7
+      ? `${formatDateKST(currentWeekDays[0].date, "M월 d일")} – ${formatDateKST(currentWeekDays[6].date, "M월 d일")}`
+      : "";
+
   return (
-    <div className="-mx-4 -mt-6 sm:-mx-6 lg:-mx-8 lg:-mt-8">
-      {/* -- header -- */}
-      <div className="sticky top-0 z-20 border-b border-border bg-white px-4 py-3">
-        <div className="flex items-center justify-between gap-2">
-          {/* day/week toggle */}
-          <div className="flex rounded-md bg-border-light p-0.5">
+    <div className="-mx-4 -mt-5 sm:-mx-6 lg:-mx-8 lg:-mt-6">
+      {/* ── 헤더 ── */}
+      <div className="sticky top-0 z-20 border-b border-border bg-white">
+        <div className="flex items-center justify-between px-4 py-2.5 lg:px-6">
+          {/* 좌: 오늘 + 네비 + 날짜 */}
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setView("day")}
-              className={`rounded-md px-3 py-1 text-[13px] font-medium transition-all duration-150 ${
-                view === "day" ? "border border-border bg-white text-ink" : "text-ink-caption"
-              }`}
+              onClick={() => (view === "day" ? navDay(0) : navWeek(0))}
+              className="rounded-md border border-border px-2.5 py-1 text-[13px] font-medium text-ink hover:bg-bg"
             >
-              일간
+              오늘
             </button>
-            <button
-              onClick={() => setView("week")}
-              className={`rounded-md px-3 py-1 text-[13px] font-medium transition-all duration-150 ${
-                view === "week" ? "border border-border bg-white text-ink" : "text-ink-caption"
-              }`}
-            >
-              주간
-            </button>
+            <div className="flex">
+              <button onClick={() => (view === "day" ? navDay(-1) : navWeek(-1))} className="rounded-l-md border border-border p-1.5 text-ink-caption hover:bg-bg"><ChevronLeft /></button>
+              <button onClick={() => (view === "day" ? navDay(1) : navWeek(1))} className="-ml-px rounded-r-md border border-border p-1.5 text-ink-caption hover:bg-bg"><ChevronRight /></button>
+            </div>
+            <h2 className="text-[16px] font-semibold text-ink ml-1 hidden sm:block">{dateDisplay}</h2>
           </div>
 
-          {/* date nav */}
-          {view === "day" ? (
-            <div className="flex items-center gap-1">
-              <button onClick={() => navDay(-1)} className="rounded-md p-1.5 text-ink-caption transition-colors hover:bg-bg"><ChevronLeft /></button>
-              <button onClick={() => navDay(0)} className="rounded-md px-2.5 py-1 text-[13px] font-medium text-primary transition-colors hover:bg-primary-light">오늘</button>
-              <button onClick={() => navDay(1)} className="rounded-md p-1.5 text-ink-caption transition-colors hover:bg-bg"><ChevronRight /></button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1">
-              <button onClick={() => navWeek(-1)} className="rounded-md p-1.5 text-ink-caption transition-colors hover:bg-bg"><ChevronLeft /></button>
-              <button onClick={() => navWeek(0)} className="rounded-md px-2.5 py-1 text-[13px] font-medium text-primary transition-colors hover:bg-primary-light">이번 주</button>
-              <button onClick={() => navWeek(1)} className="rounded-md p-1.5 text-ink-caption transition-colors hover:bg-bg"><ChevronRight /></button>
-            </div>
-          )}
-
-          {/* right actions */}
+          {/* 우: 세그먼트 + 예약 버튼 */}
           <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 text-[11px] text-ink-caption">
+            <label className="flex items-center gap-1 text-[11px] text-ink-caption mr-1">
               <input type="checkbox" checked={showCancelled} onChange={(e) => setShowCancelled(e.target.checked)} className="rounded" />취소
             </label>
-            <button onClick={() => setFormState({ mode: "create" })} className="hidden rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-primary-hover lg:block">
-              + 예약
-            </button>
+            <div className="flex rounded-md border border-border">
+              <button onClick={() => setView("day")} className={`px-3 py-1 text-[13px] font-medium transition-colors ${view === "day" ? "bg-primary text-white" : "text-ink-secondary hover:bg-bg"}`}>일</button>
+              <button onClick={() => setView("week")} className={`-ml-px px-3 py-1 text-[13px] font-medium transition-colors ${view === "week" ? "bg-primary text-white" : "text-ink-secondary hover:bg-bg"}`}>주</button>
+            </div>
+            <button onClick={() => setFormState({ mode: "create" })} className="hidden rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-white hover:bg-primary-hover lg:block">+ 예약</button>
           </div>
         </div>
-
-        {/* date label */}
-        <p className="mt-1.5 text-[14px] font-semibold text-ink">
-          {view === "day"
-            ? formatDateKST(selectedDate, "M월 d일 (EEEE)")
-            : currentWeekDays.length >= 7
-              ? `${formatDateKST(currentWeekDays[0].date, "M/d")} – ${formatDateKST(currentWeekDays[6].date, "M/d")}`
-              : ""}
-        </p>
+        {/* 모바일 날짜 (sm 미만에서만) */}
+        <p className="px-4 pb-2 text-[14px] font-semibold text-ink sm:hidden">{dateDisplay}</p>
       </div>
 
-      {/* -- view -- */}
+      {/* ── 뷰 ── */}
       {view === "day" ? (
         <DayView
           reservations={dayReservations}
@@ -353,7 +259,7 @@ export function CalendarClient({
         />
       )}
 
-      {/* -- dialogs -- */}
+      {/* ── 다이얼로그들 ── */}
       {selectedReservation && !formState && !completeId && (
         <ReservationDetail
           reservation={selectedReservation}
@@ -363,14 +269,10 @@ export function CalendarClient({
           onStatusChange={handleStatusChange}
         />
       )}
-
       {formState && (
         <ReservationForm
-          pets={pets}
-          services={services}
-          hours={currentDayInfo?.hours ?? null}
-          slotMinutes={config.slotMinutes}
-          date={selectedDate}
+          pets={pets} services={services} hours={currentDayInfo?.hours ?? null}
+          slotMinutes={config.slotMinutes} date={selectedDate}
           initialTime={formState.mode === "create" ? formState.time : undefined}
           existingReservations={dayReservations}
           editReservation={formState.mode === "edit" ? formState.reservation : undefined}
@@ -378,31 +280,18 @@ export function CalendarClient({
           onSubmit={formState.mode === "edit" ? handleUpdate : handleCreate}
         />
       )}
-
       {completeReservation && (
         <CompleteDialog
-          reservationId={completeReservation.id}
-          petName={completeReservation.pet.name}
-          startsAt={completeReservation.starts_at}
-          endsAt={completeReservation.ends_at}
-          slotMinutes={config.slotMinutes}
-          priceQuoted={completeReservation.price_quoted}
-          passes={completeReservation.customer
-            ? passes.filter((p) => p.customerId === completeReservation.customer!.id).map((p) => ({
-                id: p.id, type: p.type, name: p.name, balance: p.balance, remaining: p.remaining, expires_at: p.expires_at,
-              }))
-            : []}
-          onClose={() => setCompleteId(null)}
-          onSubmit={handleComplete}
+          reservationId={completeReservation.id} petName={completeReservation.pet.name}
+          startsAt={completeReservation.starts_at} endsAt={completeReservation.ends_at}
+          slotMinutes={config.slotMinutes} priceQuoted={completeReservation.price_quoted}
+          passes={completeReservation.customer ? passes.filter((p) => p.customerId === completeReservation.customer!.id).map((p) => ({ id: p.id, type: p.type, name: p.name, balance: p.balance, remaining: p.remaining, expires_at: p.expires_at })) : []}
+          onClose={() => setCompleteId(null)} onSubmit={handleComplete}
         />
       )}
     </div>
   );
 }
 
-function ChevronLeft() {
-  return (<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>);
-}
-function ChevronRight() {
-  return (<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>);
-}
+function ChevronLeft() { return (<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>); }
+function ChevronRight() { return (<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>); }
