@@ -32,8 +32,8 @@ export default async function ShopSettingsPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-stone-900">샵 정보</h1>
-      <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
+      <h1 className="text-[20px] font-bold text-ink">샵 정보</h1>
+      <div className="mt-6 rounded-lg border border-border bg-white p-6">
         <ShopSettingsForm
           name={shop.name}
           phone={shop.phone ?? ""}

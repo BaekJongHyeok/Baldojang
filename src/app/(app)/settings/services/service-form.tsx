@@ -71,26 +71,26 @@ export function ServiceFormDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
-      <div className={`w-full max-w-md rounded-2xl bg-white p-6 shadow-lg ${isPending ? "pointer-events-none" : ""}`}>
-        <h2 className="text-lg font-bold text-stone-900">
+      <div className={`w-full max-w-md rounded-lg border border-border bg-white p-6 shadow-modal ${isPending ? "pointer-events-none" : ""}`}>
+        <h2 className="text-base font-bold text-ink">
           {service ? "시술 수정" : "시술 추가"}
         </h2>
 
         <form action={handleSubmit} className="mt-4 flex flex-col gap-4">
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-stone-700">시술 이름</span>
+            <span className="text-sm font-medium text-ink-secondary">시술 이름</span>
             <input
               name="name"
               type="text"
               required
               defaultValue={service?.name ?? ""}
-              className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+              className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
               placeholder="예) 전체미용"
             />
           </label>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-stone-700">
+            <span className="text-sm font-medium text-ink-secondary">
               소요시간 (분)
             </span>
             <input
@@ -100,21 +100,21 @@ export function ServiceFormDialog({
               min={5}
               step={5}
               defaultValue={service?.duration_minutes ?? 60}
-              className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+              className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
             />
           </label>
 
           {/* 가격 토글 */}
           <fieldset className="flex flex-col gap-2">
-            <legend className="text-sm font-medium text-stone-700">가격</legend>
+            <legend className="text-sm font-medium text-ink-secondary">가격</legend>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setPriceMode("single")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
                   priceMode === "single"
-                    ? "bg-stone-900 text-white"
-                    : "bg-stone-100 text-stone-600"
+                    ? "bg-primary text-white"
+                    : "bg-border-light text-ink-secondary"
                 }`}
               >
                 단일가
@@ -122,10 +122,10 @@ export function ServiceFormDialog({
               <button
                 type="button"
                 onClick={() => setPriceMode("size")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
                   priceMode === "size"
-                    ? "bg-stone-900 text-white"
-                    : "bg-stone-100 text-stone-600"
+                    ? "bg-primary text-white"
+                    : "bg-border-light text-ink-secondary"
                 }`}
               >
                 체급별
@@ -142,16 +142,16 @@ export function ServiceFormDialog({
                   onChange={(e) =>
                     setPrices((p) => ({ ...p, all: Number(e.target.value) }))
                   }
-                  className="flex-1 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+                  className="flex-1 rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
                   placeholder="40,000"
                 />
-                <span className="text-sm text-stone-500">원</span>
+                <span className="text-sm text-ink-caption">원</span>
               </div>
             ) : (
               <div className="flex flex-col gap-2">
                 {(["small", "medium", "large"] as const).map((size) => (
                   <div key={size} className="flex items-center gap-2">
-                    <span className="w-10 text-xs font-medium text-stone-500">
+                    <span className="w-10 text-xs font-medium text-ink-caption">
                       {size === "small"
                         ? "소형"
                         : size === "medium"
@@ -169,9 +169,9 @@ export function ServiceFormDialog({
                           [size]: Number(e.target.value),
                         }))
                       }
-                      className="flex-1 rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+                      className="flex-1 rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
                     />
-                    <span className="text-sm text-stone-500">원</span>
+                    <span className="text-sm text-ink-caption">원</span>
                   </div>
                 ))}
               </div>
@@ -179,7 +179,7 @@ export function ServiceFormDialog({
           </fieldset>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-stone-700">
+            <span className="text-sm font-medium text-ink-secondary">
               권장 재방문 주기 (주, 선택)
             </span>
             <input
@@ -187,27 +187,27 @@ export function ServiceFormDialog({
               type="number"
               min={1}
               defaultValue={service?.recommend_cycle_weeks ?? ""}
-              className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+              className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
               placeholder="예) 5"
             />
           </label>
 
           {error && (
-            <p className="text-center text-sm text-red-500">{error}</p>
+            <p className="text-center text-sm text-danger">{error}</p>
           )}
 
           <div className="flex gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-xl border border-stone-200 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+              className="flex-1 rounded-md border border-border py-2.5 text-sm font-medium text-ink-secondary transition hover:bg-bg"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-sm font-medium text-white transition hover:bg-primary-hover disabled:opacity-50"
             >
               {isPending && <Spinner />}
               저장

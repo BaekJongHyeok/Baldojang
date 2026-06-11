@@ -59,7 +59,7 @@ export function ServiceList({ services }: { services: Service[] }) {
     <div className="mt-6">
       <button
         onClick={() => setShowAdd(true)}
-        className="mb-4 rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-stone-800"
+        className="mb-4 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-primary-hover"
       >
         + 시술 추가
       </button>
@@ -80,7 +80,7 @@ export function ServiceList({ services }: { services: Service[] }) {
       )}
 
       {services.length === 0 ? (
-        <p className="py-12 text-center text-sm text-stone-400">
+        <p className="py-12 text-center text-sm text-ink-caption">
           등록된 시술이 없습니다.
         </p>
       ) : (
@@ -88,7 +88,7 @@ export function ServiceList({ services }: { services: Service[] }) {
           {services.map((s, idx) => (
             <div
               key={s.id}
-              className={`flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm ${
+              className={`flex items-center gap-3 rounded-lg border border-border bg-white p-4 ${
                 !s.is_active ? "opacity-50" : ""
               }`}
             >
@@ -97,7 +97,7 @@ export function ServiceList({ services }: { services: Service[] }) {
                 <button
                   onClick={() => handleReorder(s.id, "up")}
                   disabled={idx === 0 || isPending}
-                  className="text-stone-400 hover:text-stone-600 disabled:opacity-30"
+                  className="text-ink-caption hover:text-ink-secondary disabled:opacity-30"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
@@ -106,7 +106,7 @@ export function ServiceList({ services }: { services: Service[] }) {
                 <button
                   onClick={() => handleReorder(s.id, "down")}
                   disabled={idx === services.length - 1 || isPending}
-                  className="text-stone-400 hover:text-stone-600 disabled:opacity-30"
+                  className="text-ink-caption hover:text-ink-secondary disabled:opacity-30"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
@@ -116,10 +116,10 @@ export function ServiceList({ services }: { services: Service[] }) {
 
               {/* 정보 */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-stone-900">
+                <p className="text-sm font-semibold text-ink">
                   {s.name}
                 </p>
-                <p className="mt-0.5 text-xs text-stone-500">
+                <p className="mt-0.5 text-xs text-ink-caption">
                   {s.duration_minutes}분 · {formatPrice(s.price)}
                   {s.recommend_cycle_weeks
                     ? ` · ${s.recommend_cycle_weeks}주 주기`
@@ -131,17 +131,17 @@ export function ServiceList({ services }: { services: Service[] }) {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setEditId(s.id)}
-                  className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-100"
+                  className="rounded-md px-2.5 py-1.5 text-xs font-medium text-ink-secondary transition hover:bg-bg"
                 >
                   수정
                 </button>
                 <button
                   onClick={() => handleToggle(s)}
                   disabled={isPending}
-                  className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                  className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${
                     s.is_active
-                      ? "text-red-500 hover:bg-red-50"
-                      : "text-green-600 hover:bg-green-50"
+                      ? "text-danger hover:bg-danger-light"
+                      : "text-success hover:bg-success-light"
                   }`}
                 >
                   {s.is_active ? "비활성화" : "활성화"}

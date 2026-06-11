@@ -47,33 +47,33 @@ export default async function CustomerDetailPage({
   return (
     <div className="flex flex-col gap-6">
       {/* 보호자 정보 */}
-      <div className="rounded-2xl bg-white p-5 shadow-sm">
-        <h1 className="text-xl font-bold text-stone-900">{customer.name}</h1>
+      <div className="rounded-lg border border-border bg-white p-5">
+        <h1 className="text-[20px] font-bold text-ink">{customer.name}</h1>
         <div className="mt-3 flex flex-col gap-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-stone-500">전화번호</span>
+            <span className="text-ink-caption">전화번호</span>
             <a
               href={`tel:${customer.phone}`}
-              className="font-medium text-stone-900 hover:underline"
+              className="font-medium text-ink hover:underline"
             >
               {formatPhone(customer.phone)}
             </a>
           </div>
           {customer.source && (
             <div className="flex justify-between">
-              <span className="text-stone-500">유입 경로</span>
-              <span className="text-stone-900">{customer.source}</span>
+              <span className="text-ink-caption">유입 경로</span>
+              <span className="text-ink">{customer.source}</span>
             </div>
           )}
           {customer.memo && (
             <div className="flex justify-between">
-              <span className="text-stone-500">메모</span>
-              <span className="text-stone-900">{customer.memo}</span>
+              <span className="text-ink-caption">메모</span>
+              <span className="text-ink">{customer.memo}</span>
             </div>
           )}
           <div className="flex justify-between">
-            <span className="text-stone-500">등록일</span>
-            <span className="text-stone-900">
+            <span className="text-ink-caption">등록일</span>
+            <span className="text-ink">
               {new Date(customer.created_at).toLocaleDateString("ko-KR")}
             </span>
           </div>
@@ -82,7 +82,7 @@ export default async function CustomerDetailPage({
 
       {/* 펫 목록 */}
       <div>
-        <p className="text-sm font-bold text-stone-700">
+        <p className="text-sm font-bold text-ink-secondary">
           반려견 ({pets?.length ?? 0})
         </p>
         <div className="mt-3 flex flex-col gap-2">
@@ -90,11 +90,11 @@ export default async function CustomerDetailPage({
             <Link
               key={pet.id}
               href={`/pets/${pet.id}`}
-              className={`flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm transition hover:bg-stone-50 ${
+              className={`flex items-center gap-3 rounded-lg border border-border bg-white p-4 transition hover:bg-bg ${
                 !pet.is_active ? "opacity-50" : ""
               }`}
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-100 text-sm font-bold text-stone-400 overflow-hidden">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-border-light text-sm font-bold text-ink-caption overflow-hidden">
                 {pet.photo_url && photoUrlMap[pet.photo_url] ? (
                   <img
                     src={photoUrlMap[pet.photo_url]}
@@ -107,19 +107,19 @@ export default async function CustomerDetailPage({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <p className="truncate text-sm font-semibold text-stone-900">
+                  <p className="truncate text-sm font-semibold text-ink">
                     {pet.name}
                   </p>
                   {pet.caution_tags.length > 0 && (
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-danger" />
                   )}
                 </div>
-                <p className="text-xs text-stone-500">
+                <p className="text-xs text-ink-caption">
                   {[pet.breed, sizeLabel(pet.size)].filter(Boolean).join(" · ")}
                 </p>
               </div>
               <svg
-                className="h-4 w-4 shrink-0 text-stone-300"
+                className="h-4 w-4 shrink-0 text-ink-disabled"
                 fill="none"
                 viewBox="0 0 24 24"
                 strokeWidth={2}
@@ -134,7 +134,7 @@ export default async function CustomerDetailPage({
             </Link>
           ))}
           {(!pets || pets.length === 0) && (
-            <p className="py-8 text-center text-sm text-stone-400">
+            <p className="py-8 text-center text-sm text-ink-caption">
               등록된 반려견이 없습니다.
             </p>
           )}

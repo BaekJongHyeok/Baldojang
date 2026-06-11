@@ -24,33 +24,33 @@ const ITEMS = [
 export default function SettingsPage() {
   return (
     <div>
-      <h1 className="text-xl font-bold text-stone-900">설정</h1>
+      <h1 className="text-[20px] font-bold text-ink">설정</h1>
       <div className="mt-6 flex flex-col gap-3">
         {ITEMS.map((item) =>
           item.enabled ? (
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center justify-between rounded-2xl bg-white p-5 shadow-sm transition hover:bg-stone-50"
+              className="flex items-center justify-between rounded-lg border border-border bg-white p-5 transition hover:bg-bg"
             >
               <div>
-                <p className="text-sm font-semibold text-stone-900">
+                <p className="text-sm font-semibold text-ink">
                   {item.title}
                 </p>
-                <p className="mt-0.5 text-xs text-stone-500">{item.desc}</p>
+                <p className="mt-0.5 text-xs text-ink-caption">{item.desc}</p>
               </div>
               <ChevronRight />
             </Link>
           ) : (
             <div
               key={item.href}
-              className="flex items-center justify-between rounded-2xl bg-white p-5 opacity-50 shadow-sm"
+              className="flex items-center justify-between rounded-lg border border-border bg-white p-5 opacity-50"
             >
               <div>
-                <p className="text-sm font-semibold text-stone-400">
+                <p className="text-sm font-semibold text-ink-disabled">
                   {item.title}
                 </p>
-                <p className="mt-0.5 text-xs text-stone-400">{item.desc}</p>
+                <p className="mt-0.5 text-xs text-ink-disabled">{item.desc}</p>
               </div>
             </div>
           ),
@@ -63,7 +63,7 @@ export default function SettingsPage() {
 function ChevronRight() {
   return (
     <svg
-      className="h-4 w-4 text-stone-400"
+      className="h-4 w-4 text-ink-disabled"
       fill="none"
       viewBox="0 0 24 24"
       strokeWidth={2}

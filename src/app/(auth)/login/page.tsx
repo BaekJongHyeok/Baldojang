@@ -18,32 +18,32 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-stone-50 px-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-sm">
-        <h1 className="mb-1 text-2xl font-bold text-stone-900">발도장</h1>
-        <p className="mb-8 text-sm text-stone-500">로그인하고 시작하세요</p>
+    <div className="flex min-h-screen items-center justify-center bg-bg px-4">
+      <div className="w-full max-w-sm rounded-lg border border-border bg-white p-8">
+        <h1 className="mb-1 text-[20px] font-bold text-ink">발도장</h1>
+        <p className="mb-8 text-sm text-ink-caption">로그인하고 시작하세요</p>
 
         <form action={handleSubmit} className="flex flex-col gap-4">
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-stone-700">이메일</span>
+            <span className="text-sm font-medium text-ink-secondary">이메일</span>
             <input
               name="email"
               type="email"
               required
               autoComplete="email"
-              className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+              className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
               placeholder="example@email.com"
             />
           </label>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-stone-700">비밀번호</span>
+            <span className="text-sm font-medium text-ink-secondary">비밀번호</span>
             <input
               name="password"
               type="password"
               required
               autoComplete="current-password"
-              className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+              className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
               placeholder="••••••••"
             />
           </label>
@@ -51,20 +51,20 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isPending}
-            className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-50"
+            className="mt-2 flex items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-sm font-medium text-white transition hover:bg-primary-hover disabled:opacity-50"
           >
             {isPending && <Spinner />}
             로그인
           </button>
 
           {error && (
-            <p className="text-center text-sm text-red-500">{error}</p>
+            <p className="text-center text-sm text-danger">{error}</p>
           )}
         </form>
 
-        <p className="mt-6 text-center text-sm text-stone-500">
+        <p className="mt-6 text-center text-sm text-ink-caption">
           아직 계정이 없으신가요?{" "}
-          <Link href="/signup" className="font-medium text-stone-900 hover:underline">
+          <Link href="/signup" className="font-medium text-primary hover:underline">
             회원가입
           </Link>
         </p>

@@ -24,7 +24,7 @@ export default async function ServicesSettingsPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-stone-900">시술 메뉴</h1>
+      <h1 className="text-[20px] font-bold text-ink">시술 메뉴</h1>
       <ServiceList services={services ?? []} />
     </div>
   );

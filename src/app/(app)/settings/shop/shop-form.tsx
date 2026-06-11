@@ -77,46 +77,46 @@ export function ShopSettingsForm({
   return (
     <form action={handleSubmit} className={`flex flex-col gap-5 ${isPending ? "pointer-events-none" : ""}`}>
       <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-stone-700">샵 이름</span>
+        <span className="text-sm font-medium text-ink-secondary">샵 이름</span>
         <input
           name="name"
           type="text"
           required
           defaultValue={name}
-          className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+          className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
         />
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-stone-700">전화번호</span>
+        <span className="text-sm font-medium text-ink-secondary">전화번호</span>
         <input
           name="phone"
           type="tel"
           defaultValue={phone}
-          className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+          className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
           placeholder="02-1234-5678"
         />
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-stone-700">주소</span>
+        <span className="text-sm font-medium text-ink-secondary">주소</span>
         <input
           name="address"
           type="text"
           defaultValue={address}
-          className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+          className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
           placeholder="서울시 강남구 ..."
         />
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-stone-700">
+        <span className="text-sm font-medium text-ink-secondary">
           슬롯 단위 (분)
         </span>
         <select
           name="slot_minutes"
           defaultValue={slotMinutes}
-          className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+          className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
         >
           <option value={15}>15분</option>
           <option value={30}>30분</option>
@@ -125,7 +125,7 @@ export function ShopSettingsForm({
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-stone-700">
+        <span className="text-sm font-medium text-ink-secondary">
           기본 재방문 주기 (주)
         </span>
         <input
@@ -134,30 +134,30 @@ export function ShopSettingsForm({
           min={1}
           max={52}
           defaultValue={defaultCycleWeeks}
-          className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm outline-none transition focus:border-stone-400 focus:ring-1 focus:ring-stone-400"
+          className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
         />
-        <span className="text-[10px] text-stone-400">시술별 주기가 없을 때 적용됩니다</span>
+        <span className="text-[10px] text-ink-caption">시술별 주기가 없을 때 적용됩니다</span>
       </label>
 
       <fieldset className="flex flex-col gap-1.5">
-        <legend className="text-sm font-medium text-stone-700">영업시간</legend>
+        <legend className="text-sm font-medium text-ink-secondary">영업시간</legend>
         <div className="mt-2 flex flex-col gap-2">
           {DAYS.map(({ key, label }) => {
             const active = !!hours[key];
             return (
               <div
                 key={key}
-                className="flex flex-col gap-1.5 rounded-xl bg-stone-50 p-3 lg:flex-row lg:items-center lg:gap-3 lg:rounded-none lg:bg-transparent lg:p-0"
+                className="flex flex-col gap-1.5 rounded-md bg-bg p-3 lg:flex-row lg:items-center lg:gap-3 lg:rounded-none lg:bg-transparent lg:p-0"
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-6 text-center text-sm font-medium text-stone-600">
+                  <span className="w-6 text-center text-sm font-medium text-ink-secondary">
                     {label}
                   </span>
                   <button
                     type="button"
                     onClick={() => toggleDay(key)}
                     className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-                      active ? "bg-stone-900" : "bg-stone-200"
+                      active ? "bg-primary" : "bg-border-light"
                     }`}
                   >
                     <span
@@ -167,7 +167,7 @@ export function ShopSettingsForm({
                     />
                   </button>
                   {!active && (
-                    <span className="text-xs text-stone-400">휴무</span>
+                    <span className="text-xs text-ink-caption">휴무</span>
                   )}
                 </div>
                 {active && (
@@ -176,14 +176,14 @@ export function ShopSettingsForm({
                       type="time"
                       value={hours[key].open}
                       onChange={(e) => updateTime(key, "open", e.target.value)}
-                      className="min-w-0 flex-1 rounded-lg border border-stone-200 px-2 py-1 text-xs outline-none focus:border-stone-400"
+                      className="min-w-0 flex-1 rounded-md border border-border px-2 py-1 text-xs outline-none focus:border-primary"
                     />
-                    <span className="shrink-0 text-xs text-stone-400">~</span>
+                    <span className="shrink-0 text-xs text-ink-caption">~</span>
                     <input
                       type="time"
                       value={hours[key].close}
                       onChange={(e) => updateTime(key, "close", e.target.value)}
-                      className="min-w-0 flex-1 rounded-lg border border-stone-200 px-2 py-1 text-xs outline-none focus:border-stone-400"
+                      className="min-w-0 flex-1 rounded-md border border-border px-2 py-1 text-xs outline-none focus:border-primary"
                     />
                   </div>
                 )}
@@ -196,7 +196,7 @@ export function ShopSettingsForm({
       <button
         type="submit"
         disabled={isPending}
-        className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-50"
+        className="mt-2 flex items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-sm font-medium text-white transition hover:bg-primary-hover disabled:opacity-50"
       >
         {isPending && <Spinner />}
         저장
@@ -205,7 +205,7 @@ export function ShopSettingsForm({
       {message && (
         <p
           className={`text-center text-sm ${
-            message.type === "success" ? "text-green-600" : "text-red-500"
+            message.type === "success" ? "text-success" : "text-danger"
           }`}
         >
           {message.text}
