@@ -70,7 +70,7 @@ export async function createPassAction(formData: FormData) {
   if (paymentMethod && paymentAmount > 0) {
     await supabase.from("payments").insert({
       shop_id: info.shopId,
-      visit_id: null as unknown as string, // nullable after 0004 migration
+      visit_id: null,
       method: String(paymentMethod) as "cash" | "card" | "transfer",
       amount: paymentAmount,
     });

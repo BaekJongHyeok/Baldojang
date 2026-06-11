@@ -232,22 +232,18 @@ export async function completeWithVisitAction(formData: FormData) {
     if (passId && passType) {
       // 선불권 차감 (원자적 RPC)
       if (passType === "amount" && passAmount > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: deductErr } = await (supabase.rpc as any)("deduct_pass_amount", {
+        const { error: deductErr } = await supabase.rpc("deduct_pass_amount", {
           p_pass_id: passId,
           p_amount: passAmount,
           p_visit_id: visit.id,
-          p_staff_id: user.id,
         });
-        if (deductErr) return { error: `선불권 차감 실패: ${(deductErr as { message: string }).message}` };
+        if (deductErr) return { error: `선불권 차감 실패: ${deductErr.message}` };
       } else if (passType === "count") {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: deductErr } = await (supabase.rpc as any)("deduct_pass_count", {
+        const { error: deductErr } = await supabase.rpc("deduct_pass_count", {
           p_pass_id: passId,
           p_visit_id: visit.id,
-          p_staff_id: user.id,
         });
-        if (deductErr) return { error: `횟수권 차감 실패: ${(deductErr as { message: string }).message}` };
+        if (deductErr) return { error: `횟수권 차감 실패: ${deductErr.message}` };
       }
 
       // 선불권 결제 기록

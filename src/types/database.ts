@@ -230,7 +230,7 @@ export type Database = {
           paid_at: string
           pass_id: string | null
           shop_id: string
-          visit_id: string
+          visit_id: string | null
         }
         Insert: {
           amount: number
@@ -239,7 +239,7 @@ export type Database = {
           paid_at?: string
           pass_id?: string | null
           shop_id: string
-          visit_id: string
+          visit_id?: string | null
         }
         Update: {
           amount?: number
@@ -248,7 +248,7 @@ export type Database = {
           paid_at?: string
           pass_id?: string | null
           shop_id?: string
-          visit_id?: string
+          visit_id?: string | null
         }
         Relationships: [
           {
@@ -608,6 +608,14 @@ export type Database = {
       create_shop_with_owner: {
         Args: { owner_name: string; shop_name: string }
         Returns: string
+      }
+      deduct_pass_amount: {
+        Args: { p_amount: number; p_pass_id: string; p_visit_id: string }
+        Returns: undefined
+      }
+      deduct_pass_count: {
+        Args: { p_pass_id: string; p_visit_id: string }
+        Returns: undefined
       }
       my_shop_id: { Args: never; Returns: string }
       show_limit: { Args: never; Returns: number }
