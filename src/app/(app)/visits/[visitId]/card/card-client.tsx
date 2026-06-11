@@ -58,8 +58,12 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   const [uploadType, setUploadType] = useState<"before" | "after">("after");
 
   const brandColor = shop.brandColor || "#292524";
-  const hasPhotos = afterPhotos.length > 0;
-  const mainPhoto = afterPhotos[selectedPhoto]?.url ?? afterPhotos[0]?.url ?? "";
+  // 전체 사진 목록 (after 우선, before 이후)
+  const allPhotos = [...afterPhotos.map((p) => ({ ...p, label: "후" as const })), ...beforePhotos.map((p) => ({ ...p, label: "전" as const }))];
+  const hasPhotos = allPhotos.length > 0;
+  const safeIdx = Math.min(selectedPhoto, allPhotos.length - 1);
+  const mainPhoto = allPhotos[safeIdx]?.url ?? "";
+  const canShowBeforeAfter = beforePhotos.length > 0 && afterPhotos.length > 0;
   const displayMsg = customMsg || message;
   const size = CARD_SIZES[ratio];
 
@@ -130,10 +134,13 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
       setBeforePhotos(next);
       if (next.length === 0) setShowBefore(false);
     } else {
-      const next = afterPhotos.filter((p) => p.path !== path);
-      setAfterPhotos(next);
-      if (selectedPhoto >= next.length) setSelectedPhoto(Math.max(0, next.length - 1));
+      setAfterPhotos(afterPhotos.filter((p) => p.path !== path));
     }
+    // selectedPhoto 보정 (allPhotos가 줄어들므로)
+    const totalAfter = type === "after" ? afterPhotos.length - 1 : afterPhotos.length;
+    const totalBefore = type === "before" ? beforePhotos.length - 1 : beforePhotos.length;
+    const newTotal = totalAfter + totalBefore;
+    if (selectedPhoto >= newTotal) setSelectedPhoto(Math.max(0, newTotal - 1));
     setConfirmDelete(null);
 
     const fd = new FormData();
@@ -173,8 +180,8 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
         <h1 className="text-xl font-bold text-stone-900">완료 카드</h1>
         <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm text-center">
           <p className="text-4xl">📷</p>
-          <p className="mt-3 text-sm font-medium text-stone-700">시술 사진을 먼저 등록해주세요</p>
-          <p className="mt-1 text-xs text-stone-500">시술 후 사진이 있어야 완료 카드를 만들 수 있어요</p>
+          <p className="mt-3 text-sm font-medium text-stone-700">시술 사진을 등록해주세요</p>
+          <p className="mt-1 text-xs text-stone-500">시술 사진을 등록하면 완료 카드를 만들 수 있어요</p>
           <div className="mt-4 flex flex-col gap-2">
             <div className="flex gap-2 justify-center">
               <button onClick={() => setUploadType("before")} className={`rounded-lg px-3 py-1 text-xs font-medium ${uploadType === "before" ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600"}`}>시술 전</button>
@@ -205,7 +212,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
           <button onClick={() => setRatio("4:5")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${ratio === "4:5" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>4:5</button>
           <button onClick={() => setRatio("9:16")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${ratio === "9:16" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>9:16</button>
         </div>
-        {beforePhotos.length > 0 && (
+        {canShowBeforeAfter && (
           <label className="flex items-center gap-1.5 text-xs text-stone-600">
             <input type="checkbox" checked={showBefore} onChange={(e) => setShowBefore(e.target.checked)} className="rounded" />
             Before/After
@@ -213,34 +220,23 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
         )}
       </div>
 
-      {(beforePhotos.length > 0 || afterPhotos.length > 1) && (
+      {allPhotos.length > 1 && (
         <div className="mt-2 flex gap-1.5 overflow-x-auto">
-          {beforePhotos.map((photo, i) => (
-            <div key={`b-${i}`} className="relative h-12 w-12 shrink-0">
-              <div className="h-full w-full overflow-hidden rounded-lg opacity-70">
-                <img src={photo.url} alt="" className="h-full w-full object-cover" />
-              </div>
-              <span className="absolute bottom-0 left-0 right-0 rounded-b-lg bg-black/50 text-center text-[8px] font-bold text-white leading-tight">전</span>
-              <button
-                type="button"
-                onClick={() => setConfirmDelete({ path: photo.path, type: "before" })}
-                className="absolute -right-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow"
-              >×</button>
-            </div>
-          ))}
-          {afterPhotos.map((photo, i) => (
-            <div key={`a-${i}`} className="relative h-12 w-12 shrink-0">
+          {allPhotos.map((photo, i) => (
+            <div key={`${photo.label}-${i}`} className="relative h-12 w-12 shrink-0">
               <button
                 type="button"
                 onClick={() => setSelectedPhoto(i)}
-                className={`h-full w-full overflow-hidden rounded-lg border-2 ${i === selectedPhoto ? "border-stone-900" : "border-transparent"}`}
+                className={`h-full w-full overflow-hidden rounded-lg border-2 ${i === safeIdx ? "border-stone-900" : "border-transparent"}`}
               >
                 <img src={photo.url} alt="" className="h-full w-full object-cover" />
               </button>
-              <span className="absolute bottom-0 left-0 right-0 rounded-b-lg bg-stone-900/50 text-center text-[8px] font-bold text-white leading-tight pointer-events-none">후</span>
+              <span className={`absolute bottom-0 left-0 right-0 rounded-b-lg text-center text-[8px] font-bold text-white leading-tight pointer-events-none ${photo.label === "전" ? "bg-black/50" : "bg-stone-900/50"}`}>
+                {photo.label}
+              </span>
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); setConfirmDelete({ path: photo.path, type: "after" }); }}
+                onClick={(e) => { e.stopPropagation(); setConfirmDelete({ path: photo.path, type: photo.label === "전" ? "before" : "after" }); }}
                 className="absolute -right-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow"
               >×</button>
             </div>
@@ -269,29 +265,21 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
       <input type="text" value={customMsg} onChange={(e) => setCustomMsg(e.target.value)}
         placeholder="직접 입력" className="mt-1.5 w-full min-w-0 rounded-lg border border-stone-200 px-3 py-1.5 text-xs outline-none focus:border-stone-400" />
 
-      {/* 사진 추가 / Before 안내 */}
-      <div className="mt-3">
-        {beforePhotos.length > 0 ? (
-          <div className="flex gap-2 items-center">
-            <div className="flex rounded-lg bg-stone-100 p-0.5">
-              <button onClick={() => setUploadType("before")} className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${uploadType === "before" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>전</button>
-              <button onClick={() => setUploadType("after")} className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${uploadType === "after" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>후</button>
-            </div>
-            <label className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-stone-600 cursor-pointer hover:bg-stone-50">
-              {isPending && <Spinner className="h-3 w-3" />}
-              + 사진 추가
-              <input type="file" accept="image/*" multiple onChange={(e) => handleUpload(e, uploadType)} className="hidden" />
-            </label>
+      {/* 사진 추가 */}
+      <div className="mt-3 flex flex-col gap-2">
+        <div className="flex gap-2 items-center">
+          <div className="flex rounded-lg bg-stone-100 p-0.5">
+            <button onClick={() => setUploadType("before")} className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${uploadType === "before" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>전</button>
+            <button onClick={() => setUploadType("after")} className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${uploadType === "after" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>후</button>
           </div>
-        ) : (
-          <div className="flex items-center gap-2 rounded-xl bg-stone-50 px-3 py-2">
-            <p className="flex-1 text-[11px] text-stone-500">전 사진을 추가하면 비포/애프터 카드를 만들 수 있어요</p>
-            <label className="flex shrink-0 items-center gap-1.5 rounded-lg bg-stone-900 px-2.5 py-1 text-[11px] font-medium text-white cursor-pointer hover:bg-stone-800">
-              {isPending && <Spinner className="h-3 w-3" />}
-              + 전 사진
-              <input type="file" accept="image/*" multiple onChange={(e) => handleUpload(e, "before")} className="hidden" />
-            </label>
-          </div>
+          <label className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-stone-600 cursor-pointer hover:bg-stone-50">
+            {isPending && <Spinner className="h-3 w-3" />}
+            + 사진 추가
+            <input type="file" accept="image/*" multiple onChange={(e) => handleUpload(e, uploadType)} className="hidden" />
+          </label>
+        </div>
+        {!canShowBeforeAfter && afterPhotos.length > 0 && beforePhotos.length === 0 && (
+          <p className="text-[11px] text-stone-400">전 사진을 추가하면 비포/애프터 카드를 만들 수 있어요</p>
         )}
       </div>
 
