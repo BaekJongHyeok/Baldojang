@@ -183,16 +183,30 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
       <input type="text" value={customMsg} onChange={(e) => setCustomMsg(e.target.value)}
         placeholder="직접 입력" className="mt-1.5 w-full min-w-0 rounded-lg border border-stone-200 px-3 py-1.5 text-xs outline-none focus:border-stone-400" />
 
-      <div className="mt-3 flex gap-2 items-center">
-        <div className="flex rounded-lg bg-stone-100 p-0.5">
-          <button onClick={() => setUploadType("before")} className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${uploadType === "before" ? "bg-white shadow-sm" : "text-stone-500"}`}>전</button>
-          <button onClick={() => setUploadType("after")} className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${uploadType === "after" ? "bg-white shadow-sm" : "text-stone-500"}`}>후</button>
-        </div>
-        <label className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-stone-600 cursor-pointer hover:bg-stone-50">
-          {isPending && <Spinner className="h-3 w-3" />}
-          + 사진 추가
-          <input type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" />
-        </label>
+      {/* 사진 추가 / Before 안내 */}
+      <div className="mt-3">
+        {visit.beforePhotos.length > 0 ? (
+          <div className="flex gap-2 items-center">
+            <div className="flex rounded-lg bg-stone-100 p-0.5">
+              <button onClick={() => setUploadType("before")} className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${uploadType === "before" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>전</button>
+              <button onClick={() => setUploadType("after")} className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${uploadType === "after" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>후</button>
+            </div>
+            <label className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-stone-600 cursor-pointer hover:bg-stone-50">
+              {isPending && <Spinner className="h-3 w-3" />}
+              + 사진 추가
+              <input type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" />
+            </label>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 rounded-xl bg-stone-50 px-3 py-2">
+            <p className="flex-1 text-[11px] text-stone-500">전 사진을 추가하면 비포/애프터 카드를 만들 수 있어요</p>
+            <label className="flex shrink-0 items-center gap-1.5 rounded-lg bg-stone-900 px-2.5 py-1 text-[11px] font-medium text-white cursor-pointer hover:bg-stone-800">
+              {isPending && <Spinner className="h-3 w-3" />}
+              + 전 사진
+              <input type="file" accept="image/*" multiple onChange={(e) => { setUploadType("before"); handleUpload(e); }} className="hidden" />
+            </label>
+          </div>
+        )}
       </div>
 
       {/* 미리보기: aspect-ratio wrapper + 내부 카드를 100%로 채움 */}
