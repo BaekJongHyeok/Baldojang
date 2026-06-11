@@ -222,16 +222,17 @@ export async function completeWithVisitAction(formData: FormData) {
   }
 
   // 결제 기록 생성
-  if (!skipPayment && priceFinal != null) {
-    const passId = formData.get("pass_id") ? String(formData.get("pass_id")) : null;
-    const passType = formData.get("pass_type") ? String(formData.get("pass_type")) : null;
-    const passAmount = formData.get("pass_amount") ? Number(formData.get("pass_amount")) : 0;
-    const extraMethod = formData.get("extra_method") ? String(formData.get("extra_method")) : null;
-    const extraAmount = formData.get("extra_amount") ? Number(formData.get("extra_amount")) : 0;
+  if (!skipPayment) {
+    const passId = String(formData.get("pass_id") ?? "");
+    const passType = String(formData.get("pass_type") ?? "");
+    const passAmount = Number(formData.get("pass_amount") ?? 0);
+    const extraMethod = String(formData.get("extra_method") ?? "");
+    const extraAmount = Number(formData.get("extra_amount") ?? 0);
 
     if (passId && passType) {
       // 선불권 차감 (원자적 RPC)
-      if (passType === "amount" && passAmount > 0) {
+      if (passType === "amount") {
+        if (passAmount <= 0) return { error: "차감 금액이 0입니다." };
         const { error: deductErr } = await supabase.rpc("deduct_pass_amount", {
           p_pass_id: passId,
           p_amount: passAmount,
@@ -247,24 +248,26 @@ export async function completeWithVisitAction(formData: FormData) {
       }
 
       // 선불권 결제 기록
-      await supabase.from("payments").insert({
+      const { error: passPayErr } = await supabase.from("payments").insert({
         shop_id: staff.shop_id,
         visit_id: visit.id,
         method: "pass" as const,
         amount: passType === "count" ? 0 : passAmount,
         pass_id: passId,
       });
+      if (passPayErr) return { error: `선불권 결제 기록 실패: ${passPayErr.message}` };
 
       // 부족분 추가 결제
       if (extraMethod && extraAmount > 0) {
-        await supabase.from("payments").insert({
+        const { error: extraPayErr } = await supabase.from("payments").insert({
           shop_id: staff.shop_id,
           visit_id: visit.id,
           method: extraMethod as "cash" | "card" | "transfer",
           amount: extraAmount,
         });
+        if (extraPayErr) return { error: `추가 결제 기록 실패: ${extraPayErr.message}` };
       }
-    } else if (paymentMethod) {
+    } else if (paymentMethod && priceFinal != null) {
       // 일반 결제
       const { error: payErr } = await supabase.from("payments").insert({
         shop_id: staff.shop_id,

@@ -81,7 +81,7 @@ export function ReportsClient({ payments, today }: { payments: Payment[]; today:
   const { dailyData, maxDaily } = useMemo(() => {
     const days = eachDayOfInterval({ start: new Date(from + "T00:00:00Z"), end: new Date(to + "T00:00:00Z") });
     const map: Record<string, number> = {};
-    for (const r of filtered) {
+    for (const r of servicePayments) {
       const d = kstDateStr(r.paid_at);
       map[d] = (map[d] ?? 0) + r.amount;
     }
@@ -90,7 +90,9 @@ export function ReportsClient({ payments, today }: { payments: Payment[]; today:
       return { date: key, label: format(d, "M/d"), amount: map[key] ?? 0 };
     });
     return { dailyData: data, maxDaily: Math.max(1, ...data.map((d) => d.amount)) };
-  }, [filtered, from, to]);
+  }, [servicePayments, from, to]);
+
+  const prepaidCount = prepaidSales.length;
 
   // 일별 막대가 너무 많으면 (60일 이상) 주간으로 그룹핑
   const showDailyChart = dailyData.length <= 60;
@@ -120,7 +122,7 @@ export function ReportsClient({ payments, today }: { payments: Payment[]; today:
           <p className="text-[11px] text-stone-500">총 매출</p>
         </div>
         <div className="rounded-2xl bg-white p-4 shadow-sm text-center">
-          <p className="text-xl font-bold text-stone-900">{filtered.length}</p>
+          <p className="text-xl font-bold text-stone-900">{servicePayments.length}</p>
           <p className="text-[11px] text-stone-500">결제 건수</p>
         </div>
         <div className="rounded-2xl bg-white p-4 shadow-sm text-center">
@@ -130,13 +132,13 @@ export function ReportsClient({ payments, today }: { payments: Payment[]; today:
       </div>
 
       {/* 선불권 */}
-      {(prepaidTotal > 0 || passUsageCount > 0) && (
+      {(prepaidTotal > 0 || prepaidCount > 0 || passUsageCount > 0) && (
         <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
           <p className="text-xs font-bold text-stone-500">선불권</p>
           <div className="mt-3 flex flex-col gap-2 text-sm">
-            {prepaidTotal > 0 && (
+            {prepaidCount > 0 && (
               <div className="flex items-center justify-between">
-                <span className="text-stone-700">선불권 판매 (선수금)</span>
+                <span className="text-stone-700">선불권 판매 <span className="text-xs text-stone-400">({prepaidCount}건)</span></span>
                 <span className="font-medium text-stone-900">₩{prepaidTotal.toLocaleString()}</span>
               </div>
             )}
@@ -203,7 +205,7 @@ export function ReportsClient({ payments, today }: { payments: Payment[]; today:
         </div>
       )}
 
-      {filtered.length === 0 && (
+      {filtered.length === 0 && prepaidCount === 0 && (
         <p className="mt-8 text-center text-sm text-stone-400">해당 기간의 결제 기록이 없습니다</p>
       )}
     </div>
