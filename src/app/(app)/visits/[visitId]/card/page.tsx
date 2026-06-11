@@ -55,8 +55,8 @@ export default async function CardPage({
         id: visit.id,
         visitedAt: visit.visited_at,
         styleMemo: visit.style_memo,
-        beforePhotos: visit.before_photos.map((p) => photoUrlMap[p] ?? "").filter(Boolean),
-        afterPhotos: visit.after_photos.map((p) => photoUrlMap[p] ?? "").filter(Boolean),
+        beforePhotos: visit.before_photos.map((p) => ({ path: p, url: photoUrlMap[p] ?? "" })).filter((x) => x.url),
+        afterPhotos: visit.after_photos.map((p) => ({ path: p, url: photoUrlMap[p] ?? "" })).filter((x) => x.url),
       }}
       pet={{ id: pet?.id ?? "", name: pet?.name ?? "", breed: pet?.breed ?? "" }}
       serviceName={service?.name ?? ""}

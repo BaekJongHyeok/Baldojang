@@ -57,7 +57,10 @@ export async function deleteVisitPhotoAction(formData: FormData) {
   if (!visit) return { error: "방문 기록을 찾을 수 없습니다." };
 
   // Storage에서 삭제
-  await supabase.storage.from("visit-photos").remove([path]);
+  const { error: storageErr } = await supabase.storage.from("visit-photos").remove([path]);
+  if (storageErr) {
+    return { error: `스토리지 삭제 실패: ${storageErr.message}` };
+  }
 
   // DB 배열에서 제거
   const existing = type === "before" ? visit.before_photos : visit.after_photos;

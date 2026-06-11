@@ -17,13 +17,15 @@ const MESSAGES = [
   "사랑이 담긴 미용이에요",
 ];
 
+type PhotoItem = { path: string; url: string };
+
 type Props = {
   visit: {
     id: string;
     visitedAt: string;
     styleMemo: string | null;
-    beforePhotos: string[];
-    afterPhotos: string[];
+    beforePhotos: PhotoItem[];
+    afterPhotos: PhotoItem[];
   };
   pet: { id: string; name: string; breed: string };
   serviceName: string;
@@ -53,7 +55,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
 
   const brandColor = shop.brandColor || "#292524";
   const hasPhotos = visit.afterPhotos.length > 0;
-  const mainPhoto = visit.afterPhotos[selectedPhoto] ?? visit.afterPhotos[0];
+  const mainPhoto = visit.afterPhotos[selectedPhoto]?.url ?? visit.afterPhotos[0]?.url ?? "";
   const displayMsg = customMsg || message;
   const size = CARD_SIZES[ratio];
 
@@ -135,7 +137,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   // 카드 공통 props
   const cardProps = {
     photo: mainPhoto,
-    beforePhoto: showBefore && visit.beforePhotos.length > 0 ? visit.beforePhotos[0] : null,
+    beforePhoto: showBefore && visit.beforePhotos.length > 0 ? visit.beforePhotos[0].url : null,
     petName: pet.name,
     breed: pet.breed,
     serviceName,
@@ -194,20 +196,20 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
 
       {(visit.beforePhotos.length > 0 || visit.afterPhotos.length > 1) && (
         <div className="mt-2 flex gap-1.5 overflow-x-auto">
-          {visit.beforePhotos.map((url, i) => (
+          {visit.beforePhotos.map((photo, i) => (
             <div key={`b-${i}`} className="group relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 border-transparent opacity-70">
-              <img src={url} alt="" className="h-full w-full object-cover" />
+              <img src={photo.url} alt="" className="h-full w-full object-cover" />
               <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-center text-[8px] font-bold text-white leading-tight">전</span>
-              <button onClick={() => setConfirmDelete({ path: visit.beforePhotos[i] ?? "", type: "before" })}
+              <button onClick={() => setConfirmDelete({ path: photo.path, type: "before" })}
                 className="absolute -right-0.5 -top-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white group-hover:flex">×</button>
             </div>
           ))}
-          {visit.afterPhotos.map((url, i) => (
+          {visit.afterPhotos.map((photo, i) => (
             <button key={`a-${i}`} onClick={() => setSelectedPhoto(i)}
               className={`group relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 ${i === selectedPhoto ? "border-stone-900" : "border-transparent"}`}>
-              <img src={url} alt="" className="h-full w-full object-cover" />
+              <img src={photo.url} alt="" className="h-full w-full object-cover" />
               <span className="absolute bottom-0 left-0 right-0 bg-stone-900/50 text-center text-[8px] font-bold text-white leading-tight">후</span>
-              <span onClick={(e) => { e.stopPropagation(); setConfirmDelete({ path: visit.afterPhotos[i] ?? "", type: "after" }); }}
+              <span onClick={(e) => { e.stopPropagation(); setConfirmDelete({ path: photo.path, type: "after" }); }}
                 className="absolute -right-0.5 -top-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white group-hover:flex">×</span>
             </button>
           ))}
