@@ -1,4 +1,5 @@
 import { toZonedTime, formatInTimeZone } from "date-fns-tz";
+import { ko } from "date-fns/locale";
 
 const KST = "Asia/Seoul";
 
@@ -25,14 +26,14 @@ export function todayKST(): string {
   return formatInTimeZone(new Date(), KST, "yyyy-MM-dd");
 }
 
-/** YYYY-MM-DD → KST 포맷 문자열 */
+/** YYYY-MM-DD → KST 포맷 문자열 (한국어 로케일) */
 export function formatDateKST(dateStr: string, fmt: string): string {
-  return formatInTimeZone(new Date(dateStr + "T00:00:00Z"), KST, fmt);
+  return formatInTimeZone(new Date(dateStr + "T00:00:00Z"), KST, fmt, { locale: ko });
 }
 
-/** ISO timestamptz → KST 포맷 문자열 */
+/** ISO timestamptz → KST 포맷 문자열 (한국어 로케일) */
 export function formatTimestampKST(iso: string, fmt: string): string {
-  return formatInTimeZone(new Date(iso), KST, fmt);
+  return formatInTimeZone(new Date(iso), KST, fmt, { locale: ko });
 }
 
 /** 현재 KST 시·분 (현재 시각 라인용) */

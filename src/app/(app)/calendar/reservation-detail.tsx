@@ -64,11 +64,11 @@ export function ReservationDetail({
         <div className="mt-4 flex flex-col gap-2 text-[14px]">
           <div className="flex justify-between">
             <span className="text-ink-caption">날짜</span>
-            <span className="text-ink">{formatTimestampKST(r.starts_at, "M월 d일 (EEEE)")}</span>
+            <span className="text-ink">{formatTimestampKST(r.starts_at, "M월 d일 (EEE)")}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-ink-caption">시간</span>
-            <span className="text-ink tabular-nums">{formatTimestampKST(r.starts_at, "HH:mm")} – {formatTimestampKST(r.ends_at, "HH:mm")}</span>
+            <span className="text-ink tabular-nums">{formatTimestampKST(r.starts_at, "HH:mm")}–{formatTimestampKST(r.ends_at, "HH:mm")}</span>
           </div>
           {r.customer && (
             <div className="flex justify-between">
@@ -105,8 +105,8 @@ export function ReservationDetail({
               <button onClick={onComplete} className="w-full rounded-md bg-primary py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-primary-hover">완료</button>
               <button onClick={onEdit} className="w-full rounded-md border border-border py-2 text-[14px] font-medium text-ink transition-colors hover:bg-bg">수정</button>
               <div className="flex gap-2">
-                <button onClick={() => setConfirm("no_show")} className="flex-1 py-1.5 text-[13px] text-ink-caption transition-colors hover:text-danger">노쇼</button>
-                <button onClick={() => setConfirm("cancelled")} className="flex-1 py-1.5 text-[13px] text-ink-caption transition-colors hover:text-ink">취소</button>
+                <button onClick={() => setConfirm("no_show")} className="flex-1 rounded-md border border-danger/30 py-2 text-[13px] font-medium text-danger transition-colors hover:bg-danger-light">노쇼</button>
+                <button onClick={() => setConfirm("cancelled")} className="flex-1 rounded-md border border-border py-2 text-[13px] font-medium text-ink-caption transition-colors hover:bg-bg">취소</button>
               </div>
             </>
           )}

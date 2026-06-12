@@ -213,7 +213,7 @@ export function CalendarClient({
   }, [router, passes]);
 
   // --- 헤더 날짜 텍스트 ---
-  const dayDateDisplay = formatDateKST(selectedDate, "M월 d일 (EEEE)");
+  const dayDateDisplay = formatDateKST(selectedDate, "M월 d일 (EEE)");
   const weekDateDisplay = currentWeekDays.length >= 7
     ? `${formatDateKST(currentWeekDays[0].date, "M월 d일")} – ${formatDateKST(currentWeekDays[6].date, "M월 d일")}`
     : "";
