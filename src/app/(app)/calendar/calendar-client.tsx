@@ -69,6 +69,14 @@ export function CalendarClient({
   }, [serverReservations, patches, tempItems]);
 
   const [selectedDate, setSelectedDate] = useState(initialDate);
+  // initialDate가 변경되면(router.push 후) selectedDate 동기화
+  const prevInitialDateRef = useRef(initialDate);
+  useEffect(() => {
+    if (prevInitialDateRef.current !== initialDate) {
+      prevInitialDateRef.current = initialDate;
+      setSelectedDate(initialDate);
+    }
+  }, [initialDate]);
   const [showCancelled, setShowCancelled] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [formState, setFormState] = useState<FormState>(null);
