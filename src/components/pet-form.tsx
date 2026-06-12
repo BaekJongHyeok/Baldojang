@@ -69,6 +69,7 @@ export function PetForm({
   const [customerName, setCustomerName] = useState("");
   const [lookingUp, setLookingUp] = useState(false);
   const [changingCustomer, setChangingCustomer] = useState(false);
+  const [confirmPhotoDelete, setConfirmPhotoDelete] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // 주의사항 태그
@@ -218,10 +219,13 @@ export function PetForm({
               </label>
               {lookingUp && <p className="text-xs text-ink-disabled">조회 중...</p>}
               {foundCustomer && foundCustomer.id !== customer?.id && (
-                <p className="text-sm text-green-600">변경 대상: {foundCustomer.name}님</p>
+                <div className="rounded-md border border-primary/20 bg-primary-light p-3">
+                  <p className="text-[13px] font-medium text-primary">기존 {customer?.name} → {foundCustomer.name} 변경</p>
+                  <p className="mt-0.5 text-[11px] text-ink-caption">기록은 펫을 따라 이동합니다.</p>
+                </div>
               )}
               <button type="button" onClick={() => { setChangingCustomer(false); setPhone(customer?.phone ? formatPhone(customer.phone) : ""); setFoundCustomer(customer ?? null); }}
-                className="text-[12px] text-ink-caption hover:underline">취소</button>
+                className="text-[12px] text-ink-caption hover:underline">변경 취소</button>
             </>
           )}
         </fieldset>
@@ -268,18 +272,33 @@ export function PetForm({
           <span className="text-sm font-medium text-ink-secondary">사진</span>
           {fileInput}
           {previewUrl ? (
-            <div className="flex items-center gap-3">
-              <img src={previewUrl} alt="펫 사진" className="h-16 w-16 rounded-md object-cover" />
-              <div className="flex gap-1.5">
-                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-                  className="rounded-md border border-border px-3 py-1.5 text-[12px] font-medium text-ink-secondary hover:bg-bg">
-                  {uploading ? "업로드 중..." : "교체"}
-                </button>
-                <button type="button" onClick={removePhoto}
-                  className="rounded-md border border-border px-3 py-1.5 text-[12px] font-medium text-ink-caption hover:bg-bg">
-                  삭제
-                </button>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <img src={previewUrl} alt="펫 사진" className="h-16 w-16 rounded-md object-cover" />
+                <div className="flex gap-1.5">
+                  <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+                    className="rounded-md border border-border px-3 py-1.5 text-[12px] font-medium text-ink-secondary hover:bg-bg">
+                    {uploading ? "업로드 중..." : "교체"}
+                  </button>
+                  {!confirmPhotoDelete ? (
+                    <button type="button" onClick={() => setConfirmPhotoDelete(true)}
+                      className="rounded-md border border-border px-3 py-1.5 text-[12px] font-medium text-ink-caption hover:bg-bg">
+                      삭제
+                    </button>
+                  ) : (
+                    <button type="button" onClick={() => { removePhoto(); setConfirmPhotoDelete(false); }}
+                      className="rounded-md border border-danger/30 bg-danger-light px-3 py-1.5 text-[12px] font-medium text-danger">
+                      삭제 확인
+                    </button>
+                  )}
+                </div>
               </div>
+              {confirmPhotoDelete && (
+                <div className="flex items-center justify-between rounded-md bg-border-light px-3 py-2">
+                  <span className="text-[12px] text-ink-caption">프로필 사진을 삭제할까요?</span>
+                  <button type="button" onClick={() => setConfirmPhotoDelete(false)} className="text-[12px] text-ink-caption hover:underline">취소</button>
+                </div>
+              )}
             </div>
           ) : (
             <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
@@ -325,10 +344,9 @@ export function PetForm({
           <textarea name="caution_memo" rows={2} defaultValue={pet?.caution_memo ?? ""} className={INPUT_CLASS} placeholder="자유 서술 주의사항" />
         </label>
 
-        <label className="flex flex-col gap-1">
+        <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink-secondary">재방문 주기 (주)</span>
-          <input name="cycle_weeks" type="number" min={1} max={52} defaultValue={pet?.cycle_weeks ?? ""} className={INPUT_CLASS} placeholder="미설정 시 시술 주기 적용" />
-          <span className="text-[11px] text-ink-disabled">비워두면 시술별/샵 기본 주기가 적용됩니다</span>
+          <input name="cycle_weeks" type="number" min={1} max={52} defaultValue={pet?.cycle_weeks ?? ""} className={INPUT_CLASS} placeholder="예: 4" />
         </label>
 
         <div className="grid grid-cols-2 gap-3">
@@ -357,11 +375,11 @@ export function PetForm({
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-white px-4 py-3 lg:pl-[200px]">
         <div className="mx-auto flex max-w-5xl gap-2">
           <button type="button" onClick={() => router.back()}
-            className="flex-1 rounded-md border border-border py-2.5 text-[14px] font-medium text-ink transition-colors hover:bg-bg">
+            className="w-1/3 rounded-md py-2.5 text-[14px] font-medium text-ink-caption transition-colors hover:text-ink">
             취소
           </button>
           <button type="submit" disabled={isPending || uploading || (!isDirty && isEdit)}
-            className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-[14px] font-medium text-white transition hover:bg-primary-hover disabled:opacity-50">
+            className="flex w-2/3 items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-[14px] font-medium text-white transition hover:bg-primary-hover disabled:opacity-50">
             {isPending && <Spinner />}
             {isEdit ? "저장" : "등록"}
           </button>
