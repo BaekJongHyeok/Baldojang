@@ -11,11 +11,22 @@ import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/spinner";
 
 const MESSAGES = [
-  "오늘도 예뻐졌어요 🐾",
-  "우리 아이 미용 완료!",
-  "깨끗하고 예쁘게 변신 ✨",
-  "사랑이 담긴 미용이에요",
+  "오늘 저 예뻐졌어요 🐾",
+  "뽀송뽀송 목욕 완료!",
+  "새 단장하고 기분 최고예요 ✨",
+  "다음에 또 올게요!",
+  "오늘도 씩씩하게 잘했어요",
 ];
+
+/**
+ * 카드 렌더용 폰트 (앱 UI에 적용하지 않음)
+ * - Jua: SIL Open Font License 1.1 (Google Fonts) — 디스플레이/문구용
+ * - Nanum Pen Script: SIL Open Font License 1.1 (Google Fonts) — 폴라로이드 손글씨
+ * - Pretendard/system-ui: 시술 정보·샵 정보·날짜 (가독 우선)
+ */
+const CARD_FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=Jua&family=Nanum+Pen+Script&display=swap');`;
+const DISPLAY_FONT = "'Jua', 'Apple SD Gothic Neo', sans-serif";
+const HANDWRITING_FONT = "'Nanum Pen Script', cursive";
 
 type PhotoItem = { path: string; url: string };
 
@@ -400,6 +411,7 @@ function MinimalCard({ photo, beforePhoto, petName, breed, serviceName, date, me
   const photoH = Math.round(h * (beforePhoto ? 0.42 : 0.50));
   return (
     <div style={{ width: w, height: h, background: "#FFFBF5", display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", overflow: "hidden" }}>
+      <style>{CARD_FONT_IMPORT}</style>
       <div style={{ padding: `${p * 0.8}px ${p}px ${p * 0.4}px`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
         <span style={{ fontSize: w * 0.038, fontWeight: 700, color: brandColor }}>{shopName}</span>
         <span style={{ fontSize: w * 0.022, color: "#a8a29e" }}>{date}</span>
@@ -417,9 +429,9 @@ function MinimalCard({ photo, beforePhoto, petName, breed, serviceName, date, me
         </div>
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: `${p * 0.5}px ${p}px ${p * 0.8}px`, textAlign: "center", overflow: "hidden" }}>
-        <p style={{ fontSize: w * 0.088, fontWeight: 800, color: "#1c1917", letterSpacing: -2, lineHeight: 1.1 }}>{petName}</p>
+        <p style={{ fontFamily: DISPLAY_FONT, fontSize: w * 0.088, fontWeight: 400, color: "#1c1917", letterSpacing: -1, lineHeight: 1.15 }}>{petName}</p>
         <p style={{ fontSize: w * 0.032, color: "#78716c", marginTop: h * 0.008 }}>{serviceName}{breed ? ` · ${breed}` : ""}</p>
-        <p style={{ fontSize: w * 0.038, color: brandColor, marginTop: h * 0.015, fontWeight: 600, lineHeight: 1.4, maxWidth: "90%", wordBreak: "keep-all" }}>{message}</p>
+        <p style={{ fontFamily: DISPLAY_FONT, fontSize: w * 0.04, color: brandColor, marginTop: h * 0.015, fontWeight: 400, lineHeight: 1.4, maxWidth: "90%", wordBreak: "keep-all" }}>{message}</p>
         <p style={{ fontSize: w * 0.025, color: "#a8a29e", marginTop: h * 0.015 }}>{shopName}{shopPhone ? ` · ${shopPhone}` : ""}</p>
       </div>
     </div>
@@ -432,6 +444,7 @@ function PhotoCard({ photo, beforePhoto, petName, serviceName, date, message, sh
   if (beforePhoto) {
     return (
       <div style={{ width: w, height: h, display: "flex", flexDirection: "column", overflow: "hidden", background: "#111" }}>
+        <style>{CARD_FONT_IMPORT}</style>
         <div style={{ padding: `${w * 0.03}px ${w * 0.044}px`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <span style={{ fontSize: w * 0.036, fontWeight: 700, color: "white" }}>{shopName}</span>
           <span style={{ fontSize: w * 0.022, color: "rgba(255,255,255,0.6)" }}>{date}</span>
@@ -447,15 +460,16 @@ function PhotoCard({ photo, beforePhoto, petName, serviceName, date, message, sh
           </div>
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: `0 ${w * 0.044}px`, overflow: "hidden" }}>
-          <p style={{ fontSize: w * 0.08, fontWeight: 800, color: "white", letterSpacing: -2, lineHeight: 1.1 }}>{petName}</p>
+          <p style={{ fontFamily: DISPLAY_FONT, fontSize: w * 0.08, fontWeight: 400, color: "white", letterSpacing: -1, lineHeight: 1.15 }}>{petName}</p>
           <p style={{ fontSize: w * 0.032, color: "rgba(255,255,255,0.7)", marginTop: h * 0.006 }}>{serviceName}</p>
-          <p style={{ fontSize: w * 0.035, color: textColor, marginTop: h * 0.012, fontWeight: 600, lineHeight: 1.4, wordBreak: "keep-all" }}>{message}</p>
+          <p style={{ fontFamily: DISPLAY_FONT, fontSize: w * 0.038, color: textColor, marginTop: h * 0.012, fontWeight: 400, lineHeight: 1.4, wordBreak: "keep-all" }}>{message}</p>
         </div>
       </div>
     );
   }
   return (
     <div style={{ width: w, height: h, position: "relative", overflow: "hidden" }}>
+      <style>{CARD_FONT_IMPORT}</style>
       <img src={photo} alt="" crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0) 35%, rgba(0,0,0,0.75) 100%)" }} />
       <div style={{ position: "absolute", top: w * 0.037, left: w * 0.044, right: w * 0.044, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -463,9 +477,9 @@ function PhotoCard({ photo, beforePhoto, petName, serviceName, date, message, sh
         <span style={{ fontSize: w * 0.022, color: "rgba(255,255,255,0.8)" }}>{date}</span>
       </div>
       <div style={{ position: "absolute", bottom: w * 0.055, left: w * 0.044, right: w * 0.044, textAlign: "center" }}>
-        <p style={{ fontSize: w * 0.09, fontWeight: 800, color: "white", textShadow: "0 3px 16px rgba(0,0,0,0.5)", letterSpacing: -2, lineHeight: 1.1 }}>{petName}</p>
+        <p style={{ fontFamily: DISPLAY_FONT, fontSize: w * 0.09, fontWeight: 400, color: "white", textShadow: "0 3px 16px rgba(0,0,0,0.5)", letterSpacing: -1, lineHeight: 1.15 }}>{petName}</p>
         <p style={{ fontSize: w * 0.032, color: "rgba(255,255,255,0.9)", marginTop: h * 0.008 }}>{serviceName}</p>
-        <p style={{ fontSize: w * 0.038, color: textColor, marginTop: h * 0.015, fontWeight: 600, lineHeight: 1.4, wordBreak: "keep-all" }}>{message}</p>
+        <p style={{ fontFamily: DISPLAY_FONT, fontSize: w * 0.04, color: textColor, marginTop: h * 0.015, fontWeight: 400, lineHeight: 1.4, wordBreak: "keep-all" }}>{message}</p>
       </div>
     </div>
   );
@@ -484,8 +498,7 @@ function PolaroidCard({ photo, petName, date, message, shopName, shopPhone, bran
   const frameTop = (h - frameH) / 2 - h * 0.02;
   return (
     <div style={{ width: w, height: h, background: "#F5F0EB", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "system-ui, sans-serif", overflow: "hidden", position: "relative" }}>
-      {/* @font-face 나눔손글씨 펜 (SIL OFL 1.1) */}
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap');`}</style>
+      <style>{CARD_FONT_IMPORT}</style>
       <div style={{
         width: frameW, height: frameH, background: "white",
         boxShadow: "0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)",
@@ -496,8 +509,8 @@ function PolaroidCard({ photo, petName, date, message, shopName, shopPhone, bran
           {photo && <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: `0 ${w * 0.04}px`, textAlign: "center", overflow: "hidden" }}>
-          <p style={{ fontFamily: "'Nanum Pen Script', cursive", fontSize: w * 0.09, fontWeight: 400, color: "#1c1917", lineHeight: 1.2 }}>{petName}</p>
-          <p style={{ fontFamily: "'Nanum Pen Script', cursive", fontSize: w * 0.055, color: brandColor, marginTop: h * 0.008, lineHeight: 1.4, wordBreak: "keep-all" }}>{message}</p>
+          <p style={{ fontFamily: HANDWRITING_FONT, fontSize: w * 0.1, fontWeight: 400, color: "#1c1917", lineHeight: 1.2 }}>{petName}</p>
+          <p style={{ fontFamily: HANDWRITING_FONT, fontSize: w * 0.06, color: brandColor, marginTop: h * 0.008, lineHeight: 1.4, wordBreak: "keep-all" }}>{message}</p>
         </div>
         <p style={{ position: "absolute", bottom: w * 0.02, right: w * 0.03, fontSize: w * 0.022, color: "#a8a29e" }}>{date}</p>
       </div>
@@ -518,13 +531,14 @@ function ReportCard({ photo, petName, breed, serviceName, date, message, shopNam
   })();
   return (
     <div style={{ width: w, height: h, background: "#FFFBF5", display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", overflow: "hidden" }}>
+      <style>{CARD_FONT_IMPORT}</style>
       {/* 헤더 */}
       <div style={{ padding: `${p}px ${p}px ${p * 0.5}px`, display: "flex", alignItems: "center", gap: w * 0.03, flexShrink: 0 }}>
         <div style={{ width: photoSize, height: photoSize, borderRadius: w * 0.02, overflow: "hidden", background: "#e7e5e4", flexShrink: 0 }}>
           {photo && <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
         </div>
         <div>
-          <p style={{ fontSize: w * 0.065, fontWeight: 800, color: "#1c1917", letterSpacing: -1, lineHeight: 1.1 }}>{petName}</p>
+          <p style={{ fontFamily: DISPLAY_FONT, fontSize: w * 0.065, fontWeight: 400, color: "#1c1917", letterSpacing: -0.5, lineHeight: 1.15 }}>{petName}</p>
           {breed && <p style={{ fontSize: w * 0.028, color: "#78716c", marginTop: h * 0.003 }}>{breed}</p>}
           <p style={{ fontSize: w * 0.022, color: "#a8a29e", marginTop: h * 0.004 }}>{date}</p>
         </div>
@@ -555,7 +569,7 @@ function ReportCard({ photo, petName, breed, serviceName, date, message, shopNam
       {/* 다음 미용 권장 */}
       <div style={{ padding: `${p * 0.7}px ${p}px`, background: brandColor, margin: `${p * 0.4}px ${p}px`, borderRadius: w * 0.015, flexShrink: 0 }}>
         <p style={{ fontSize: w * 0.022, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: 1 }}>다음 미용 권장</p>
-        <p style={{ fontSize: w * 0.055, fontWeight: 800, color: "white", marginTop: h * 0.006 }}>{nextDateFormatted}</p>
+        <p style={{ fontFamily: DISPLAY_FONT, fontSize: w * 0.055, fontWeight: 400, color: "white", marginTop: h * 0.006 }}>{nextDateFormatted}</p>
       </div>
 
       {/* 하단 */}
