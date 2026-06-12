@@ -50,17 +50,11 @@ export function DayView({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 휴무일
-  if (!hours) {
-    return (
-      <div className="flex items-center justify-center bg-border-light/50 py-32 text-[14px] text-ink-caption">
-        휴무일입니다
-      </div>
-    );
-  }
-
-  const openMin = timeToMin(hours.open);
-  const closeMin = timeToMin(hours.close);
+  // 휴무일(hours === null)에도 모든 훅이 동일하게 호출되도록,
+  // early return은 훅 선언 이후로 미루고 파생값은 null-safe로 계산한다.
+  // (이전: 여기서 early return → 렌더마다 훅 개수가 달라져 React 훅 규칙 위반 → 날짜 이동 시 크래시)
+  const openMin = hours ? timeToMin(hours.open) : 0;
+  const closeMin = hours ? timeToMin(hours.close) : 0;
   // Grid spans full hours: 1h before open → 1h after close (or bounded by 0:00–24:00)
   const gridStartHour = Math.max(0, Math.floor(openMin / 60) - 1);
   const gridEndHour = Math.min(24, Math.ceil(closeMin / 60) + 1);
@@ -82,6 +76,7 @@ export function DayView({
 
   // Auto-scroll to now or open time (1회, 날짜 변경 시만)
   useEffect(() => {
+    if (!hours) return; // 휴무일엔 스크롤 없음 (훅은 항상 호출, 동작만 가드)
     if (!containerRef.current) return;
     const now = nowKSTMinutes();
     const nowPx = isToday && now >= gridStartMin && now <= gridEndMin ? (now - gridStartMin) * pxPerMin : null;
@@ -114,6 +109,15 @@ export function DayView({
     }
     return set;
   }, [reservations]);
+
+  // 휴무일 — 모든 훅이 호출된 뒤에야 분기 (훅 규칙 준수)
+  if (!hours) {
+    return (
+      <div className="flex items-center justify-center bg-border-light/50 py-32 text-[14px] text-ink-caption">
+        휴무일입니다
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef} className="overflow-y-auto bg-white" style={{ maxHeight: "calc(100dvh - 100px)" }}>
