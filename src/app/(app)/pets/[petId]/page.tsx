@@ -161,19 +161,19 @@ export default async function PetChartPage({
               <InlineCycleEdit petId={petId} cycleWeeks={pet.cycle_weeks} effectiveCycle={effectiveCycle} cycleSource={cycleSource} />
               <div className="flex justify-between">
                 <dt className="text-ink-caption">생일</dt>
-                <dd className="text-ink">{pet.birth_date ? new Date(pet.birth_date + "T00:00:00").toLocaleDateString("ko-KR") : <Link href={`/pets/${petId}/edit`} className="text-ink-disabled hover:text-primary">미입력</Link>}</dd>
+                <dd className="text-ink">{pet.birth_date ? new Date(pet.birth_date + "T00:00:00").toLocaleDateString("ko-KR") : <Link href={`/pets/${petId}/edit?focus=birth_date`} className="text-ink-disabled hover:text-primary">미입력</Link>}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-caption">몸무게</dt>
-                <dd className="text-ink">{pet.weight_kg ? `${pet.weight_kg}kg` : <Link href={`/pets/${petId}/edit`} className="text-ink-disabled hover:text-primary">미입력</Link>}</dd>
+                <dd className="text-ink">{pet.weight_kg ? `${pet.weight_kg}kg` : <Link href={`/pets/${petId}/edit?focus=weight_kg`} className="text-ink-disabled hover:text-primary">미입력</Link>}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-caption">접종</dt>
-                <dd className="text-ink">{pet.vaccinated === null ? <Link href={`/pets/${petId}/edit`} className="text-ink-disabled hover:text-primary">미입력</Link> : pet.vaccinated ? "완료" : "미완료"}</dd>
+                <dd className="text-ink">{pet.vaccinated === null ? <Link href={`/pets/${petId}/edit?focus=vaccinated`} className="text-ink-disabled hover:text-primary">미입력</Link> : pet.vaccinated ? "완료" : "미완료"}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-caption">중성화</dt>
-                <dd className="text-ink">{pet.neutered === null ? <Link href={`/pets/${petId}/edit`} className="text-ink-disabled hover:text-primary">미입력</Link> : pet.neutered ? "완료" : "미완료"}</dd>
+                <dd className="text-ink">{pet.neutered === null ? <Link href={`/pets/${petId}/edit?focus=neutered`} className="text-ink-disabled hover:text-primary">미입력</Link> : pet.neutered ? "완료" : "미완료"}</dd>
               </div>
             </dl>
             {/* 활성 상태 토글 — 기본 정보 카드 내 최하단 */}

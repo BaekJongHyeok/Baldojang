@@ -7,10 +7,12 @@ import { getPetPhotoUrl } from "@/lib/storage";
 
 export default async function EditPetPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ petId: string }>;
+  searchParams: Promise<{ focus?: string }>;
 }) {
-  const [{ petId }, ctx] = await Promise.all([params, getAuthContext()]);
+  const [{ petId }, sp, ctx] = await Promise.all([params, searchParams, getAuthContext()]);
   if (!ctx) redirect("/login");
 
   const supabase = await createClient();
@@ -54,6 +56,7 @@ export default async function EditPetPage({
           customer={customer ?? undefined}
           shopId={ctx.staff.shopId}
           initialPhotoSignedUrl={photoSignedUrl ?? undefined}
+          autoFocusField={sp.focus}
         />
       </div>
     </div>
