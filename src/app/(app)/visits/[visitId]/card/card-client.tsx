@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toPng } from "html-to-image";
 import { toast } from "sonner";
 import { formatTimestampKST } from "@/lib/calendar-utils";
-import { resizeImage } from "@/lib/utils";
+import { resizeImage, formatPhone } from "@/lib/utils";
 import { addVisitPhotosAction, deleteVisitPhotoAction, moveVisitPhotoAction } from "@/lib/visit-actions";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/spinner";
@@ -70,10 +70,10 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
     petName: pet.name,
     breed: pet.breed,
     serviceName,
-    date: formatTimestampKST(visit.visitedAt, "yyyy.M.d"),
+    date: formatTimestampKST(visit.visitedAt, "M월 d일"),
     message: displayMsg,
     shopName: shop.name,
-    shopPhone: shop.phone,
+    shopPhone: shop.phone ? formatPhone(shop.phone) : "",
     brandColor,
   };
 
@@ -205,130 +205,167 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
     );
   }
 
+  // 공유
+  async function handleShare() {
+    if (!renderRef.current) return;
+    setDownloading(true);
+    try {
+      const dataUrl = await toPng(renderRef.current, {
+        canvasWidth: size.w * 2, canvasHeight: size.h * 2, pixelRatio: 1,
+        cacheBust: true, fetchRequestInit: { mode: "cors" },
+        style: { transform: "scale(1)", transformOrigin: "top left" },
+      });
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], `${pet.name}_${formatTimestampKST(visit.visitedAt, "yyyyMMdd")}.png`, { type: "image/png" });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: `${pet.name} 미용 완료` });
+      } else {
+        // 폴백: 이미지 저장
+        const link = document.createElement("a");
+        link.download = file.name; link.href = dataUrl; link.click();
+        toast("모바일에서 카톡 공유 가능해요", { duration: 3000 });
+      }
+    } catch { /* 사용자 취소 */ }
+    finally { setDownloading(false); }
+  }
+
   // === 1장 이상: 카드 편집 ===
   return (
     <div>
       <h1 className="text-xl font-bold text-ink">완료 카드</h1>
 
-      {/* 템플릿/비율 */}
-      <div className="mt-4 flex flex-wrap gap-2 items-center">
-        <div className="flex rounded-lg bg-border-light p-0.5">
-          <button onClick={() => setTemplate("minimal")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${template === "minimal" ? "bg-white text-ink" : "text-ink-caption"}`}>미니멀</button>
-          <button onClick={() => setTemplate("photo")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${template === "photo" ? "bg-white text-ink" : "text-ink-caption"}`}>포토</button>
-        </div>
-        <div className="flex rounded-lg bg-border-light p-0.5">
-          <button onClick={() => setRatio("4:5")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${ratio === "4:5" ? "bg-white text-ink" : "text-ink-caption"}`}>4:5</button>
-          <button onClick={() => setRatio("9:16")} className={`rounded-md px-2.5 py-1 text-xs font-medium ${ratio === "9:16" ? "bg-white text-ink" : "text-ink-caption"}`}>9:16</button>
-        </div>
-      </div>
-
-      {/* 사진 썸네일 (baMode일 때만 배지) */}
-      {totalPhotos > 0 && (
-        <div className="mt-2 flex gap-1.5">
-          {[...afterPhotos.map((p) => ({ ...p, t: "after" as const })), ...beforePhotos.map((p) => ({ ...p, t: "before" as const }))].map((photo, i) => (
-            <div key={photo.path} className="relative h-12 w-12 shrink-0">
-              <div className={`h-full w-full overflow-hidden rounded-lg border-2 border-primary`}>
-                <img src={photo.url} alt="" className="h-full w-full object-cover" />
+      <div className="mt-4 grid gap-6 lg:grid-cols-[380px_1fr]">
+        {/* ── 좌측: 컨트롤 패널 (모바일에서는 프리뷰 아래) ── */}
+        <div className="order-2 flex flex-col gap-4 lg:order-1">
+          {/* 템플릿 */}
+          <div className="rounded-lg border border-border bg-white p-4">
+            <p className="text-[13px] font-semibold text-ink-caption">템플릿</p>
+            <div className="mt-2 flex flex-wrap gap-2 items-center">
+              <div className="flex rounded-lg bg-border-light p-0.5">
+                <button onClick={() => setTemplate("minimal")} className={`rounded-md px-3 py-1.5 text-xs font-medium ${template === "minimal" ? "bg-white text-ink shadow-sm" : "text-ink-caption"}`}>미니멀</button>
+                <button onClick={() => setTemplate("photo")} className={`rounded-md px-3 py-1.5 text-xs font-medium ${template === "photo" ? "bg-white text-ink shadow-sm" : "text-ink-caption"}`}>포토</button>
               </div>
-              {baMode && (
-                <span className={`absolute bottom-0 left-0 right-0 rounded-b-lg text-center text-[8px] font-bold text-white leading-tight pointer-events-none ${photo.t === "before" ? "bg-black/50" : "bg-primary/50"}`}>
-                  {photo.t === "before" ? "전" : "후"}
-                </span>
+              <div className="flex rounded-lg bg-border-light p-0.5">
+                <button onClick={() => setRatio("4:5")} className={`rounded-md px-3 py-1.5 text-xs font-medium ${ratio === "4:5" ? "bg-white text-ink shadow-sm" : "text-ink-caption"}`}>4:5</button>
+                <button onClick={() => setRatio("9:16")} className={`rounded-md px-3 py-1.5 text-xs font-medium ${ratio === "9:16" ? "bg-white text-ink shadow-sm" : "text-ink-caption"}`}>9:16</button>
+              </div>
+            </div>
+          </div>
+
+          {/* 사진 */}
+          <div className="rounded-lg border border-border bg-white p-4">
+            <p className="text-[13px] font-semibold text-ink-caption">사진</p>
+            {totalPhotos > 0 && (
+              <div className="mt-2 flex gap-1.5">
+                {[...afterPhotos.map((p) => ({ ...p, t: "after" as const })), ...beforePhotos.map((p) => ({ ...p, t: "before" as const }))].map((photo) => (
+                  <div key={photo.path} className="relative h-14 w-14 shrink-0">
+                    <div className="h-full w-full overflow-hidden rounded-lg border-2 border-primary">
+                      <img src={photo.url} alt="" className="h-full w-full object-cover" />
+                    </div>
+                    {baMode && (
+                      <span className={`absolute bottom-0 left-0 right-0 rounded-b-lg text-center text-[8px] font-bold text-white leading-tight pointer-events-none ${photo.t === "before" ? "bg-black/50" : "bg-primary/50"}`}>
+                        {photo.t === "before" ? "전" : "후"}
+                      </span>
+                    )}
+                    <button type="button" onClick={() => setConfirmDelete({ path: photo.path, type: photo.t })}
+                      className="absolute -right-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow">×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {confirmDelete && (
+              <div className="mt-2 flex items-center gap-2 rounded-md bg-danger-light px-3 py-2">
+                <p className="flex-1 text-xs text-danger">이 사진을 삭제할까요?</p>
+                <button onClick={() => setConfirmDelete(null)} className="text-xs text-ink-caption">취소</button>
+                <button onClick={handleDelete} disabled={isPending}
+                  className="flex items-center gap-1 rounded-md bg-red-500 px-2.5 py-1 text-xs font-medium text-white disabled:opacity-50">
+                  {isPending && <Spinner className="h-3 w-3" />}삭제</button>
+              </div>
+            )}
+            <div className="mt-2 flex flex-col gap-2">
+              {!baMode && totalPhotos < 2 && (
+                <label className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-[12px] font-medium text-ink-secondary cursor-pointer hover:bg-bg">
+                  {isPending && <Spinner className="h-3 w-3" />}+ 사진 추가
+                  <input type="file" accept="image/*" onChange={handleFirstUpload} className="hidden" />
+                </label>
               )}
-              <button type="button" onClick={() => setConfirmDelete({ path: photo.path, type: photo.t })}
-                className="absolute -right-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow">×</button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 삭제 확인 */}
-      {confirmDelete && (
-        <div className="mt-2 flex items-center gap-2 rounded-lg bg-danger-light px-3 py-2">
-          <p className="flex-1 text-xs text-danger">이 사진을 삭제할까요?</p>
-          <button onClick={() => setConfirmDelete(null)} className="text-xs text-ink-caption">취소</button>
-          <button onClick={handleDelete} disabled={isPending}
-            className="flex items-center gap-1 rounded-lg bg-red-500 px-2.5 py-1 text-xs font-medium text-white disabled:opacity-50">
-            {isPending && <Spinner className="h-3 w-3" />}삭제</button>
-        </div>
-      )}
-
-      {/* 비포/애프터 토글 & 설정 */}
-      <div className="mt-3 flex flex-col gap-2">
-        {totalPhotos === 1 && !hasBothPhotos && (
-          <button
-            onClick={() => toggleBaMode(!baMode)}
-            className={`self-start rounded-lg px-3 py-1.5 text-xs font-medium transition ${baMode ? "bg-primary text-white" : "bg-border-light text-ink-secondary hover:bg-border"}`}
-          >
-            {baMode ? "비포/애프터 모드 ON" : "비포/애프터 카드 만들기"}
-          </button>
-        )}
-
-        {baMode && assignStep === "ask" && (
-          <div className="rounded-xl bg-blue-50 p-3">
-            <p className="text-xs font-medium text-blue-900">지금 있는 사진은?</p>
-            <div className="mt-2 flex gap-2">
-              <button onClick={() => handleAssignType("before")} disabled={isPending}
-                className="flex-1 rounded-lg border border-blue-200 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50">시술 전</button>
-              <button onClick={() => handleAssignType("after")} disabled={isPending}
-                className="flex-1 rounded-lg border border-blue-200 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50">시술 후</button>
+              {totalPhotos === 1 && !hasBothPhotos && (
+                <button onClick={() => toggleBaMode(!baMode)}
+                  className={`self-start rounded-md px-3 py-1.5 text-[12px] font-medium transition ${baMode ? "bg-primary text-white" : "border border-border text-ink-secondary hover:bg-bg"}`}>
+                  {baMode ? "비포/애프터 모드 ON" : "비포/애프터 카드 만들기"}
+                </button>
+              )}
+              {baMode && assignStep === "ask" && (
+                <div className="rounded-md bg-primary-light p-3">
+                  <p className="text-xs font-medium text-primary">지금 있는 사진은?</p>
+                  <div className="mt-2 flex gap-2">
+                    <button onClick={() => handleAssignType("before")} disabled={isPending}
+                      className="flex-1 rounded-md border border-primary/30 py-1.5 text-xs font-medium text-primary hover:bg-primary-light disabled:opacity-50">시술 전</button>
+                    <button onClick={() => handleAssignType("after")} disabled={isPending}
+                      className="flex-1 rounded-md border border-primary/30 py-1.5 text-xs font-medium text-primary hover:bg-primary-light disabled:opacity-50">시술 후</button>
+                  </div>
+                </div>
+              )}
+              {baMode && assignStep === "upload" && (
+                <div className="rounded-md bg-primary-light p-3">
+                  <p className="text-xs font-medium text-primary">
+                    {afterPhotos.length === 0 ? "시술 후 사진을 추가해주세요" : "시술 전 사진을 추가해주세요"}
+                  </p>
+                  <label className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white cursor-pointer hover:bg-primary-hover">
+                    {isPending && <Spinner className="h-3 w-3" />}
+                    {afterPhotos.length === 0 ? "시술 후 사진 추가" : "시술 전 사진 추가"}
+                    <input type="file" accept="image/*" onChange={handleSecondUpload} className="hidden" />
+                  </label>
+                </div>
+              )}
             </div>
           </div>
-        )}
 
-        {baMode && assignStep === "upload" && (
-          <div className="rounded-xl bg-blue-50 p-3">
-            <p className="text-xs font-medium text-blue-900">
-              {afterPhotos.length === 0 ? "시술 후 사진을 추가해주세요" : "시술 전 사진을 추가해주세요"}
-            </p>
-            <label className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white cursor-pointer hover:bg-blue-700">
-              {isPending && <Spinner className="h-3 w-3" />}
-              {afterPhotos.length === 0 ? "시술 후 사진 추가" : "시술 전 사진 추가"}
-              <input type="file" accept="image/*" onChange={handleSecondUpload} className="hidden" />
-            </label>
+          {/* 문구 */}
+          <div className="rounded-lg border border-border bg-white p-4">
+            <p className="text-[13px] font-semibold text-ink-caption">문구</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {MESSAGES.map((m) => (
+                <button key={m} onClick={() => { setMessage(m); setCustomMsg(""); }}
+                  className={`rounded-md px-2.5 py-1.5 text-xs transition ${message === m && !customMsg ? "bg-primary text-white" : "bg-border-light text-ink-secondary"}`}>{m}</button>
+              ))}
+            </div>
+            <input type="text" value={customMsg} onChange={(e) => setCustomMsg(e.target.value)}
+              placeholder="직접 입력" className="mt-2 w-full rounded-md border border-border px-3 py-2 text-[13px] outline-none focus:border-primary" />
           </div>
-        )}
-
-        {/* 단일 모드에서 사진이 1장이고 BA 아닐 때: 추가 가능 */}
-        {!baMode && totalPhotos < 2 && (
-          <label className="self-start inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[11px] font-medium text-ink-secondary cursor-pointer hover:bg-bg">
-            {isPending && <Spinner className="h-3 w-3" />}
-            + 사진 추가
-            <input type="file" accept="image/*" onChange={handleFirstUpload} className="hidden" />
-          </label>
-        )}
-      </div>
-
-      {/* 문구 */}
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {MESSAGES.map((m) => (
-          <button key={m} onClick={() => { setMessage(m); setCustomMsg(""); }}
-            className={`rounded-lg px-2.5 py-1 text-xs transition ${message === m && !customMsg ? "bg-primary text-white" : "bg-border-light text-ink-secondary"}`}>{m}</button>
-        ))}
-      </div>
-      <input type="text" value={customMsg} onChange={(e) => setCustomMsg(e.target.value)}
-        placeholder="직접 입력" className="mt-1.5 w-full min-w-0 rounded-lg border border-border px-3 py-1.5 text-xs outline-none focus:border-primary" />
-
-      {/* 카드 미리보기 */}
-      <div className="mx-auto mt-4 w-full overflow-hidden rounded-lg" style={{ maxWidth: 400, aspectRatio: `${size.w} / ${size.h}` }}>
-        <div ref={renderRef} className="relative h-full w-full origin-top-left"
-          style={{ width: size.w, height: size.h, transform: `scale(var(--card-scale))`, "--card-scale": "1" } as React.CSSProperties}>
-          {template === "minimal" ? <MinimalCard {...cardProps} w={size.w} h={size.h} /> : <PhotoCard {...cardProps} w={size.w} h={size.h} />}
         </div>
-        <ScaleInjector targetW={size.w} />
-      </div>
 
-      <button onClick={handleDownload} disabled={downloading}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50">
-        {downloading && <Spinner />} 이미지 저장
-      </button>
+        {/* ── 우측: 카드 프리뷰 (모바일에서는 상단) ── */}
+        <div className="order-1 lg:order-2 lg:sticky lg:top-20 lg:self-start">
+          <div className="mx-auto w-full overflow-hidden rounded-lg" style={{ maxWidth: 400, aspectRatio: `${size.w} / ${size.h}` }}>
+            <div ref={renderRef} className="relative h-full w-full origin-top-left"
+              style={{ width: size.w, height: size.h, transform: `scale(var(--card-scale))`, "--card-scale": "1" } as React.CSSProperties}>
+              {template === "minimal" ? <MinimalCard {...cardProps} w={size.w} h={size.h} /> : <PhotoCard {...cardProps} w={size.w} h={size.h} />}
+            </div>
+            <ScaleInjector targetW={size.w} />
+          </div>
 
-      {previewUrl && (
-        <div className="mt-3 rounded-md border border-border p-2">
-          <p className="mb-1 text-center text-[11px] text-ink-disabled">길게 눌러 저장할 수 있어요</p>
-          <img src={previewUrl} alt="완료 카드" className="w-full rounded-lg" />
+          {/* 액션 */}
+          <div className="mx-auto mt-3 flex gap-2" style={{ maxWidth: 400 }}>
+            <button onClick={handleShare} disabled={downloading}
+              className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-[14px] font-medium text-white hover:bg-primary-hover disabled:opacity-50">
+              {downloading && <Spinner />}공유하기
+            </button>
+            <button onClick={handleDownload} disabled={downloading}
+              className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border py-2.5 text-[14px] font-medium text-ink hover:bg-bg disabled:opacity-50">
+              이미지 저장
+            </button>
+          </div>
+
+          {previewUrl && (
+            <div className="mx-auto mt-3 rounded-md border border-border p-2" style={{ maxWidth: 400 }}>
+              <p className="mb-1 text-center text-[11px] text-ink-disabled">길게 눌러 저장할 수 있어요</p>
+              <img src={previewUrl} alt="완료 카드" className="w-full rounded-lg" />
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
