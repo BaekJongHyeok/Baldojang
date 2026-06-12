@@ -154,7 +154,10 @@ export async function changeReservationStatusAction(formData: FormData) {
     .update({ status: newStatus })
     .eq("id", reservationId);
 
-  if (error) return { error: error.message };
+  if (error) {
+    if (error.code === "23P01") return { error: "해당 시간에 이미 다른 예약이 있어 되돌릴 수 없어요." };
+    return { error: error.message };
+  }
 
   revalidatePath("/calendar");
   return { success: true };
@@ -172,7 +175,10 @@ export async function deleteReservationAction(formData: FormData) {
     .single();
 
   if (!reservation) return { error: "예약을 찾을 수 없어요." };
-  if (reservation.status !== "confirmed") return { error: "확정 상태의 예약만 삭제할 수 있어요." };
+
+  // 연결된 visit이 있으면 삭제 불가 (결제·방문 기록 정합성)
+  const { count } = await supabase.from("visits").select("id", { count: "exact", head: true }).eq("reservation_id", reservationId);
+  if (count && count > 0) return { error: "방문 기록이 있는 예약은 삭제할 수 없어요." };
 
   const { error } = await supabase
     .from("reservations")

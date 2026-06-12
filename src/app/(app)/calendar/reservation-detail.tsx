@@ -29,25 +29,25 @@ export function ReservationDetail({
 }) {
   const [confirm, setConfirm] = useState<"no_show" | "cancelled" | "delete" | null>(null);
   const hasCaution = r.pet.caution_tags.length > 0;
-
+  const isTerminal = r.status === "completed" || r.status === "no_show" || r.status === "cancelled";
   const dateTime = `${formatTimestampKST(r.starts_at, "M월 d일 (EEE)")} · ${formatTimestampKST(r.starts_at, "HH:mm")}–${formatTimestampKST(r.ends_at, "HH:mm")}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 lg:items-center lg:px-4" onClick={onClose}>
       <div className="relative w-full max-w-md bg-white shadow-modal lg:rounded-lg lg:border lg:border-border" onClick={(e) => e.stopPropagation()}>
-        {/* 모바일 drag handle */}
         <div className="flex justify-center pt-3 pb-1 lg:hidden"><div className="h-1 w-8 rounded-full bg-border" /></div>
 
-        {/* X 닫기 */}
         <button onClick={onClose} className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full text-ink-caption transition-colors hover:bg-border-light hover:text-ink">
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
 
         <div className="px-5 pt-2 pb-5 lg:pt-5">
-          {/* ── 헤더: 아바타 + 이름 + 배지 ── */}
+          {/* ── 헤더 ── */}
           <div className="flex items-center gap-3 pr-8">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-border-light text-[14px] font-bold text-ink-caption">
-              {r.pet.name.charAt(0)}
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-border-light text-[14px] font-bold text-ink-caption overflow-hidden">
+              {r.pet.photo_url
+                ? <img src={r.pet.photo_url} alt="" className="h-full w-full object-cover" />
+                : r.pet.name.charAt(0)}
             </div>
             <div className="min-w-0 flex-1">
               <Link href={`/pets/${r.pet.id}`} className="inline-flex items-center gap-0.5 text-[17px] font-bold text-ink hover:text-primary">
@@ -95,7 +95,6 @@ export function ReservationDetail({
             )}
           </div>
 
-          {/* 주의사항 */}
           {hasCaution && (
             <div className="mt-2 flex flex-wrap gap-1 rounded-md bg-danger-light px-3 py-2">
               {r.pet.caution_tags.map((tag) => (
@@ -106,7 +105,7 @@ export function ReservationDetail({
 
           {/* ── 액션 ── */}
           <div className="mt-4 flex flex-col gap-2">
-            {/* confirmed 상태 */}
+            {/* confirmed */}
             {r.status === "confirmed" && !confirm && (
               <>
                 <button onClick={onComplete} className="w-full rounded-md bg-primary py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-primary-hover">완료</button>
@@ -115,35 +114,36 @@ export function ReservationDetail({
                   <button onClick={() => setConfirm("no_show")} className="flex-1 rounded-md border border-danger/30 py-2 text-[13px] font-medium text-danger transition-colors hover:bg-danger-light">노쇼</button>
                   <button onClick={() => setConfirm("cancelled")} className="flex-1 rounded-md border border-border py-2 text-[13px] font-medium text-ink-caption transition-colors hover:bg-bg">취소</button>
                 </div>
-                <button onClick={() => setConfirm("delete")} className="w-full py-1.5 text-[12px] text-ink-disabled transition-colors hover:text-danger">삭제</button>
               </>
             )}
 
-            {/* completed 상태 */}
+            {/* completed */}
             {r.status === "completed" && !confirm && (
-              <div className="flex flex-col gap-2">
+              <>
                 <p className="text-center text-[13px] text-success">시술이 완료됐어요</p>
                 <Link href={`/pets/${r.pet.id}`} className="rounded-md border border-border py-2.5 text-center text-[14px] font-medium text-ink transition-colors hover:bg-bg">펫 차트</Link>
-                <button onClick={() => onStatusChange(r.id, "confirmed")} className="py-1.5 text-[12px] text-ink-disabled transition-colors hover:text-ink-caption">확정으로 되돌리기</button>
-              </div>
+                <button onClick={() => setConfirm("delete")} className="py-1.5 text-[12px] text-ink-disabled transition-colors hover:text-danger">삭제</button>
+              </>
             )}
 
-            {/* no_show 상태 */}
+            {/* no_show */}
             {r.status === "no_show" && !confirm && (
-              <div className="flex flex-col gap-2">
+              <>
                 <p className="text-center text-[13px] text-danger">노쇼로 처리된 예약이에요</p>
                 <Link href={`/pets/${r.pet.id}`} className="rounded-md border border-border py-2.5 text-center text-[14px] font-medium text-ink transition-colors hover:bg-bg">펫 차트</Link>
                 <button onClick={() => onStatusChange(r.id, "confirmed")} className="py-1.5 text-[12px] text-ink-disabled transition-colors hover:text-ink-caption">확정으로 되돌리기</button>
-              </div>
+                <button onClick={() => setConfirm("delete")} className="py-1 text-[12px] text-ink-disabled transition-colors hover:text-danger">삭제</button>
+              </>
             )}
 
-            {/* cancelled 상태 */}
+            {/* cancelled */}
             {r.status === "cancelled" && !confirm && (
-              <div className="flex flex-col gap-2">
+              <>
                 <p className="text-center text-[13px] text-ink-caption">취소된 예약이에요</p>
                 <Link href={`/pets/${r.pet.id}`} className="rounded-md border border-border py-2.5 text-center text-[14px] font-medium text-ink transition-colors hover:bg-bg">펫 차트</Link>
-                <button onClick={() => setConfirm("delete")} className="py-1.5 text-[12px] text-ink-disabled transition-colors hover:text-danger">삭제</button>
-              </div>
+                <button onClick={() => onStatusChange(r.id, "confirmed")} className="py-1.5 text-[12px] text-ink-disabled transition-colors hover:text-ink-caption">확정으로 되돌리기</button>
+                <button onClick={() => setConfirm("delete")} className="py-1 text-[12px] text-ink-disabled transition-colors hover:text-danger">삭제</button>
+              </>
             )}
 
             {/* 노쇼/취소 confirm */}
