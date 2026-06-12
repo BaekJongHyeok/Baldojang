@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { updateShopAction } from "@/lib/settings-actions";
 import { Spinner } from "@/components/spinner";
@@ -41,6 +42,7 @@ export function ShopSettingsForm({
   slotMinutes: number;
   defaultCycleWeeks: number;
 }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [hours, setHours] = useState<OpenHours>(openHours);
   const [isDirty, setDirty] = useState(false);
@@ -66,7 +68,7 @@ export function ShopSettingsForm({
     startTransition(async () => {
       const result = await updateShopAction(formData);
       if (result?.error) toast.error(result.error);
-      else { toast.success("샵 정보가 저장되었습니다."); setDirty(false); }
+      else { toast.success("샵 정보가 저장되었습니다."); setDirty(false); router.refresh(); }
     });
   }
 

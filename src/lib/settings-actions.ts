@@ -81,6 +81,8 @@ export async function updateShopAction(formData: FormData) {
 
   revalidatePath("/settings/shop");
   revalidatePath("/dashboard");
+  revalidatePath("/calendar");
+  revalidatePath("/retention");
   return { success: true };
 }
 

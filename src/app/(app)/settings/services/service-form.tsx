@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { Json } from "@/types/database";
 import { Spinner } from "@/components/spinner";
@@ -41,6 +42,7 @@ export function ServiceFormDialog({
   service?: Service;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [priceMode, setPriceMode] = useState<"single" | "size">(
@@ -65,6 +67,7 @@ export function ServiceFormDialog({
       } else {
         toast.success(service ? "시술이 수정되었습니다." : "시술이 추가되었습니다.");
         onClose();
+        router.refresh();
       }
     });
   }

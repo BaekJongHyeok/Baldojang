@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Json } from "@/types/database";
 import {
   createServiceAction,
@@ -33,6 +34,7 @@ function formatPrice(price: Json): string {
 }
 
 export function ServiceList({ services }: { services: Service[] }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -43,6 +45,7 @@ export function ServiceList({ services }: { services: Service[] }) {
     fd.set("is_active", String(service.is_active));
     startTransition(async () => {
       await toggleServiceAction(fd);
+      router.refresh();
     });
   }
 
@@ -52,6 +55,7 @@ export function ServiceList({ services }: { services: Service[] }) {
     fd.set("direction", direction);
     startTransition(async () => {
       await reorderServiceAction(fd);
+      router.refresh();
     });
   }
 
