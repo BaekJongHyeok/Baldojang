@@ -21,21 +21,33 @@ type PhotoItem = { path: string; url: string };
 
 type Props = {
   visit: { id: string; visitedAt: string; styleMemo: string | null; beforePhotos: PhotoItem[]; afterPhotos: PhotoItem[] };
-  pet: { id: string; name: string; breed: string };
+  pet: { id: string; name: string; breed: string; cycleWeeks: number | null };
   serviceName: string;
+  serviceDuration: number | null;
+  serviceCycleWeeks: number | null;
   shop: { name: string; phone: string; logoUrl: string | null; brandColor: string | null };
   shopId: string;
 };
 
 const CARD_SIZE = { w: 1080, h: 1350 }; // 4:5 고정
 
-export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
+export function CardClient({ visit, pet, serviceName, serviceDuration, serviceCycleWeeks, shop, shopId }: Props) {
   const router = useRouter();
   const renderRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [template, setTemplate] = useState<"minimal" | "photo" | "ba">(
+  type Template = "minimal" | "photo" | "ba" | "polaroid" | "report";
+  const [template, setTemplate] = useState<Template>(
     visit.beforePhotos.length > 0 && visit.afterPhotos.length > 0 ? "ba" : "minimal"
   );
+
+  // 리포트 템플릿용: 다음 미용 권장일
+  const cycleWeeks = pet.cycleWeeks ?? serviceCycleWeeks ?? 6;
+  const defaultNextDate = (() => {
+    const d = new Date(visit.visitedAt);
+    d.setDate(d.getDate() + cycleWeeks * 7);
+    return d.toISOString().slice(0, 10);
+  })();
+  const [nextVisitDate, setNextVisitDate] = useState(defaultNextDate);
 
   const [beforePhotos, setBeforePhotos] = useState(visit.beforePhotos);
   const [afterPhotos, setAfterPhotos] = useState(visit.afterPhotos);
@@ -216,11 +228,17 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
           {/* 템플릿 */}
           <div className="rounded-lg border border-border bg-white p-4">
             <p className="text-[13px] font-semibold text-ink-caption">템플릿</p>
-            <div className="mt-2 flex rounded-lg bg-border-light p-0.5">
-              {(["minimal", "photo", "ba"] as const).map((t) => (
-                <button key={t} onClick={() => setTemplate(t)}
-                  className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium ${template === t ? "bg-white text-ink shadow-sm" : "text-ink-caption"}`}>
-                  {t === "minimal" ? "미니멀" : t === "photo" ? "포토" : "비포·애프터"}
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {([
+                { key: "minimal", label: "미니멀" },
+                { key: "photo", label: "포토" },
+                { key: "ba", label: "비포·애프터" },
+                { key: "polaroid", label: "폴라로이드" },
+                { key: "report", label: "리포트" },
+              ] as { key: Template; label: string }[]).map(({ key, label }) => (
+                <button key={key} onClick={() => setTemplate(key)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${template === key ? "bg-primary text-white" : "bg-border-light text-ink-caption hover:text-ink-secondary"}`}>
+                  {label}
                 </button>
               ))}
             </div>
@@ -256,6 +274,15 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
             <input type="text" value={customMsg} onChange={(e) => setCustomMsg(e.target.value)}
               placeholder="직접 입력" className="mt-2 w-full rounded-md border border-border px-3 py-2 text-[13px] outline-none focus:border-primary" />
           </div>
+
+          {/* 다음 미용 권장일 — 리포트 전용 */}
+          {template === "report" && (
+            <div className="rounded-lg border border-border bg-white p-4">
+              <p className="text-[13px] font-semibold text-ink-caption">다음 미용 권장일</p>
+              <input type="date" value={nextVisitDate} onChange={(e) => setNextVisitDate(e.target.value)}
+                className="mt-2 w-full rounded-md border border-border px-3 py-2 text-[13px] outline-none focus:border-primary" />
+            </div>
+          )}
         </div>
 
         {/* ── 우측: 카드 프리뷰 (모바일에서는 상단) ── */}
@@ -263,7 +290,10 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
           <div className="mx-auto w-full overflow-hidden rounded-lg" style={{ maxWidth: 400, aspectRatio: `${size.w} / ${size.h}` }}>
             <div ref={renderRef} className="relative h-full w-full origin-top-left"
               style={{ width: size.w, height: size.h, transform: `scale(var(--card-scale))`, "--card-scale": "1" } as React.CSSProperties}>
-              {(template === "minimal" || template === "ba") ? <MinimalCard {...cardProps} w={size.w} h={size.h} /> : <PhotoCard {...cardProps} w={size.w} h={size.h} />}
+              {(template === "minimal" || template === "ba") && <MinimalCard {...cardProps} w={size.w} h={size.h} />}
+              {template === "photo" && <PhotoCard {...cardProps} w={size.w} h={size.h} />}
+              {template === "polaroid" && <PolaroidCard {...cardProps} w={size.w} h={size.h} />}
+              {template === "report" && <ReportCard {...cardProps} w={size.w} h={size.h} duration={serviceDuration} nextDate={nextVisitDate} styleMemo={visit.styleMemo} />}
             </div>
             <ScaleInjector targetW={size.w} />
           </div>
@@ -427,6 +457,102 @@ function PhotoCard({ photo, beforePhoto, petName, serviceName, date, message, sh
         <p style={{ fontSize: w * 0.048, fontWeight: 800, color: "white", textShadow: "0 2px 12px rgba(0,0,0,0.5)", letterSpacing: -1, lineHeight: 1.2 }}>{petName}</p>
         <p style={{ fontSize: w * 0.02, color: "rgba(255,255,255,0.9)", marginTop: h * 0.006 }}>{serviceName}</p>
         <p style={{ fontSize: w * 0.02, color: textColor, marginTop: h * 0.015, fontWeight: 600 }}>{message}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 폴라로이드 — 사진을 폴라로이드 프레임으로, 살짝 회전 + 그림자
+ * 폰트: 나눔손글씨 펜 (OFL, Google Fonts)
+ */
+function PolaroidCard({ photo, petName, date, message, shopName, shopPhone, brandColor, w, h }: CardTemplateProps) {
+  const pad = w * 0.08;
+  const frameW = w - pad * 2;
+  const photoH = frameW;
+  const bottomH = h * 0.22;
+  const frameH = photoH + bottomH;
+  const frameTop = (h - frameH) / 2 - h * 0.02;
+  return (
+    <div style={{ width: w, height: h, background: "#F5F0EB", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "system-ui, sans-serif", overflow: "hidden", position: "relative" }}>
+      {/* @font-face 나눔손글씨 펜 (SIL OFL 1.1) */}
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap');`}</style>
+      <div style={{
+        width: frameW, height: frameH, background: "white",
+        boxShadow: "0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)",
+        transform: "rotate(-1.5deg)", borderRadius: w * 0.005,
+        position: "absolute", top: frameTop, display: "flex", flexDirection: "column",
+      }}>
+        <div style={{ margin: w * 0.025, marginBottom: 0, flex: `0 0 ${photoH - w * 0.05}px`, overflow: "hidden" }}>
+          {photo && <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+        </div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: `0 ${w * 0.04}px`, textAlign: "center", overflow: "hidden" }}>
+          <p style={{ fontFamily: "'Nanum Pen Script', cursive", fontSize: w * 0.044, fontWeight: 400, color: "#1c1917", lineHeight: 1.3 }}>{petName}</p>
+          <p style={{ fontFamily: "'Nanum Pen Script', cursive", fontSize: w * 0.028, color: brandColor, marginTop: h * 0.008 }}>{message}</p>
+        </div>
+        <p style={{ position: "absolute", bottom: w * 0.02, right: w * 0.03, fontSize: w * 0.015, color: "#a8a29e" }}>{date}</p>
+      </div>
+      <p style={{ position: "absolute", bottom: w * 0.03, fontSize: w * 0.015, color: "#a8a29e" }}>{shopName}{shopPhone ? ` · ${shopPhone}` : ""}</p>
+    </div>
+  );
+}
+
+/**
+ * 리포트 — 시술 내역 + 원장 한마디 + 다음 미용 권장일
+ */
+function ReportCard({ photo, petName, breed, serviceName, date, message, shopName, shopPhone, brandColor, w, h, duration, nextDate, styleMemo }: CardTemplateProps & { duration: number | null; nextDate: string; styleMemo: string | null }) {
+  const p = w * 0.055;
+  const photoSize = w * 0.18;
+  const nextDateFormatted = (() => {
+    try { const d = new Date(nextDate + "T00:00:00"); return `${d.getMonth() + 1}월 ${d.getDate()}일`; }
+    catch { return nextDate; }
+  })();
+  return (
+    <div style={{ width: w, height: h, background: "#FFFBF5", display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", overflow: "hidden" }}>
+      {/* 헤더 */}
+      <div style={{ padding: `${p}px ${p}px ${p * 0.5}px`, display: "flex", alignItems: "center", gap: w * 0.025, flexShrink: 0 }}>
+        <div style={{ width: photoSize, height: photoSize, borderRadius: w * 0.02, overflow: "hidden", background: "#e7e5e4", flexShrink: 0 }}>
+          {photo && <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+        </div>
+        <div>
+          <p style={{ fontSize: w * 0.04, fontWeight: 800, color: "#1c1917", letterSpacing: -0.5 }}>{petName}</p>
+          {breed && <p style={{ fontSize: w * 0.018, color: "#78716c", marginTop: h * 0.003 }}>{breed}</p>}
+          <p style={{ fontSize: w * 0.016, color: "#a8a29e", marginTop: h * 0.004 }}>{date}</p>
+        </div>
+      </div>
+
+      {/* 구분선 */}
+      <div style={{ margin: `0 ${p}px`, borderTop: "1px solid #e7e5e4" }} />
+
+      {/* 시술 내역 */}
+      <div style={{ padding: `${p * 0.6}px ${p}px`, flexShrink: 0 }}>
+        <p style={{ fontSize: w * 0.016, fontWeight: 700, color: "#78716c", letterSpacing: 1, textTransform: "uppercase" }}>시술 내역</p>
+        <div style={{ marginTop: h * 0.01, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <p style={{ fontSize: w * 0.026, fontWeight: 700, color: "#1c1917" }}>{serviceName}</p>
+          {duration && <p style={{ fontSize: w * 0.018, color: "#78716c" }}>{duration}분</p>}
+        </div>
+        {styleMemo && <p style={{ fontSize: w * 0.018, color: "#78716c", marginTop: h * 0.006 }}>{styleMemo}</p>}
+      </div>
+
+      <div style={{ margin: `0 ${p}px`, borderTop: "1px solid #e7e5e4" }} />
+
+      {/* 원장 한마디 */}
+      <div style={{ padding: `${p * 0.6}px ${p}px`, flexShrink: 0 }}>
+        <p style={{ fontSize: w * 0.016, fontWeight: 700, color: "#78716c", letterSpacing: 1 }}>원장 한마디</p>
+        <p style={{ fontSize: w * 0.024, color: brandColor, fontWeight: 600, marginTop: h * 0.01, lineHeight: 1.5 }}>{message}</p>
+      </div>
+
+      <div style={{ margin: `0 ${p}px`, borderTop: "1px solid #e7e5e4" }} />
+
+      {/* 다음 미용 권장 */}
+      <div style={{ padding: `${p * 0.6}px ${p}px`, background: brandColor, margin: `${p * 0.4}px ${p}px`, borderRadius: w * 0.015, flexShrink: 0 }}>
+        <p style={{ fontSize: w * 0.016, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: 1 }}>다음 미용 권장</p>
+        <p style={{ fontSize: w * 0.034, fontWeight: 800, color: "white", marginTop: h * 0.005 }}>{nextDateFormatted}</p>
+      </div>
+
+      {/* 하단 */}
+      <div style={{ flex: 1, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: `0 ${p}px ${p * 0.6}px` }}>
+        <p style={{ fontSize: w * 0.015, color: "#a8a29e" }}>{shopName}{shopPhone ? ` · ${shopPhone}` : ""}</p>
       </div>
     </div>
   );
