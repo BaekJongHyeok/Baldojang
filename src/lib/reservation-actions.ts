@@ -159,6 +159,32 @@ export async function changeReservationStatusAction(formData: FormData) {
   return { success: true };
 }
 
+export async function deleteReservationAction(formData: FormData) {
+  const supabase = await createClient();
+  const reservationId = String(formData.get("reservation_id"));
+
+  // confirmed 상태만 삭제 가능 (완료/노쇼/취소는 기록 보존)
+  const { data: reservation } = await supabase
+    .from("reservations")
+    .select("status")
+    .eq("id", reservationId)
+    .single();
+
+  if (!reservation) return { error: "예약을 찾을 수 없어요." };
+  if (reservation.status !== "confirmed") return { error: "확정 상태의 예약만 삭제할 수 있어요." };
+
+  const { error } = await supabase
+    .from("reservations")
+    .delete()
+    .eq("id", reservationId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/calendar");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
 export async function completeWithVisitAction(formData: FormData) {
   const supabase = await createClient();
 

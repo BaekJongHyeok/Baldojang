@@ -10,6 +10,7 @@ import {
   createReservationAction,
   updateReservationAction,
   changeReservationStatusAction,
+  deleteReservationAction,
   completeWithVisitAction,
 } from "@/lib/reservation-actions";
 import { DayView } from "./day-view";
@@ -209,6 +210,16 @@ export function CalendarClient({
     else router.refresh();
   }, [router]);
 
+  const handleDelete = useCallback(async (reservationId: string) => {
+    setPatches((prev) => { const next = new Map(prev); next.set(reservationId, "remove"); return next; });
+    setSelectedId(null);
+    const fd = new FormData();
+    fd.set("reservation_id", reservationId);
+    const result = await deleteReservationAction(fd);
+    if (result?.error) { setPatches((prev) => { const next = new Map(prev); next.delete(reservationId); return next; }); toast.error(result.error); }
+    else { toast.success("예약이 삭제됐어요."); router.refresh(); }
+  }, [router]);
+
   const handleComplete = useCallback(async (fd: FormData): Promise<{ error?: string; success?: boolean; visitId?: string }> => {
     const reservationId = String(fd.get("reservation_id"));
     const actualEndsAt = fd.get("actual_ends_at") ? String(fd.get("actual_ends_at")) : null;
@@ -322,6 +333,7 @@ export function CalendarClient({
           onComplete={() => { setCompleteId(selectedReservation.id); setSelectedId(null); }}
           onEdit={() => { setFormState({ mode: "edit", reservation: selectedReservation }); setSelectedId(null); }}
           onStatusChange={handleStatusChange}
+          onDelete={handleDelete}
         />
       )}
       {formState && (

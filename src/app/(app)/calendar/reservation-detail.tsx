@@ -24,14 +24,16 @@ export function ReservationDetail({
   onComplete,
   onEdit,
   onStatusChange,
+  onDelete,
 }: {
   reservation: CalendarReservation;
   onClose: () => void;
   onComplete: () => void;
   onEdit: () => void;
   onStatusChange: (id: string, status: "no_show" | "cancelled") => void;
+  onDelete: (id: string) => void;
 }) {
-  const [confirm, setConfirm] = useState<"no_show" | "cancelled" | null>(null);
+  const [confirm, setConfirm] = useState<"no_show" | "cancelled" | "delete" | null>(null);
   const hasCaution = r.pet.caution_tags.length > 0;
 
   return (
@@ -109,10 +111,11 @@ export function ReservationDetail({
                 <button onClick={() => setConfirm("no_show")} className="flex-1 rounded-md border border-danger/30 py-2 text-[13px] font-medium text-danger transition-colors hover:bg-danger-light">노쇼</button>
                 <button onClick={() => setConfirm("cancelled")} className="flex-1 rounded-md border border-border py-2 text-[13px] font-medium text-ink-caption transition-colors hover:bg-bg">취소</button>
               </div>
+              <button onClick={() => setConfirm("delete")} className="w-full py-1.5 text-[12px] text-ink-disabled transition-colors hover:text-danger">삭제</button>
             </>
           )}
 
-          {confirm && (
+          {confirm && confirm !== "delete" && (
             <div className="rounded-md bg-bg p-3">
               <p className="text-[14px] font-medium text-ink">
                 {confirm === "no_show" ? "노쇼로 처리할까요?" : "예약을 취소할까요?"}
@@ -125,6 +128,17 @@ export function ReservationDetail({
                 <button onClick={() => onStatusChange(r.id, confirm)} className="flex-1 rounded-md bg-danger py-2 text-[13px] font-medium text-white">
                   {confirm === "no_show" ? "노쇼 처리" : "예약 취소"}
                 </button>
+              </div>
+            </div>
+          )}
+
+          {confirm === "delete" && (
+            <div className="rounded-md bg-danger-light p-3">
+              <p className="text-[14px] font-medium text-danger">이 예약을 삭제할까요?</p>
+              <p className="mt-0.5 text-[12px] text-danger/70">잘못 만든 예약을 지울 때만 사용하세요. 보호자가 취소한 경우엔 &lsquo;취소&rsquo;로 처리해야 기록이 남아요.</p>
+              <div className="mt-3 flex gap-2">
+                <button onClick={() => setConfirm(null)} className="flex-1 rounded-md border border-border bg-white py-2 text-[13px] font-medium text-ink-secondary">돌아가기</button>
+                <button onClick={() => onDelete(r.id)} className="flex-1 rounded-md bg-danger py-2 text-[13px] font-medium text-white">삭제</button>
               </div>
             </div>
           )}
