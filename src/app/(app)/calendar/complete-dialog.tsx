@@ -56,9 +56,12 @@ export function CompleteDialog({
   servicePrice?: Record<string, number> | null; petSize?: string | null;
   passes: PassOption[];
   onClose: () => void;
-  onSubmit: (fd: FormData) => Promise<{ error?: string; success?: boolean; visitId?: string }>;
+  onSubmit: (fd: FormData) => Promise<{ error?: string; success?: boolean; visitId?: string; passExhausted?: boolean }>;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [done, setDone] = useState(false);
+  const [visitId, setVisitId] = useState<string | null>(null);
+  const [passExhausted, setPassExhausted] = useState(false);
   const [styleMemo, setStyleMemo] = useState("");
   const [behaviorMemo, setBehaviorMemo] = useState("");
   const [memoOpen, setMemoOpen] = useState(false);
@@ -162,8 +165,38 @@ export function CompleteDialog({
     startTransition(async () => {
       const result = await onSubmit(fd);
       if (result?.error) setError(result.error);
-      // 성공 시 handleComplete가 토스트 + dialog close 처리
+      else {
+        if (result?.visitId) setVisitId(result.visitId);
+        if (result?.passExhausted) setPassExhausted(true);
+        setDone(true);
+      }
     });
+  }
+
+  if (done) {
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/40 px-4" onClick={onClose}>
+        <div className="w-full max-w-xs rounded-lg border border-border bg-white p-8 text-center shadow-modal" onClick={(e) => e.stopPropagation()}>
+          <svg className="mx-auto h-16 w-16 text-success" viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="24" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="150" strokeDashoffset="150" style={{ animation: "circle-draw 0.3s ease-out forwards" }} />
+            <path d="M14 27l8 8 16-16" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="40" strokeDashoffset="40" style={{ animation: "check-draw 0.3s ease-out 0.15s forwards" }} />
+          </svg>
+          <p className="mt-4 text-[18px] font-bold text-ink">{petName} 미용 완료</p>
+          {passExhausted && (
+            <p className="mt-2 text-[13px] text-warning">선불권이 모두 소진됐어요. 재충전을 권유해보세요.</p>
+          )}
+          <div className="mt-6 flex flex-col gap-2">
+            {visitId && (
+              <a href={`/visits/${visitId}/card`} className="flex items-center justify-center gap-1.5 rounded-md bg-primary py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-primary-hover">
+                완료 카드 만들기
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+              </a>
+            )}
+            <button onClick={onClose} className="rounded-md py-2 text-[14px] text-ink-caption transition-colors hover:bg-bg">닫기</button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

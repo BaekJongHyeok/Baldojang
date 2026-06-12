@@ -576,6 +576,7 @@ export type Database = {
       }
       visits: {
         Row: {
+          actual_ends_at: string | null
           after_photos: string[]
           before_photos: string[]
           behavior_memo: string | null
@@ -590,6 +591,7 @@ export type Database = {
           visited_at: string
         }
         Insert: {
+          actual_ends_at?: string | null
           after_photos?: string[]
           before_photos?: string[]
           behavior_memo?: string | null
@@ -604,6 +606,7 @@ export type Database = {
           visited_at?: string
         }
         Update: {
+          actual_ends_at?: string | null
           after_photos?: string[]
           before_photos?: string[]
           behavior_memo?: string | null

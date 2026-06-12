@@ -174,7 +174,8 @@ export function WeekView({
                 {/* 블록 */}
                 {!isClosed && dayRes.map((r) => {
                   const s = kstHourMin(r.starts_at);
-                  const e = kstHourMin(r.ends_at);
+                  const displayEnd = r.status === "completed" && r.visit_ends_at ? r.visit_ends_at : r.ends_at;
+                  const e = kstHourMin(displayEnd);
                   const rStartMin = s.hours * 60 + s.minutes;
                   const rEndMin = e.hours * 60 + e.minutes;
                   const top = (rStartMin - gridStartMin) * pxPerMin + 1;

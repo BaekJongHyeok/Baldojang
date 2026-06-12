@@ -14,6 +14,8 @@ export type CalendarReservation = {
   pet: { id: string; name: string; photo_url: string | null; caution_tags: string[] };
   service: { name: string; duration_minutes: number };
   customer: { id: string; name: string; phone: string } | null;
+  /** 완료 시 기록된 실제 종료 시각 (visit.actual_ends_at). 미완료이거나 과거 데이터면 null. */
+  visit_ends_at: string | null;
 };
 
 export type ShopCalendarConfig = {
@@ -69,7 +71,7 @@ export async function getReservations(
   const { data } = await supabase
     .from("reservations")
     .select(
-      "id, starts_at, ends_at, status, memo, price_quoted, pets(id, name, photo_url, caution_tags, customers(id, name, phone)), services(name, duration_minutes)",
+      "id, starts_at, ends_at, status, memo, price_quoted, pets(id, name, photo_url, caution_tags, customers(id, name, phone)), services(name, duration_minutes), visits(actual_ends_at)",
     )
     .eq("shop_id", shopId)
     .gte("starts_at", from)
@@ -97,6 +99,7 @@ export async function getReservations(
         ? pet.customers[0]
         : pet.customers
       : null;
+    const visit = Array.isArray(r.visits) ? r.visits[0] : r.visits;
     return {
       id: r.id,
       starts_at: r.starts_at,
@@ -107,6 +110,7 @@ export async function getReservations(
       pet: { id: pet?.id ?? "", name: pet?.name ?? "", photo_url: pet?.photo_url ? (photoUrlMap[pet.photo_url] ?? null) : null, caution_tags: pet?.caution_tags ?? [] },
       service: { name: service?.name ?? "", duration_minutes: service?.duration_minutes ?? 60 },
       customer,
+      visit_ends_at: visit?.actual_ends_at ?? null,
     };
   });
 }

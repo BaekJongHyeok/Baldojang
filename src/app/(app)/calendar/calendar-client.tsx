@@ -176,7 +176,7 @@ export function CalendarClient({
     const svc = services.find((s) => s.id === serviceId);
     const tempId = `temp-${Date.now()}`;
     const priceQuoted = fd.get("price_quoted") ? Number(fd.get("price_quoted")) : null;
-    const optimistic: CalendarReservation = { id: tempId, starts_at: startsAt, ends_at: endsAt, status: "confirmed", memo, price_quoted: priceQuoted, pet: { id: petId, name: pet?.name ?? "", photo_url: null, caution_tags: pet?.caution_tags ?? [] }, service: { name: svc?.name ?? "", duration_minutes: svc?.duration_minutes ?? 60 }, customer: pet?.customer ?? null };
+    const optimistic: CalendarReservation = { id: tempId, starts_at: startsAt, ends_at: endsAt, status: "confirmed", memo, price_quoted: priceQuoted, pet: { id: petId, name: pet?.name ?? "", photo_url: null, caution_tags: pet?.caution_tags ?? [] }, service: { name: svc?.name ?? "", duration_minutes: svc?.duration_minutes ?? 60 }, customer: pet?.customer ?? null, visit_ends_at: null };
     setTempItems((prev) => [...prev, optimistic]);
     setFormState(null);
     const result = await createReservationAction(fd);
@@ -222,7 +222,7 @@ export function CalendarClient({
   }, [router]);
 
   const handleRevertCompletion = useCallback(async (reservationId: string) => {
-    setPatches((prev) => { const next = new Map(prev); next.set(reservationId, { status: "confirmed" as const }); return next; });
+    setPatches((prev) => { const next = new Map(prev); next.set(reservationId, { status: "confirmed" as const, visit_ends_at: null }); return next; });
     setSelectedId(null);
     const fd = new FormData();
     fd.set("reservation_id", reservationId);
@@ -231,15 +231,15 @@ export function CalendarClient({
     else { toast.success("완료가 되돌려졌어요."); router.refresh(); }
   }, [router]);
 
-  const handleComplete = useCallback(async (fd: FormData): Promise<{ error?: string; success?: boolean; visitId?: string }> => {
+  const handleComplete = useCallback(async (fd: FormData): Promise<{ error?: string; success?: boolean; visitId?: string; passExhausted?: boolean }> => {
     const reservationId = String(fd.get("reservation_id"));
-    setPatches((prev) => { const next = new Map(prev); next.set(reservationId, { status: "completed" as const }); return next; });
-    setCompleteId(null);
+    const actualEndsAt = fd.get("actual_ends_at") ? String(fd.get("actual_ends_at")) : null;
+    setPatches((prev) => { const next = new Map(prev); next.set(reservationId, { status: "completed" as const, ...(actualEndsAt ? { visit_ends_at: actualEndsAt } : {}) }); return next; });
     setSelectedId(null);
     const result = await completeWithVisitAction(fd);
     if (result?.error) { setPatches((prev) => { const next = new Map(prev); next.delete(reservationId); return next; }); toast.error(result.error); return result; }
-    // 토스트 1개로 통일: 선불권 소진 안내는 description으로 병합
-    let passDesc: string | undefined;
+    // 선불권 소진 여부 확인 (성공 화면에서 표시)
+    let passExhausted = false;
     const passId = String(fd.get("pass_id") ?? "");
     if (passId) {
       const passType = String(fd.get("pass_type") ?? "");
@@ -247,12 +247,11 @@ export function CalendarClient({
       const usedPass = passes.find((p) => p.id === passId);
       if (usedPass) {
         const newBalance = passType === "amount" ? (usedPass.balance ?? 0) - passAmount : (usedPass.remaining ?? 0) - 1;
-        if (newBalance <= 0) passDesc = "선불권이 모두 소진됐어요. 재충전을 권유해보세요.";
+        passExhausted = newBalance <= 0;
       }
     }
-    if (result.visitId) toast("완료 카드를 만들어보세요", { description: passDesc, action: { label: "완료 카드 만들기", onClick: () => router.push(`/visits/${result.visitId}/card`) } });
     router.refresh();
-    return { success: true, visitId: result.visitId };
+    return { success: true, visitId: result.visitId, passExhausted };
   }, [router, passes]);
 
   // --- 헤더 날짜 텍스트 ---

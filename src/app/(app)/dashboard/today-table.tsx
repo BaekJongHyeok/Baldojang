@@ -7,7 +7,7 @@ import { formatTimestampKST } from "@/lib/calendar-utils";
 import { PhoneButton } from "@/components/phone-button";
 import { CompleteDialog, type PassOption } from "@/app/(app)/calendar/complete-dialog";
 import { completeWithVisitAction } from "@/lib/reservation-actions";
-import { toast } from "sonner";
+
 
 type TodayItem = {
   id: string;
@@ -46,7 +46,6 @@ export function TodayTable({ items, slotMinutes, today }: { items: TodayItem[]; 
   const handleComplete = useCallback(async (fd: FormData): Promise<{ error?: string; success?: boolean; visitId?: string }> => {
     const result = await completeWithVisitAction(fd);
     if (result?.error) return result;
-    if (result.visitId) toast("완료 카드를 만들어보세요", { action: { label: "완료 카드 만들기", onClick: () => router.push(`/visits/${result.visitId}/card`) } });
     router.refresh();
     return { success: true, visitId: result.visitId };
   }, [router]);

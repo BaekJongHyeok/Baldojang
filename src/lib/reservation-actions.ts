@@ -281,6 +281,9 @@ export async function completeWithVisitAction(formData: FormData) {
   if (!staff) return { error: "스태프 정보를 찾을 수 없습니다." };
 
   const reservationId = String(formData.get("reservation_id"));
+  const actualEndsAt = formData.get("actual_ends_at")
+    ? String(formData.get("actual_ends_at"))
+    : null;
   const styleMemo = formData.get("style_memo")
     ? String(formData.get("style_memo"))
     : null;
@@ -317,6 +320,7 @@ export async function completeWithVisitAction(formData: FormData) {
       reservation_id: reservationId,
       service_id: reservation.service_id,
       visited_at: reservation.starts_at,
+      actual_ends_at: actualEndsAt,
       price_final: priceFinal,
       style_memo: styleMemo,
       behavior_memo: behaviorMemo,

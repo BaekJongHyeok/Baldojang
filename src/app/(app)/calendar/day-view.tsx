@@ -109,7 +109,8 @@ export function DayView({
     for (const r of reservations) {
       if (r.status === "cancelled") continue;
       const s = kstHourMin(r.starts_at);
-      const e = kstHourMin(r.ends_at);
+      const displayEnd = r.status === "completed" && r.visit_ends_at ? r.visit_ends_at : r.ends_at;
+      const e = kstHourMin(displayEnd);
       const sm = s.hours * 60 + s.minutes;
       const em = e.hours * 60 + e.minutes;
       for (let m = sm; m < em; m += 30) set.add(m);
@@ -188,7 +189,8 @@ export function DayView({
         <div className="absolute top-0 bottom-0 left-[48px] right-0 lg:left-[56px]">
           {reservations.map((r) => {
             const s = kstHourMin(r.starts_at);
-            const e = kstHourMin(r.ends_at);
+            const displayEnd = r.status === "completed" && r.visit_ends_at ? r.visit_ends_at : r.ends_at;
+            const e = kstHourMin(displayEnd);
             const rStartMin = s.hours * 60 + s.minutes;
             const rEndMin = e.hours * 60 + e.minutes;
             const top = (rStartMin - gridStartMin) * pxPerMin + BLOCK_GAP;
