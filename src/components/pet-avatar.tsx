@@ -23,7 +23,10 @@ export function PetAvatar({ name, photoUrl, size = "md" }: { name: string; photo
   return (
     <div className={`flex shrink-0 items-center justify-center rounded-full bg-border-light font-bold text-ink-caption overflow-hidden ${sizeClass}`}>
       {showImage ? (
-        <img src={photoUrl!} alt="" className="h-full w-full object-cover" onError={() => setErrored(true)} />
+        <img src={photoUrl!} alt="" className="h-full w-full object-cover" onError={() => {
+          if (process.env.NODE_ENV === "development") console.error(`[PetAvatar] 이미지 로드 실패: ${photoUrl}`);
+          setErrored(true);
+        }} />
       ) : (
         name.charAt(0)
       )}

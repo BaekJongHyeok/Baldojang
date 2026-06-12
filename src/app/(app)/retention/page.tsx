@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth-cache";
+import { getPetPhotoUrls } from "@/lib/storage";
 import { RetentionClient } from "./retention-client";
 
 export default async function RetentionPage() {
@@ -41,6 +42,10 @@ export default async function RetentionPage() {
   const visits = visitsResult.data ?? [];
   const futureSet = new Set((futureResResult.data ?? []).map((r) => r.pet_id));
   const contactedSet = new Set((contactsResult.data ?? []).map((c: { pet_id: string }) => c.pet_id));
+
+  // pet photo signed URLs
+  const petPhotoPaths = pets.map((p) => p.photo_url).filter((u): u is string => !!u);
+  const petPhotoUrlMap = await getPetPhotoUrls(petPhotoPaths);
 
   // pet별 마지막 visit 매핑 (주기 우선순위: 펫별 → 시술별 → 샵 기본)
   const petCycleMap: Record<string, number | null> = {};
@@ -83,7 +88,7 @@ export default async function RetentionPage() {
 
       const customer = Array.isArray(p.customers) ? p.customers[0] : p.customers;
       return {
-        id: p.id, name: p.name, breed: p.breed, photoUrl: p.photo_url,
+        id: p.id, name: p.name, breed: p.breed, photoUrl: p.photo_url ? (petPhotoUrlMap[p.photo_url] ?? null) : null,
         customerName: customer?.name ?? "", customerPhone: customer?.phone ?? "",
         lastVisitDate: lv.visited_at, serviceName: lv.serviceName,
         elapsedWeeks, cycleWeeks: lv.cycleWeeks, cycleSource: lv.cycleSource, status,

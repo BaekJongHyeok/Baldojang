@@ -78,6 +78,17 @@ export async function getReservations(
 
   if (!data) return [];
 
+  // pet photo signed URL 일괄 생성
+  const photoPaths = [...new Set(data.map((r) => {
+    const pet = Array.isArray(r.pets) ? r.pets[0] : r.pets;
+    return pet?.photo_url;
+  }).filter(Boolean) as string[])];
+  let photoUrlMap: Record<string, string> = {};
+  if (photoPaths.length > 0) {
+    const { data: signed } = await supabase.storage.from("pet-photos").createSignedUrls(photoPaths, 3600);
+    if (signed) for (const s of signed) { if (s.signedUrl && s.path) photoUrlMap[s.path] = s.signedUrl; }
+  }
+
   return data.map((r) => {
     const pet = Array.isArray(r.pets) ? r.pets[0] : r.pets;
     const service = Array.isArray(r.services) ? r.services[0] : r.services;
@@ -93,7 +104,7 @@ export async function getReservations(
       price_quoted: r.price_quoted,
       status: r.status,
       memo: r.memo,
-      pet: { id: pet?.id ?? "", name: pet?.name ?? "", photo_url: pet?.photo_url ?? null, caution_tags: pet?.caution_tags ?? [] },
+      pet: { id: pet?.id ?? "", name: pet?.name ?? "", photo_url: pet?.photo_url ? (photoUrlMap[pet.photo_url] ?? null) : null, caution_tags: pet?.caution_tags ?? [] },
       service: { name: service?.name ?? "", duration_minutes: service?.duration_minutes ?? 60 },
       customer,
     };
