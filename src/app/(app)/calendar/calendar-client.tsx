@@ -35,6 +35,7 @@ export function CalendarClient({
   services,
   passes,
   bookPetId,
+  openNew,
 }: {
   reservations: CalendarReservation[];
   allDays: DayInfo[];
@@ -45,6 +46,7 @@ export function CalendarClient({
   services: FormService[];
   passes: { id: string; type: string; name: string; balance: number | null; remaining: number | null; expires_at: string | null; disabled_at?: string | null; customerId: string }[];
   bookPetId?: string;
+  openNew?: boolean;
 }) {
   const router = useRouter();
   const [patches, setPatches] = useState<Map<string, Partial<CalendarReservation> | "remove">>(new Map());
@@ -85,17 +87,20 @@ export function CalendarClient({
   const [completeId, setCompleteId] = useState<string | null>(null);
 
   // ?book= 파라미터: 마운트 시 1회, 유효한 펫이면 생성 폼 자동 오픈
+  // ?book= 또는 ?new=1: 마운트 시 1회 예약 생성 폼 자동 오픈
   const bookHandledRef = useRef(false);
   useEffect(() => {
-    if (bookHandledRef.current || !bookPetId) return;
+    if (bookHandledRef.current) return;
+    if (!bookPetId && !openNew) return;
     bookHandledRef.current = true;
-    const pet = pets.find((p) => p.id === bookPetId);
-    if (pet) {
+    if (bookPetId) {
+      const pet = pets.find((p) => p.id === bookPetId);
+      if (pet) setFormState({ mode: "create" });
+    } else if (openNew) {
       setFormState({ mode: "create" });
     }
-    // URL에서 book 제거 (새로고침 시 재오픈 방지)
     router.replace(`/calendar?date=${initialDate}`, { scroll: false });
-  }, [bookPetId, pets, router, initialDate]);
+  }, [bookPetId, openNew, pets, router, initialDate]);
 
   const reservations = localReservations;
   const rangeStart = allDays[0].date;
@@ -222,7 +227,7 @@ export function CalendarClient({
         if (newBalance <= 0) toast.info("선불권이 모두 소진됐어요. 재충전을 권유해보세요.");
       }
     }
-    if (result.visitId) toast("완료 카드를 만들어보세요", { action: { label: "카드 만들기", onClick: () => router.push(`/visits/${result.visitId}/card`) } });
+    if (result.visitId) toast("완료 카드를 만들어보세요", { action: { label: "완료 카드 만들기", onClick: () => router.push(`/visits/${result.visitId}/card`) } });
     router.refresh();
     return { success: true, visitId: result.visitId };
   }, [router, passes]);

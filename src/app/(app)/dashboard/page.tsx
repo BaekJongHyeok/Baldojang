@@ -115,7 +115,7 @@ export default async function DashboardPage() {
         <KPI label="오늘 예약" value={String(totalCount)} suffix="건" sub={noshowCount > 0 ? `노쇼 ${noshowCount}` : undefined} subDanger />
         <KPI label="완료" value={String(completedCount)} suffix="건" />
         <KPI label="오늘 매출" value={`₩${todayRev.service.toLocaleString()}`} sub={todayRev.pass > 0 ? `+ 선불권 ₩${todayRev.pass.toLocaleString()}` : undefined} />
-        <KPI label="이번 주 예약" value={String(weekBookingCount)} suffix="건" href="/calendar" />
+        <KPI label="이번 주 예약" value={String(weekBookingCount)} suffix="건" />
       </div>
 
       {/* 오늘 예약 테이블 */}
@@ -178,10 +178,10 @@ export default async function DashboardPage() {
                             <Link href={`/calendar?date=${today}`} className="rounded-md bg-primary px-2.5 py-1 text-[12px] font-medium text-white hover:bg-primary-hover">완료</Link>
                           )}
                           {r.status === "completed" && vId && (
-                            <Link href={`/visits/${vId}/card`} className="text-[12px] font-medium text-primary hover:underline">카드 보기</Link>
+                            <Link href={`/visits/${vId}/card`} className="text-[12px] font-medium text-primary hover:underline">완료 카드</Link>
                           )}
                           {r.status === "completed" && !vId && (
-                            <Link href={`/calendar?date=${today}`} className="text-[12px] font-medium text-primary hover:underline">카드 만들기</Link>
+                            <Link href={`/calendar?date=${today}`} className="text-[12px] font-medium text-primary hover:underline">완료 카드 만들기</Link>
                           )}
                         </td>
                       </tr>
@@ -229,10 +229,10 @@ export default async function DashboardPage() {
                           <Link href={`/calendar?date=${today}`} className="rounded-md bg-primary px-2.5 py-1 text-[12px] font-medium text-white hover:bg-primary-hover">완료</Link>
                         )}
                         {r.status === "completed" && vId && (
-                          <Link href={`/visits/${vId}/card`} className="text-[12px] font-medium text-primary hover:underline">카드 보기</Link>
+                          <Link href={`/visits/${vId}/card`} className="text-[12px] font-medium text-primary hover:underline">완료 카드</Link>
                         )}
                         {r.status === "completed" && !vId && (
-                          <Link href={`/calendar?date=${today}`} className="text-[12px] font-medium text-primary hover:underline">카드 만들기</Link>
+                          <Link href={`/calendar?date=${today}`} className="text-[12px] font-medium text-primary hover:underline">완료 카드 만들기</Link>
                         )}
                       </div>
                     )}

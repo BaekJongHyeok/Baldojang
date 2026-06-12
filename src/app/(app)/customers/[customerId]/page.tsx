@@ -179,7 +179,7 @@ export default async function CustomerDetailPage({
                       <th className="px-4 py-2">날짜</th>
                       <th className="px-4 py-2">펫</th>
                       <th className="px-4 py-2">시술</th>
-                      <th className="px-4 py-2 text-right">카드</th>
+                      <th className="px-4 py-2 text-right">완료 카드</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -211,7 +211,7 @@ export default async function CustomerDetailPage({
                       </div>
                       <p className="mt-0.5 text-[12px] text-ink-caption">{new Date(v.visited_at).toLocaleDateString("ko-KR")}</p>
                     </div>
-                    <span className="ml-3 shrink-0 text-[12px] font-medium text-primary">카드</span>
+                    <span className="ml-3 shrink-0 text-[12px] font-medium text-primary">완료 카드</span>
                   </Link>
                 ))}
               </div>

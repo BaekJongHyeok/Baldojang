@@ -204,7 +204,7 @@ export default async function PetChartPage({
                       <th className="px-4 py-2">시술</th>
                       <th className="px-4 py-2">사진</th>
                       <th className="px-4 py-2">메모</th>
-                      <th className="px-4 py-2 text-right">카드</th>
+                      <th className="px-4 py-2 text-right">완료 카드</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -257,7 +257,7 @@ export default async function PetChartPage({
                           {(v.style_memo || v.behavior_memo) && ` · ${v.style_memo || v.behavior_memo}`}
                         </p>
                       </div>
-                      <span className="ml-3 shrink-0 text-[12px] font-medium text-primary">카드</span>
+                      <span className="ml-3 shrink-0 text-[12px] font-medium text-primary">완료 카드</span>
                     </Link>
                   );
                 })}

@@ -13,7 +13,7 @@ type OpenHours = Record<string, DayHours>;
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string; book?: string }>;
+  searchParams: Promise<{ date?: string; book?: string; new?: string }>;
 }) {
   const [params, ctx] = await Promise.all([searchParams, getAuthContext()]);
   if (!ctx?.shop) redirect("/dashboard");
@@ -102,6 +102,7 @@ export default async function CalendarPage({
         customerId: p.customer_id,
       }))}
       bookPetId={params.book}
+      openNew={params.new === "1"}
     />
   );
 }
