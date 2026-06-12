@@ -54,7 +54,7 @@ export function CardClient({ visit, pet, serviceName, serviceDuration, serviceCy
   const [message, setMessage] = useState(MESSAGES[0]);
   const [customMsg, setCustomMsg] = useState("");
   const [downloading, setDownloading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [fallbackUrl, setFallbackUrl] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [uploadTarget, setUploadTarget] = useState<"before" | "after" | "single" | null>(null);
 
@@ -81,23 +81,35 @@ export function CardClient({ visit, pet, serviceName, serviceDuration, serviceCy
     brandColor,
   };
 
+  // iOS Safari/PWA에서 <a download> 미지원 감지
+  const needsFallback = typeof window !== "undefined" && /iP(hone|ad|od)/.test(navigator.userAgent) && !(window as unknown as Record<string, unknown>).MSStream;
+
+  async function generateImage() {
+    if (!renderRef.current) return null;
+    return toPng(renderRef.current, {
+      canvasWidth: size.w * 2, canvasHeight: size.h * 2, pixelRatio: 1,
+      cacheBust: true, fetchRequestInit: { mode: "cors" },
+      style: { transform: "scale(1)", transformOrigin: "top left" },
+    });
+  }
+
   const handleDownload = useCallback(async () => {
-    if (!renderRef.current) return;
     setDownloading(true);
     try {
-      const dataUrl = await toPng(renderRef.current, {
-        canvasWidth: size.w * 2, canvasHeight: size.h * 2, pixelRatio: 1,
-        cacheBust: true, fetchRequestInit: { mode: "cors" },
-        style: { transform: "scale(1)", transformOrigin: "top left" },
-      });
-      setPreviewUrl(dataUrl);
-      const link = document.createElement("a");
-      link.download = `${pet.name}_${formatTimestampKST(visit.visitedAt, "yyyyMMdd")}.png`;
-      link.href = dataUrl;
-      link.click();
+      const dataUrl = await generateImage();
+      if (!dataUrl) return;
+      if (needsFallback) {
+        setFallbackUrl(dataUrl);
+      } else {
+        const link = document.createElement("a");
+        link.download = `${pet.name}_${formatTimestampKST(visit.visitedAt, "yyyyMMdd")}.png`;
+        link.href = dataUrl;
+        link.click();
+        toast.success("이미지가 저장됐어요.");
+      }
     } catch { toast.error("이미지 생성에 실패했어요."); }
     finally { setDownloading(false); }
-  }, [size, pet.name, visit.visitedAt]);
+  }, [size, pet.name, visit.visitedAt, needsFallback]);
 
   async function uploadPhoto(file: File, type: "before" | "after") {
     const supabase = createClient();
@@ -191,26 +203,19 @@ export function CardClient({ visit, pet, serviceName, serviceDuration, serviceCy
     );
   }
 
-  // 공유
   async function handleShare() {
-    if (!renderRef.current) return;
     setDownloading(true);
     try {
-      const dataUrl = await toPng(renderRef.current, {
-        canvasWidth: size.w * 2, canvasHeight: size.h * 2, pixelRatio: 1,
-        cacheBust: true, fetchRequestInit: { mode: "cors" },
-        style: { transform: "scale(1)", transformOrigin: "top left" },
-      });
+      const dataUrl = await generateImage();
+      if (!dataUrl) return;
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       const file = new File([blob], `${pet.name}_${formatTimestampKST(visit.visitedAt, "yyyyMMdd")}.png`, { type: "image/png" });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: `${pet.name} 미용 완료` });
       } else {
-        // 폴백: 이미지 저장
-        const link = document.createElement("a");
-        link.download = file.name; link.href = dataUrl; link.click();
-        toast("모바일에서 카톡 공유 가능해요", { duration: 3000 });
+        // 공유 불가 → 폴백 다이얼로그
+        setFallbackUrl(dataUrl);
       }
     } catch { /* 사용자 취소 */ }
     finally { setDownloading(false); }
@@ -310,10 +315,14 @@ export function CardClient({ visit, pet, serviceName, serviceDuration, serviceCy
             </button>
           </div>
 
-          {previewUrl && (
-            <div className="mx-auto mt-3 rounded-md border border-border p-2" style={{ maxWidth: 400 }}>
-              <p className="mb-1 text-center text-[11px] text-ink-disabled">길게 눌러 저장할 수 있어요</p>
-              <img src={previewUrl} alt="완료 카드" className="w-full rounded-lg" />
+          {/* 폴백 다이얼로그: iOS Safari 등 다운로드 불가 환경 */}
+          {fallbackUrl && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4" onClick={() => setFallbackUrl(null)}>
+              <div className="w-full max-w-sm rounded-lg border border-border bg-white p-4 shadow-modal" onClick={(e) => e.stopPropagation()}>
+                <p className="text-center text-[14px] font-medium text-ink">길게 눌러 사진에 저장하세요</p>
+                <img src={fallbackUrl} alt="완료 카드" className="mt-3 w-full rounded-lg" />
+                <button onClick={() => setFallbackUrl(null)} className="mt-3 w-full rounded-md border border-border py-2 text-[13px] font-medium text-ink-caption hover:bg-bg">닫기</button>
+              </div>
             </div>
           )}
         </div>
