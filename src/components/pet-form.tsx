@@ -68,7 +68,6 @@ export function PetForm({
   const [foundCustomer, setFoundCustomer] = useState<Customer | null>(customer ?? null);
   const [customerName, setCustomerName] = useState("");
   const [lookingUp, setLookingUp] = useState(false);
-  const [changingCustomer, setChangingCustomer] = useState(false);
   const [confirmPhotoDelete, setConfirmPhotoDelete] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -200,52 +199,18 @@ export function PetForm({
             </label>
           )}
         </fieldset>
-      ) : (
-        <fieldset className="flex flex-col gap-3 rounded-lg bg-white p-5">
+      ) : customer ? (
+        <fieldset className="rounded-lg bg-white p-5">
           <legend className="text-sm font-bold text-ink">보호자</legend>
-          {!changingCustomer ? (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[14px] font-medium text-ink">{foundCustomer?.name ?? customer?.name ?? ""}</p>
-                <p className="text-[12px] text-ink-caption tabular-nums">{formatPhone(foundCustomer?.phone ?? customer?.phone ?? "")}</p>
-              </div>
-              <button type="button" onClick={() => { setChangingCustomer(true); setPhone(""); setFoundCustomer(null); setCustomerName(""); }} className="text-[12px] font-medium text-primary hover:underline">보호자 변경</button>
+          <a href={`/customers/${customer.id}`} className="flex items-center justify-between transition-colors hover:text-primary">
+            <div>
+              <p className="text-[14px] font-medium text-ink">{customer.name}</p>
+              <p className="text-[12px] text-ink-caption tabular-nums">{formatPhone(customer.phone)}</p>
             </div>
-          ) : (
-            <>
-              <p className="text-[12px] text-ink-caption">현재 보호자: {customer?.name} · {formatPhone(customer?.phone ?? "")}</p>
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-ink-secondary">새 보호자 전화번호</span>
-                <input type="tel" value={phone} onChange={handlePhoneChange} className={INPUT_CLASS} placeholder="새 보호자 전화번호 검색" />
-              </label>
-              {lookingUp && <p className="text-xs text-ink-disabled">조회 중...</p>}
-              {foundCustomer && foundCustomer.id !== customer?.id && (
-                <div className="rounded-md border border-primary/20 bg-primary-light p-3">
-                  <p className="text-[13px] font-medium text-primary">{foundCustomer.name}님({formatPhone(foundCustomer.phone)})으로 변경</p>
-                  <p className="mt-0.5 text-[11px] text-ink-caption">{customer?.name} → {foundCustomer.name} 변경, 방문 기록·예약은 펫을 따라 이동합니다.</p>
-                </div>
-              )}
-              {!foundCustomer && phone.replace(/[^0-9]/g, "").length >= 10 && !lookingUp && (
-                <>
-                  <p className="text-[12px] text-ink-caption">미등록 번호 — 신규 보호자를 생성합니다.</p>
-                  <label className="flex flex-col gap-1.5">
-                    <span className="text-sm font-medium text-ink-secondary">새 보호자 이름</span>
-                    <input type="text" name="customer_name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required className={INPUT_CLASS} placeholder="홍길동" />
-                  </label>
-                  {customerName.trim() && (
-                    <div className="rounded-md border border-primary/20 bg-primary-light p-3">
-                      <p className="text-[13px] font-medium text-primary">{customerName.trim()}님(신규)으로 변경</p>
-                      <p className="mt-0.5 text-[11px] text-ink-caption">{customer?.name} → {customerName.trim()} 변경, 방문 기록·예약은 펫을 따라 이동합니다.</p>
-                    </div>
-                  )}
-                </>
-              )}
-              <button type="button" onClick={() => { setChangingCustomer(false); setPhone(customer?.phone ? formatPhone(customer.phone) : ""); setFoundCustomer(customer ?? null); setCustomerName(""); }}
-                className="text-[12px] text-ink-caption hover:underline">변경 취소</button>
-            </>
-          )}
+            <svg className="h-4 w-4 text-ink-disabled" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+          </a>
         </fieldset>
-      )}
+      ) : null}
 
       {/* 펫 정보 섹션 */}
       <fieldset className="flex flex-col gap-3 rounded-lg bg-white p-5">
