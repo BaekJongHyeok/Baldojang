@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { todayKST, formatTimestampKST } from "@/lib/calendar-utils";
 import { getAuthContext } from "@/lib/auth-cache";
+import { startOfWeek, startOfMonth, format } from "date-fns";
 
 function statusLabel(s: string) {
   switch (s) { case "confirmed": return "확정"; case "completed": return "완료"; case "no_show": return "노쇼"; case "cancelled": return "취소"; default: return s; }
@@ -26,13 +27,17 @@ export default async function DashboardPage() {
   const todayStart = new Date(today + "T00:00:00+09:00").toISOString();
   const todayEnd = new Date(today + "T23:59:59+09:00").toISOString();
 
+  // 이번 주/월 시작
+  const todayDate = new Date(today + "T00:00:00Z");
+  const weekStart = new Date(format(startOfWeek(todayDate, { weekStartsOn: 1 }), "yyyy-MM-dd") + "T00:00:00+09:00").toISOString();
+  const monthStart = new Date(format(startOfMonth(todayDate), "yyyy-MM-dd") + "T00:00:00+09:00").toISOString();
+
   const supabase = await createClient();
   const defCycle = ctx.shop?.defaultCycleWeeks ?? 5;
   const cutoff = new Date(Date.now() - (defCycle - 1) * 7 * 86400000).toISOString();
   const nowISO = new Date().toISOString();
 
-  // 병렬: 오늘 예약, 오늘 결제, 재방문용 방문, 미래 예약
-  const [todayResResult, todayPayResult, oldVisitsResult, futureResResult] = await Promise.all([
+  const [todayResResult, todayPayResult, weekPayResult, monthPayResult, oldVisitsResult, futureResResult] = await Promise.all([
     supabase
       .from("reservations")
       .select("id, starts_at, ends_at, status, pets(name, photo_url), services(name)")
@@ -40,9 +45,12 @@ export default async function DashboardPage() {
       .gte("starts_at", todayStart)
       .lte("starts_at", todayEnd)
       .order("starts_at"),
-    supabase
-      .from("payments").select("amount").eq("shop_id", shopId)
+    supabase.from("payments").select("amount").eq("shop_id", shopId)
       .gte("paid_at", todayStart).lte("paid_at", todayEnd),
+    supabase.from("payments").select("amount").eq("shop_id", shopId)
+      .gte("paid_at", weekStart).lte("paid_at", todayEnd),
+    supabase.from("payments").select("amount").eq("shop_id", shopId)
+      .gte("paid_at", monthStart).lte("paid_at", todayEnd),
     supabase.from("visits").select("pet_id").eq("shop_id", shopId).lte("visited_at", cutoff),
     supabase.from("reservations").select("pet_id").eq("shop_id", shopId).eq("status", "confirmed").gte("starts_at", nowISO),
   ]);
@@ -51,11 +59,27 @@ export default async function DashboardPage() {
   const active = reservations.filter((r) => r.status !== "cancelled");
   const totalCount = active.length;
   const completedCount = active.filter((r) => r.status === "completed").length;
+  const noshowCount = active.filter((r) => r.status === "no_show").length;
   const todayRevenue = (todayPayResult.data ?? []).reduce((s, p) => s + p.amount, 0);
+  const weekRevenue = (weekPayResult.data ?? []).reduce((s, p) => s + p.amount, 0);
+  const monthRevenue = (monthPayResult.data ?? []).reduce((s, p) => s + p.amount, 0);
 
   const oldPetIds = new Set((oldVisitsResult.data ?? []).map((v) => v.pet_id));
   const futurePetIds = new Set((futureResResult.data ?? []).map((r) => r.pet_id));
   const retentionCount = [...oldPetIds].filter((id) => !futurePetIds.has(id)).length;
+
+  // 완료 예약의 visit ID (카드 링크용)
+  const completedResIds = active.filter((r) => r.status === "completed").map((r) => r.id);
+  let visitMap: Record<string, string> = {};
+  if (completedResIds.length > 0) {
+    const { data: visits } = await supabase
+      .from("visits")
+      .select("id, reservation_id")
+      .in("reservation_id", completedResIds);
+    for (const v of visits ?? []) {
+      if (v.reservation_id) visitMap[v.reservation_id] = v.id;
+    }
+  }
 
   const dateLabel = new Date(today + "T00:00:00Z").toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
 
@@ -74,7 +98,7 @@ export default async function DashboardPage() {
 
       {/* KPI 스트립 */}
       <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-4">
-        <KPI label="오늘 예약" value={String(totalCount)} suffix="건" />
+        <KPI label="오늘 예약" value={String(totalCount)} suffix="건" sub={noshowCount > 0 ? `노쇼 ${noshowCount}` : undefined} />
         <KPI label="완료" value={String(completedCount)} suffix="건" />
         <KPI label="오늘 매출" value={`₩${todayRevenue.toLocaleString()}`} />
         <KPI label="재방문 대상" value={String(retentionCount)} suffix="명" href={retentionCount > 0 ? "/retention" : undefined} highlight={retentionCount > 0} />
@@ -110,6 +134,7 @@ export default async function DashboardPage() {
                   {active.map((r) => {
                     const pet = Array.isArray(r.pets) ? r.pets[0] : r.pets;
                     const svc = Array.isArray(r.services) ? r.services[0] : r.services;
+                    const vId = visitMap[r.id];
                     return (
                       <tr key={r.id} className="border-b border-border-light last:border-b-0 hover:bg-border-light/50 transition-colors">
                         <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-ink-secondary">
@@ -123,7 +148,12 @@ export default async function DashboardPage() {
                           </span>
                         </td>
                         <td className="px-4 py-2.5 text-right">
-                          <Link href={`/calendar?date=${today}`} className="text-[12px] font-medium text-primary hover:underline">보기</Link>
+                          <div className="flex items-center justify-end gap-2">
+                            {r.status === "completed" && vId && (
+                              <Link href={`/visits/${vId}/card`} className="text-[12px] font-medium text-primary hover:underline">카드</Link>
+                            )}
+                            <Link href={`/calendar?date=${today}`} className="text-[12px] font-medium text-primary hover:underline">보기</Link>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -136,10 +166,11 @@ export default async function DashboardPage() {
               {active.map((r) => {
                 const pet = Array.isArray(r.pets) ? r.pets[0] : r.pets;
                 const svc = Array.isArray(r.services) ? r.services[0] : r.services;
+                const vId = visitMap[r.id];
                 return (
                   <Link
                     key={r.id}
-                    href={`/calendar?date=${today}`}
+                    href={r.status === "completed" && vId ? `/visits/${vId}/card` : `/calendar?date=${today}`}
                     className="flex items-center justify-between border-b border-border-light px-4 py-3 last:border-b-0 transition-colors active:bg-border-light/50"
                   >
                     <div className="min-w-0 flex-1">
@@ -162,6 +193,7 @@ export default async function DashboardPage() {
 
       {/* 하단 보조 패널 */}
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        {/* 재방문 */}
         <div className="rounded-lg border border-border bg-white">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-[14px] font-semibold text-ink">재방문 추천</h2>
@@ -173,18 +205,33 @@ export default async function DashboardPage() {
                 연락이 필요한 보호자 <span className="font-semibold text-ink">{retentionCount}명</span>
               </p>
             ) : (
-              <p className="text-[14px] text-ink-caption">현재 재방문 추천 대상이 없습니다</p>
+              <div className="flex flex-col items-center py-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-border-light">
+                  <svg className="h-5 w-5 text-ink-disabled" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <p className="mt-2 text-[13px] text-ink-caption">지금은 연락할 대상이 없어요</p>
+              </div>
             )}
           </div>
         </div>
+
+        {/* 매출 */}
         <div className="rounded-lg border border-border bg-white">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-[14px] font-semibold text-ink">매출</h2>
             <Link href="/reports" className="text-[12px] font-medium text-primary hover:underline">리포트</Link>
           </div>
           <div className="px-4 py-4">
-            <p className="text-[24px] font-bold text-ink tabular-nums">₩{todayRevenue.toLocaleString()}</p>
-            <p className="text-[12px] text-ink-caption">오늘 매출</p>
+            <dl className="flex flex-col gap-2 text-[14px]">
+              <div className="flex justify-between">
+                <dt className="text-ink-caption">이번 주</dt>
+                <dd className="font-semibold text-ink tabular-nums">₩{weekRevenue.toLocaleString()}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink-caption">이번 달</dt>
+                <dd className="font-semibold text-ink tabular-nums">₩{monthRevenue.toLocaleString()}</dd>
+              </div>
+            </dl>
           </div>
         </div>
       </div>
@@ -192,13 +239,14 @@ export default async function DashboardPage() {
   );
 }
 
-function KPI({ label, value, suffix, href, highlight }: { label: string; value: string; suffix?: string; href?: string; highlight?: boolean }) {
+function KPI({ label, value, suffix, sub, href, highlight }: { label: string; value: string; suffix?: string; sub?: string; href?: string; highlight?: boolean }) {
   const inner = (
     <div className={`bg-white px-4 py-3 ${highlight ? "text-primary" : ""}`}>
       <p className="text-[12px] text-ink-caption">{label}</p>
       <p className={`mt-0.5 text-[20px] font-bold tabular-nums ${highlight ? "text-primary" : "text-ink"}`}>
         {value}{suffix && <span className="text-[14px] font-medium text-ink-caption ml-0.5">{suffix}</span>}
       </p>
+      {sub && <p className="text-[11px] text-danger">{sub}</p>}
     </div>
   );
   if (href) return <Link href={href} className="hover:bg-border-light/50 transition-colors">{inner}</Link>;
