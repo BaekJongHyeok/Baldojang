@@ -1,0 +1,20 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 발도장 로고 마크: 도장(stamp) 안에 찍힌 발자국 -->
+  <rect x="48" y="48" width="416" height="416" rx="100" stroke="#3182F6" stroke-width="34" fill="none"/>
+
+  <!-- 발바닥 메인 패드 (아래쪽 세 갈래 윤곽) -->
+  <path d="M256 252
+           C 308 252 344 286 344 326
+           C 344 352 330 370 308 378
+           C 290 384 278 396 256 396
+           C 234 396 222 384 204 378
+           C 182 370 168 352 168 326
+           C 168 286 204 252 256 252 Z"
+        fill="#3182F6"/>
+
+  <!-- 발가락 패드 4개 -->
+  <ellipse cx="142" cy="218" rx="33" ry="45" transform="rotate(-24 142 218)" fill="#3182F6"/>
+  <ellipse cx="218" cy="166" rx="36" ry="50" transform="rotate(-8 218 166)" fill="#3182F6"/>
+  <ellipse cx="294" cy="166" rx="36" ry="50" transform="rotate(8 294 166)" fill="#3182F6"/>
+  <ellipse cx="370" cy="218" rx="33" ry="45" transform="rotate(24 370 218)" fill="#3182F6"/>
+</svg>

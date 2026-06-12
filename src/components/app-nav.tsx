@@ -24,10 +24,13 @@ export function AppNav({ shopName }: { shopName: string }) {
     <>
       {/* ── 데스크톱 사이드바 ── */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[200px] flex-col border-r border-border bg-white lg:flex">
-        <div className="px-4 py-5">
-          <p className="text-[16px] font-bold text-ink">발도장</p>
-          <p className="mt-0.5 truncate text-[12px] text-ink-caption">{shopName}</p>
-        </div>
+        <Link href="/dashboard" className="flex items-center gap-2 px-4 py-5 transition-colors hover:opacity-80">
+          <img src="/logo-mark.svg" alt="" width={28} height={28} className="shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[18px] font-bold leading-tight text-ink">발도장</p>
+            <p className="truncate text-[12px] text-ink-caption">{shopName}</p>
+          </div>
+        </Link>
         <nav className="flex flex-1 flex-col gap-0.5 px-2">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const active = isActive(href);

@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 앱 아이콘: 파란 도장 + 흰 발자국 (파비콘/PWA용) -->
+  <rect width="512" height="512" rx="116" fill="#3182F6"/>
+
+  <path d="M256 252
+           C 308 252 344 286 344 326
+           C 344 352 330 370 308 378
+           C 290 384 278 396 256 396
+           C 234 396 222 384 204 378
+           C 182 370 168 352 168 326
+           C 168 286 204 252 256 252 Z"
+        fill="white"/>
+
+  <ellipse cx="142" cy="218" rx="33" ry="45" transform="rotate(-24 142 218)" fill="white"/>
+  <ellipse cx="218" cy="166" rx="36" ry="50" transform="rotate(-8 218 166)" fill="white"/>
+  <ellipse cx="294" cy="166" rx="36" ry="50" transform="rotate(8 294 166)" fill="white"/>
+  <ellipse cx="370" cy="218" rx="33" ry="45" transform="rotate(24 370 218)" fill="white"/>
+</svg>

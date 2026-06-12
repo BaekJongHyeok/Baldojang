@@ -20,8 +20,13 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm rounded-lg border border-border bg-white p-8">
-        <h1 className="mb-1 text-[20px] font-bold text-ink">발도장</h1>
-        <p className="mb-8 text-sm text-ink-caption">로그인하고 시작하세요</p>
+        <div className="mb-8 flex items-center gap-2.5">
+          <img src="/logo-mark.svg" alt="" width={48} height={48} />
+          <div>
+            <h1 className="text-[22px] font-bold leading-tight text-ink">발도장</h1>
+            <p className="text-sm text-ink-caption">로그인하고 시작하세요</p>
+          </div>
+        </div>
 
         <form action={handleSubmit} className="flex flex-col gap-4">
           <label className="flex flex-col gap-1.5">
