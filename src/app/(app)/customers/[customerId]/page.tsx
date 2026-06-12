@@ -160,6 +160,14 @@ export default async function CustomerDetailPage({
                 </svg>
               </div>
               <p className="mt-3 text-[14px] font-medium text-ink-caption">아직 방문 기록이 없어요</p>
+              {activePets.length > 0 && (
+                <Link
+                  href={bookHref}
+                  className="mt-3 rounded-md bg-primary px-4 py-2 text-[13px] font-medium text-white hover:bg-primary-hover"
+                >
+                  첫 예약 잡기
+                </Link>
+              )}
             </div>
           ) : (
             <>
