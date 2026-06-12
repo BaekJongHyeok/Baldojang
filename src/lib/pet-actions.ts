@@ -104,6 +104,46 @@ export async function createPetAction(formData: FormData) {
   redirect(`/pets/${pet.id}`);
 }
 
+export async function quickCreatePetAction(formData: FormData) {
+  const supabase = await createClient();
+  const shopId = await getShopId();
+  if (!shopId) return { error: "인증이 필요합니다." };
+
+  const phone = String(formData.get("customer_phone")).replace(/[^0-9]/g, "");
+  const existingCustomerId = formData.get("customer_id")
+    ? String(formData.get("customer_id"))
+    : null;
+
+  let customerId = existingCustomerId;
+  if (!customerId) {
+    const customerName = String(formData.get("customer_name"));
+    if (!customerName) return { error: "보호자 이름을 입력해주세요." };
+    const { data: newCustomer, error: custErr } = await supabase
+      .from("customers")
+      .insert({ shop_id: shopId, name: customerName, phone })
+      .select("id")
+      .single();
+    if (custErr) return { error: custErr.message };
+    customerId = newCustomer.id;
+  }
+
+  const { data: pet, error: petErr } = await supabase
+    .from("pets")
+    .insert({
+      shop_id: shopId,
+      customer_id: customerId,
+      name: String(formData.get("pet_name")),
+      breed: formData.get("breed") ? String(formData.get("breed")) : null,
+    })
+    .select("id")
+    .single();
+
+  if (petErr) return { error: petErr.message };
+
+  revalidatePath("/pets");
+  return { success: true, petId: pet.id };
+}
+
 export async function updatePetAction(formData: FormData) {
   const supabase = await createClient();
   const petId = String(formData.get("pet_id"));

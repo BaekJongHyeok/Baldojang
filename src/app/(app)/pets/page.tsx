@@ -92,5 +92,28 @@ export default async function PetsPage() {
     passBalance: customerPassMap[c.id] ?? null,
   }));
 
-  return <PetListClient pets={allPets} customers={allCustomers} />;
+  // 오늘 예약 펫 (confirmed, 시간순)
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+  const { data: todayRes } = await supabase
+    .from("reservations")
+    .select("id, starts_at, pet_id, pets(id, name, photo_url)")
+    .eq("shop_id", staff.shop_id)
+    .eq("status", "confirmed")
+    .gte("starts_at", todayStart.toISOString())
+    .lte("starts_at", todayEnd.toISOString())
+    .order("starts_at", { ascending: true });
+
+  const todayPets = (todayRes ?? []).map((r) => {
+    const pet = Array.isArray(r.pets) ? r.pets[0] : r.pets;
+    const time = new Date(r.starts_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+    return {
+      petId: pet?.id ?? r.pet_id,
+      name: pet?.name ?? "",
+      photoSignedUrl: pet?.photo_url ? (photoUrlMap[pet.photo_url] ?? null) : null,
+      time,
+    };
+  });
+
+  return <PetListClient pets={allPets} customers={allCustomers} todayPets={todayPets} />;
 }

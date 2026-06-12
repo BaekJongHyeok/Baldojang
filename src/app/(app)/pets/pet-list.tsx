@@ -33,6 +33,13 @@ function getCustomer(pet: Pet) {
   return pet.customers;
 }
 
+type TodayPet = {
+  petId: string;
+  name: string;
+  photoSignedUrl: string | null;
+  time: string;
+};
+
 function formatPassBalance(b: { amount: number; count: number } | null) {
   if (!b) return null;
   const parts: string[] = [];
@@ -41,7 +48,7 @@ function formatPassBalance(b: { amount: number; count: number } | null) {
   return parts.length > 0 ? parts.join(" + ") : null;
 }
 
-export function PetListClient({ pets, customers }: { pets: Pet[]; customers: Customer[] }) {
+export function PetListClient({ pets, customers, todayPets }: { pets: Pet[]; customers: Customer[]; todayPets: TodayPet[] }) {
   const [tab, setTab] = useState<"pet" | "customer">("pet");
   const [search, setSearch] = useState("");
   const [showInactive, setShowInactive] = useState(false);
@@ -115,6 +122,30 @@ export function PetListClient({ pets, customers }: { pets: Pet[]; customers: Cus
           </label>
         )}
       </div>
+
+      {/* 오늘 예약 */}
+      {tab === "pet" && !search && todayPets.length > 0 && (
+        <div className="mt-3">
+          <p className="text-[12px] font-semibold text-ink-caption">오늘 예약</p>
+          <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
+            {todayPets.map((tp, i) => (
+              <Link
+                key={`${tp.petId}-${i}`}
+                href={`/pets/${tp.petId}`}
+                className="flex shrink-0 items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 transition-colors hover:bg-bg active:bg-bg"
+              >
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-border-light text-[11px] font-bold text-ink-caption overflow-hidden">
+                  {tp.photoSignedUrl ? <img src={tp.photoSignedUrl} alt="" className="h-full w-full object-cover" /> : tp.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-ink leading-tight">{tp.name}</p>
+                  <p className="text-[11px] text-ink-caption tabular-nums">{tp.time}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 콘텐츠 */}
       {tab === "pet" ? (

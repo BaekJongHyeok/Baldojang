@@ -52,6 +52,20 @@ export default async function PetChartPage({
   const age = pet.birth_date ? calcAge(pet.birth_date) : null;
   const weight = pet.weight_kg ? `${pet.weight_kg}kg` : null;
 
+  // 최신 시술 메모 (히어로용)
+  const latestVisit = visits?.[0] ?? null;
+  const latestService = latestVisit ? (Array.isArray(latestVisit.services) ? latestVisit.services[0] : latestVisit.services) : null;
+  const latestStyleMemo = latestVisit?.style_memo || null;
+
+  // 프로필 완성도 체크
+  const missingFields = [
+    !pet.breed && "견종",
+    !pet.size && "체급",
+    !pet.birth_date && "생일",
+    !pet.weight_kg && "몸무게",
+  ].filter(Boolean);
+  const isIncomplete = missingFields.length > 0;
+
   return (
     <div>
       {/* 뒤로가기 */}
@@ -95,6 +109,28 @@ export default async function PetChartPage({
               </div>
             )}
           </div>
+
+          {/* 지난 시술 히어로 */}
+          {latestVisit && (latestStyleMemo || latestService) && (
+            <div className="rounded-lg border border-border bg-white p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[13px] font-semibold text-ink-caption">지난 시술</p>
+                <span className="text-[11px] text-ink-disabled tabular-nums">{new Date(latestVisit.visited_at).toLocaleDateString("ko-KR")}</span>
+              </div>
+              <p className="mt-1 text-[14px] font-medium text-ink">{latestService?.name ?? ""}</p>
+              {latestStyleMemo && (
+                <p className="mt-1 text-[13px] text-ink-secondary">{latestStyleMemo}</p>
+              )}
+            </div>
+          )}
+
+          {/* 정보 완성 안내 */}
+          {isIncomplete && (
+            <Link href={`/pets/${petId}/edit`} className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning-light px-4 py-3 transition-colors hover:bg-warning-light/80">
+              <svg className="h-4 w-4 shrink-0 text-warning" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+              <span className="text-[13px] font-medium text-warning">정보 완성하기 — {missingFields.join(", ")} 미입력</span>
+            </Link>
+          )}
 
           {/* 주의사항 */}
           {(pet.caution_tags.length > 0 || pet.caution_memo) && (
