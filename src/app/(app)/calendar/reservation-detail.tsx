@@ -112,10 +112,10 @@ export function ReservationDetail({
                 <button onClick={onComplete} className="w-full rounded-md bg-primary py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-primary-hover">완료</button>
                 <div className="flex justify-around">
                   <CircleAction icon={<PencilIcon />} label="수정" onClick={onEdit} />
-                  <CircleAction icon={<UserXIcon />} label="노쇼" danger onClick={() => setConfirm("no_show")} />
+                  <CircleAction icon={<UserXIcon />} label="노쇼" warning onClick={() => setConfirm("no_show")} />
                   <CircleAction icon={<XIcon />} label="취소" onClick={() => setConfirm("cancelled")} />
+                  <CircleAction icon={<TrashIcon />} label="삭제" danger onClick={() => setConfirm("delete")} />
                 </div>
-                <button onClick={() => setConfirm("delete")} className="mt-1 w-full py-1 text-[11px] text-ink-disabled transition-colors hover:text-danger">삭제</button>
               </>
             )}
 
@@ -191,14 +191,14 @@ export function ReservationDetail({
 }
 
 /* ── 원형 아이콘 액션 버튼 ── */
-function CircleAction({ icon, label, danger, onClick, href }: {
-  icon: React.ReactNode; label: string; danger?: boolean;
+function CircleAction({ icon, label, danger, warning, onClick, href }: {
+  icon: React.ReactNode; label: string; danger?: boolean; warning?: boolean;
   onClick?: () => void; href?: string;
 }) {
-  const colorClass = danger ? "text-danger" : "text-ink-secondary";
+  const colorClass = danger ? "text-danger" : warning ? "text-warning" : "text-ink-secondary";
   const inner = (
     <div className="flex flex-col items-center gap-1">
-      <div className={`flex h-12 w-12 items-center justify-center rounded-full bg-border-light transition-transform active:scale-95 ${colorClass}`}>
+      <div className={`flex h-11 w-11 items-center justify-center rounded-full bg-border-light transition-transform active:scale-95 ${colorClass}`}>
         {icon}
       </div>
       <span className={`text-[11px] font-medium ${colorClass}`}>{label}</span>
