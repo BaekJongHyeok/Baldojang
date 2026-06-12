@@ -18,7 +18,7 @@ const badgeStyles: Record<string, string> = {
 };
 
 export function ReservationDetail({
-  reservation: r, onClose, onComplete, onEdit, onStatusChange, onDelete,
+  reservation: r, onClose, onComplete, onEdit, onStatusChange, onDelete, onRevertCompletion,
 }: {
   reservation: CalendarReservation;
   onClose: () => void;
@@ -26,8 +26,9 @@ export function ReservationDetail({
   onEdit: () => void;
   onStatusChange: (id: string, status: "confirmed" | "no_show" | "cancelled") => void;
   onDelete: (id: string) => void;
+  onRevertCompletion: (id: string) => void;
 }) {
-  const [confirm, setConfirm] = useState<"no_show" | "cancelled" | "delete" | null>(null);
+  const [confirm, setConfirm] = useState<"no_show" | "cancelled" | "delete" | "revert_complete" | null>(null);
   const hasCaution = r.pet.caution_tags.length > 0;
   const isTerminal = r.status === "completed" || r.status === "no_show" || r.status === "cancelled";
   const dateTime = `${formatTimestampKST(r.starts_at, "M월 d일 (EEE)")} · ${formatTimestampKST(r.starts_at, "HH:mm")}–${formatTimestampKST(r.ends_at, "HH:mm")}`;
@@ -122,7 +123,7 @@ export function ReservationDetail({
               <>
                 <p className="text-center text-[13px] text-success">시술이 완료됐어요</p>
                 <Link href={`/pets/${r.pet.id}`} className="rounded-md border border-border py-2.5 text-center text-[14px] font-medium text-ink transition-colors hover:bg-bg">펫 차트</Link>
-                <button onClick={() => setConfirm("delete")} className="py-1.5 text-[12px] text-ink-disabled transition-colors hover:text-danger">삭제</button>
+                <button onClick={() => setConfirm("revert_complete")} className="py-1.5 text-[12px] text-ink-disabled transition-colors hover:text-ink-caption">완료 되돌리기</button>
               </>
             )}
 
@@ -147,7 +148,7 @@ export function ReservationDetail({
             )}
 
             {/* 노쇼/취소 confirm */}
-            {confirm && confirm !== "delete" && (
+            {confirm && confirm !== "delete" && confirm !== "revert_complete" && (
               <div className="rounded-lg border border-border bg-bg p-3">
                 <p className="text-[14px] font-medium text-ink">
                   {r.pet.name} 예약을 {confirm === "no_show" ? "노쇼로 처리할까요?" : "취소할까요?"}
@@ -160,6 +161,18 @@ export function ReservationDetail({
                   <button onClick={() => onStatusChange(r.id, confirm)} className="flex-1 rounded-md bg-danger py-2 text-[13px] font-medium text-white">
                     {confirm === "no_show" ? "노쇼 처리" : "예약 취소"}
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* 완료 되돌리기 confirm */}
+            {confirm === "revert_complete" && (
+              <div className="rounded-lg border border-warning/30 bg-warning-light p-3">
+                <p className="text-[14px] font-medium text-warning">완료를 되돌릴까요?</p>
+                <p className="mt-0.5 text-[12px] text-warning/80">방문 기록, 결제 내역, 사진이 함께 삭제되고 예약이 확정 상태로 돌아가요.</p>
+                <div className="mt-3 flex gap-2">
+                  <button onClick={() => setConfirm(null)} className="flex-1 rounded-md border border-border bg-white py-2 text-[13px] font-medium text-ink-secondary">돌아가기</button>
+                  <button onClick={() => onRevertCompletion(r.id)} className="flex-1 rounded-md bg-warning py-2 text-[13px] font-medium text-white">되돌리기</button>
                 </div>
               </div>
             )}

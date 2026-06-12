@@ -192,6 +192,80 @@ export async function deleteReservationAction(formData: FormData) {
   return { success: true };
 }
 
+export async function revertCompletionAction(formData: FormData) {
+  const supabase = await createClient();
+  const reservationId = String(formData.get("reservation_id"));
+
+  // 1. 예약 확인
+  const { data: reservation } = await supabase
+    .from("reservations")
+    .select("status")
+    .eq("id", reservationId)
+    .single();
+  if (!reservation) return { error: "예약을 찾을 수 없어요." };
+  if (reservation.status !== "completed") return { error: "완료 상태의 예약만 되돌릴 수 있어요." };
+
+  // 2. 연결된 visit 조회
+  const { data: visit } = await supabase
+    .from("visits")
+    .select("id, before_photos, after_photos")
+    .eq("reservation_id", reservationId)
+    .single();
+
+  if (visit) {
+    // 3. 선불권 차감 복원: pass_logs에서 해당 visit의 차감 기록 조회 후 잔액 복원
+    const { data: passLogs } = await supabase
+      .from("pass_logs")
+      .select("id, pass_id, delta")
+      .eq("visit_id", visit.id);
+
+    // 선불권 잔액/횟수 복원
+    for (const log of passLogs ?? []) {
+      const restoreAmount = Math.abs(log.delta);
+      if (restoreAmount <= 0) continue;
+      const { data: pass } = await supabase.from("passes").select("type, balance, remaining").eq("id", log.pass_id).single();
+      if (pass) {
+        if (pass.type === "amount") {
+          await supabase.from("passes").update({ balance: (pass.balance ?? 0) + restoreAmount }).eq("id", log.pass_id);
+        } else {
+          await supabase.from("passes").update({ remaining: (pass.remaining ?? 0) + restoreAmount }).eq("id", log.pass_id);
+        }
+      }
+    }
+    // pass_logs 삭제
+    if (passLogs && passLogs.length > 0) {
+      await supabase.from("pass_logs").delete().in("id", passLogs.map((l) => l.id));
+    }
+
+    // 4. payments 삭제
+    await supabase.from("payments").delete().eq("visit_id", visit.id);
+
+    // 5. 사진 스토리지 정리
+    const allPhotos = [...(visit.before_photos ?? []), ...(visit.after_photos ?? [])];
+    if (allPhotos.length > 0) {
+      await supabase.storage.from("visit-photos").remove(allPhotos);
+    }
+
+    // 6. visit 삭제
+    await supabase.from("visits").delete().eq("id", visit.id);
+  }
+
+  // 7. 예약 상태 confirmed로 복귀
+  const { error } = await supabase
+    .from("reservations")
+    .update({ status: "confirmed" })
+    .eq("id", reservationId);
+
+  if (error) {
+    if (error.code === "23P01") return { error: "해당 시간에 이미 다른 예약이 있어 되돌릴 수 없어요." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/calendar");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
 export async function completeWithVisitAction(formData: FormData) {
   const supabase = await createClient();
 
