@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   startOfWeek, endOfWeek, startOfMonth, endOfMonth,
   subMonths, startOfYear, format, eachDayOfInterval,
+  eachWeekOfInterval, getDay,
 } from "date-fns";
 import { kstDateStr, formatTimestampKST } from "@/lib/calendar-utils";
 
@@ -100,14 +101,86 @@ export function ReportsClient({
     return Object.entries(map).map(([method, amount]) => ({ method, label: METHOD_LABELS[method] ?? method, amount }));
   }, [servicePayments]);
 
-  const { dailyData, maxDaily } = useMemo(() => {
-    const days = eachDayOfInterval({ start: new Date(from + "T00:00:00Z"), end: new Date(to + "T00:00:00Z") });
-    const map: Record<string, number> = {};
-    for (const r of servicePayments) { const d = kstDateStr(r.paid_at); map[d] = (map[d] ?? 0) + r.amount; }
-    const data = days.map((d) => { const key = format(d, "yyyy-MM-dd"); return { date: key, label: format(d, "M/d"), amount: map[key] ?? 0 }; });
-    const raw = Math.max(1, ...data.map((d) => d.amount));
-    return { dailyData: data, maxDaily: Math.ceil(raw * 1.2) };
-  }, [servicePayments, from, to]);
+  type ChartBucket = { key: string; label: string; amount: number; count: number; isToday: boolean; isWeekend: boolean };
+
+  const { chartData, maxAmount, gridLines, aggregation } = useMemo(() => {
+    const startDate = new Date(from + "T00:00:00Z");
+    const endDate = new Date(to + "T00:00:00Z");
+    const days = eachDayOfInterval({ start: startDate, end: endDate });
+    const totalDays = days.length;
+
+    // payment별 날짜 → 금액/건수
+    const dayAmountMap: Record<string, number> = {};
+    const dayCountMap: Record<string, number> = {};
+    for (const r of servicePayments) {
+      const d = kstDateStr(r.paid_at);
+      dayAmountMap[d] = (dayAmountMap[d] ?? 0) + r.amount;
+      dayCountMap[d] = (dayCountMap[d] ?? 0) + 1;
+    }
+
+    let data: ChartBucket[];
+    let agg: "daily" | "weekly" | "monthly";
+
+    if (totalDays <= 31) {
+      // 일별
+      agg = "daily";
+      data = days.map((d) => {
+        const key = format(d, "yyyy-MM-dd");
+        const dow = getDay(d);
+        return { key, label: format(d, "M/d"), amount: dayAmountMap[key] ?? 0, count: dayCountMap[key] ?? 0, isToday: key === today, isWeekend: dow === 0 || dow === 6 };
+      });
+    } else if (totalDays <= 120) {
+      // 주별
+      agg = "weekly";
+      const weekStarts = eachWeekOfInterval({ start: startDate, end: endDate }, { weekStartsOn: 1 });
+      data = weekStarts.map((ws) => {
+        const we = endOfWeek(ws, { weekStartsOn: 1 });
+        const wLabel = `${format(ws, "M/d")}~`;
+        let amount = 0, count = 0;
+        const wDays = eachDayOfInterval({ start: ws > startDate ? ws : startDate, end: we < endDate ? we : endDate });
+        for (const d of wDays) {
+          const k = format(d, "yyyy-MM-dd");
+          amount += dayAmountMap[k] ?? 0;
+          count += dayCountMap[k] ?? 0;
+        }
+        const todayInWeek = wDays.some((d) => format(d, "yyyy-MM-dd") === today);
+        return { key: format(ws, "yyyy-MM-dd"), label: wLabel, amount, count, isToday: todayInWeek, isWeekend: false };
+      });
+    } else {
+      // 월별
+      agg = "monthly";
+      const monthMap: Record<string, { amount: number; count: number }> = {};
+      for (const d of days) {
+        const mKey = format(d, "yyyy-MM");
+        if (!monthMap[mKey]) monthMap[mKey] = { amount: 0, count: 0 };
+        const dKey = format(d, "yyyy-MM-dd");
+        monthMap[mKey].amount += dayAmountMap[dKey] ?? 0;
+        monthMap[mKey].count += dayCountMap[dKey] ?? 0;
+      }
+      const todayMonth = today.slice(0, 7);
+      data = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).map(([mKey, v]) => ({
+        key: mKey, label: mKey.slice(5) + "월", amount: v.amount, count: v.count, isToday: mKey === todayMonth, isWeekend: false,
+      }));
+    }
+
+    const rawMax = Math.max(1, ...data.map((d) => d.amount));
+    const max = niceMax(rawMax);
+
+    // 2~3 grid lines
+    const lines: number[] = [];
+    if (max >= 2) {
+      const step = niceStep(max);
+      for (let v = step; v < max; v += step) lines.push(v);
+    }
+
+    return { chartData: data, maxAmount: max, gridLines: lines, aggregation: agg };
+  }, [servicePayments, from, to, today]);
+
+  const [tooltip, setTooltip] = useState<{ key: string; x: number; y: number } | null>(null);
+  const handleBarInteraction = useCallback((key: string, e: React.MouseEvent | React.TouchEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setTooltip((prev) => prev?.key === key ? null : { key, x: rect.left + rect.width / 2, y: rect.top });
+  }, []);
 
   // === 월 마감 ===
   const closingFrom = closingMonth + "-01";
@@ -182,7 +255,8 @@ export function ReportsClient({
     downloadCsv(`월마감_${closingMonth}.csv`, lines.join("\n"));
   }
 
-  const showDailyChart = dailyData.length <= 60 && dailyData.length > 1;
+  const showChart = chartData.length > 1;
+  const hasAnyRevenue = chartData.some((d) => d.amount > 0);
 
   return (
     <div className="print:mx-0 print:p-0">
@@ -226,20 +300,79 @@ export function ReportsClient({
             </Section>
           )}
 
-          {showDailyChart && (
-            <div className="mt-6 rounded-lg border border-border bg-white p-4">
-              <p className="text-xs font-bold text-ink-caption">일별 매출</p>
-              <div className="mt-3 flex items-end gap-px overflow-x-auto" style={{ height: 120 }}>
-                {dailyData.map((d) => (
-                  <div key={d.date} className="flex min-w-[12px] flex-1 max-w-[60%] flex-col items-center gap-1 mx-auto">
-                    <div className="w-full rounded-t bg-primary" style={{ height: `${(d.amount / maxDaily) * 100}px`, minHeight: d.amount > 0 ? 4 : 0 }} />
-                    {dailyData.length <= 14 && <span className="text-[9px] text-ink-caption">{d.label}</span>}
+          {showChart && (
+            <div className="mt-6 rounded-lg border border-border bg-white p-4" onClick={() => setTooltip(null)}>
+              <p className="text-xs font-bold text-ink-caption">
+                {aggregation === "daily" ? "일별" : aggregation === "weekly" ? "주별" : "월별"} 매출
+              </p>
+
+              {!hasAnyRevenue ? (
+                <div className="mt-6 flex flex-col items-center gap-2 py-8">
+                  <div className="flex gap-1">
+                    {[28, 40, 20, 36, 24].map((h, i) => (
+                      <div key={i} className="w-3 rounded-t bg-border-light" style={{ height: h }} />
+                    ))}
                   </div>
-                ))}
-              </div>
-              {dailyData.length > 14 && (
-                <div className="mt-1 flex justify-between text-[9px] text-ink-caption">
-                  <span>{dailyData[0].label}</span><span>{dailyData[dailyData.length - 1].label}</span>
+                  <p className="text-xs text-ink-caption">이 기간에는 매출이 없어요</p>
+                </div>
+              ) : (
+                <div className="relative mt-3" style={{ height: 160 }}>
+                  {/* Y-axis grid lines */}
+                  {gridLines.map((v) => (
+                    <div key={v} className="absolute left-0 right-0 flex items-center" style={{ bottom: `${(v / maxAmount) * 140}px` }}>
+                      <span className="mr-2 shrink-0 text-[9px] text-ink-disabled tabular-nums">{formatCompact(v)}</span>
+                      <div className="flex-1 border-t border-dashed border-border-light" />
+                    </div>
+                  ))}
+
+                  {/* Bars */}
+                  <div className="flex h-[140px] items-end gap-[3px] overflow-x-auto pl-8">
+                    {chartData.map((d) => {
+                      const barH = d.amount > 0 ? Math.max(4, (d.amount / maxAmount) * 130) : 2;
+                      const showLabel = chartData.length <= 14;
+                      return (
+                        <div
+                          key={d.key}
+                          className="group relative flex min-w-[14px] flex-1 flex-col items-center"
+                          onClick={(e) => { e.stopPropagation(); handleBarInteraction(d.key, e); }}
+                        >
+                          {/* Amount label on top */}
+                          {d.amount > 0 && chartData.length <= 14 && (
+                            <span className="mb-0.5 text-[9px] font-medium tabular-nums text-ink-caption">{formatCompact(d.amount)}</span>
+                          )}
+                          {/* Bar */}
+                          <div
+                            className={`w-full max-w-[24px] rounded-t-[3px] transition-colors ${d.isToday ? "bg-primary" : d.amount > 0 ? "bg-primary/60 group-hover:bg-primary/80" : "bg-border-light"}`}
+                            style={{ height: barH }}
+                          />
+                          {/* X-axis label */}
+                          {showLabel && (
+                            <span className={`mt-1 text-[9px] leading-none ${d.isToday ? "font-bold text-primary" : d.isWeekend ? "text-red-400" : "text-ink-caption"}`}>
+                              {d.label}
+                            </span>
+                          )}
+
+                          {/* Tooltip */}
+                          {tooltip?.key === d.key && (
+                            <div className="absolute -top-14 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-md bg-ink px-2.5 py-1.5 text-[11px] text-white shadow-lg">
+                              <p className="font-bold">₩{d.amount.toLocaleString()}</p>
+                              <p className="text-white/70">{d.count}건</p>
+                              <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-ink" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Compressed x-axis for many bars */}
+                  {chartData.length > 14 && (
+                    <div className="mt-1 flex justify-between pl-8 text-[9px] text-ink-caption">
+                      <span>{chartData[0].label}</span>
+                      {chartData.length > 6 && <span>{chartData[Math.floor(chartData.length / 2)].label}</span>}
+                      <span>{chartData[chartData.length - 1].label}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -307,6 +440,34 @@ export function ReportsClient({
       )}
     </div>
   );
+}
+
+/** 축 상한을 깔끔한 수로 올림 (예: 87000 → 100000) */
+function niceMax(raw: number): number {
+  if (raw <= 0) return 1;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(raw)));
+  const normalized = raw / magnitude;
+  const nice = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  return nice * magnitude;
+}
+
+/** 그리드 간격 (2~3줄 나오도록) */
+function niceStep(max: number): number {
+  if (max <= 2) return 1;
+  const candidates = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000];
+  for (const c of candidates) {
+    if (Math.floor(max / c) >= 2 && Math.floor(max / c) <= 4) return c;
+  }
+  return Math.ceil(max / 3);
+}
+
+/** 금액 축약: 10000 → "1만", 85000 → "8.5만", 1200 → "1,200" */
+function formatCompact(v: number): string {
+  if (v >= 10000) {
+    const man = v / 10000;
+    return man === Math.floor(man) ? `${man}만` : `${man.toFixed(1).replace(/\.0$/, "")}만`;
+  }
+  return v.toLocaleString();
 }
 
 function SummaryCard({ value, label }: { value: string; label: string }) {
