@@ -64,13 +64,15 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   const beforeUrl = beforePhotos[0]?.url ?? null;
   const afterUrl = afterPhotos[0]?.url ?? null;
   const hasPhotos = (afterPhotos.length + beforePhotos.length) > 0;
+  const baComplete = isBA && !!beforeUrl && !!afterUrl;
+  const baIncomplete = isBA && (!beforeUrl || !afterUrl);
 
   const displayMsg = customMsg || message;
   const size = CARD_SIZE;
 
   const cardProps = {
-    photo: isBA && afterUrl ? afterUrl : singlePhoto,
-    beforePhoto: isBA && beforeUrl && afterUrl ? beforeUrl : null,
+    photo: isBA ? (afterUrl ?? "") : singlePhoto,
+    beforePhoto: isBA ? (beforeUrl ?? "") : null,
     petName: pet.name,
     breed: pet.breed,
     serviceName,
@@ -287,7 +289,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
           <div className="mx-auto w-full overflow-hidden rounded-lg" style={{ maxWidth: 400, aspectRatio: `${size.w} / ${size.h}` }}>
             <div ref={renderRef} className="relative h-full w-full origin-top-left"
               style={{ width: size.w, height: size.h, transform: `scale(var(--card-scale))`, "--card-scale": "1" } as React.CSSProperties}>
-              {(template === "minimal" || template === "ba") && <MinimalCard {...cardProps} w={size.w} h={size.h} />}
+              {(template === "minimal" || template === "ba") && <MinimalCard {...cardProps} w={size.w} h={size.h} onSlotClick={isBA ? (slot) => triggerUpload(slot) : undefined} />}
               {template === "photo" && <PhotoCard {...cardProps} w={size.w} h={size.h} />}
               {template === "sticker" && <StickerCard {...cardProps} w={size.w} h={size.h} />}
               {template === "polaroid" && <PolaroidCard {...cardProps} w={size.w} h={size.h} />}
@@ -296,15 +298,20 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
           </div>
 
           {/* 액션 */}
-          <div className="mx-auto mt-3 flex gap-2" style={{ maxWidth: 400 }}>
-            <button onClick={handleShare} disabled={downloading}
-              className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-[14px] font-medium text-white hover:bg-primary-hover disabled:opacity-50">
-              {downloading && <Spinner />}공유하기
-            </button>
-            <button onClick={handleDownload} disabled={downloading}
-              className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border py-2.5 text-[14px] font-medium text-ink hover:bg-bg disabled:opacity-50">
-              이미지 저장
-            </button>
+          <div className="mx-auto mt-3 flex flex-col gap-1.5" style={{ maxWidth: 400 }}>
+            <div className="flex gap-2">
+              <button onClick={handleShare} disabled={downloading || baIncomplete}
+                className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-[14px] font-medium text-white hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed">
+                {downloading && <Spinner />}공유하기
+              </button>
+              <button onClick={handleDownload} disabled={downloading || baIncomplete}
+                className="flex flex-1 items-center justify-center gap-2 rounded-md border border-border py-2.5 text-[14px] font-medium text-ink hover:bg-bg disabled:opacity-50 disabled:cursor-not-allowed">
+                이미지 저장
+              </button>
+            </div>
+            {baIncomplete && (
+              <p className="text-center text-[11px] text-ink-caption">비포/애프터 사진을 모두 추가하면 저장할 수 있어요</p>
+            )}
           </div>
 
           {/* 폴백 다이얼로그: iOS Safari 등 다운로드 불가 환경 */}
@@ -387,9 +394,16 @@ type CardTemplateProps = {
   serviceName: string; date: string; message: string; shopName: string; shopPhone: string; brandColor: string; w: number; h: number;
 };
 
-function MinimalCard({ photo, beforePhoto, petName, breed, serviceName, date, message, shopName, shopPhone, brandColor, w, h }: CardTemplateProps) {
+function MinimalCard({ photo, beforePhoto, petName, breed, serviceName, date, message, shopName, shopPhone, brandColor, w, h, onSlotClick }: CardTemplateProps & { onSlotClick?: (slot: "before" | "after") => void }) {
   const p = Math.round(w * 0.055);
-  const photoH = Math.round(h * (beforePhoto ? 0.42 : 0.50));
+  const isBA = beforePhoto !== null;
+  const photoH = Math.round(h * (isBA ? 0.42 : 0.50));
+  const emptySlot = (label: string, slot: "before" | "after") => (
+    <div onClick={() => onSlotClick?.(slot)} style={{ flex: 1, borderRadius: w * 0.022, background: "#F2F0ED", border: `${w * 0.003}px dashed #D6D3CE`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: h * 0.008, cursor: onSlotClick ? "pointer" : "default" }}>
+      <svg width={w * 0.04} height={w * 0.04} viewBox="0 0 24 24" fill="none" stroke="#a8a29e" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+      <span style={{ fontSize: w * 0.018, color: "#a8a29e", fontWeight: 500 }}>{label}</span>
+    </div>
+  );
   return (
     <div style={{ width: w, height: h, background: "#FFFBF5", display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", overflow: "hidden" }}>
       <style>{CARD_FONT_IMPORT}</style>
@@ -398,15 +412,21 @@ function MinimalCard({ photo, beforePhoto, petName, breed, serviceName, date, me
         <span style={{ fontSize: w * 0.022, color: "#a8a29e" }}>{date}</span>
       </div>
       <div style={{ height: photoH, padding: `0 ${p}px`, display: "flex", gap: w * 0.015, flexShrink: 0 }}>
-        {beforePhoto && (
-          <div style={{ flex: 1, borderRadius: w * 0.022, overflow: "hidden", position: "relative" }}>
-            <img src={beforePhoto} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-            <span style={{ position: "absolute", top: w * 0.015, left: w * 0.015, background: "rgba(0,0,0,0.5)", color: "white", padding: `${w * 0.006}px ${w * 0.015}px`, borderRadius: w * 0.007, fontSize: w * 0.02, fontWeight: 600 }}>Before</span>
-          </div>
+        {isBA && (
+          beforePhoto ? (
+            <div style={{ flex: 1, borderRadius: w * 0.022, overflow: "hidden", position: "relative" }}>
+              <img src={beforePhoto} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              <span style={{ position: "absolute", top: w * 0.015, left: w * 0.015, background: "rgba(0,0,0,0.5)", color: "white", padding: `${w * 0.006}px ${w * 0.015}px`, borderRadius: w * 0.007, fontSize: w * 0.02, fontWeight: 600 }}>Before</span>
+            </div>
+          ) : emptySlot("비포 사진 추가", "before")
         )}
         <div style={{ flex: 1, borderRadius: w * 0.022, overflow: "hidden", position: "relative" }}>
-          <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-          {beforePhoto && <span style={{ position: "absolute", top: w * 0.015, left: w * 0.015, background: brandColor, color: "white", padding: `${w * 0.006}px ${w * 0.015}px`, borderRadius: w * 0.007, fontSize: w * 0.02, fontWeight: 600 }}>After</span>}
+          {photo ? (
+            <>
+              <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              {isBA && <span style={{ position: "absolute", top: w * 0.015, left: w * 0.015, background: brandColor, color: "white", padding: `${w * 0.006}px ${w * 0.015}px`, borderRadius: w * 0.007, fontSize: w * 0.02, fontWeight: 600 }}>After</span>}
+            </>
+          ) : isBA ? emptySlot("애프터 사진 추가", "after") : null}
         </div>
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: `${p * 0.5}px ${p}px ${p * 0.8}px`, textAlign: "center", overflow: "hidden" }}>
