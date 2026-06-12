@@ -55,6 +55,16 @@ export async function updateShopAction(formData: FormData) {
     return { error: "영업시간 형식이 올바르지 않습니다." };
   }
 
+  // open < close 검증
+  if (typeof openHours === "object" && openHours !== null && !Array.isArray(openHours)) {
+    for (const [day, val] of Object.entries(openHours as Record<string, { open?: string; close?: string }>)) {
+      if (val?.open && val?.close && val.open >= val.close) {
+        const labels: Record<string, string> = { mon: "월", tue: "화", wed: "수", thu: "목", fri: "금", sat: "토", sun: "일" };
+        return { error: `${labels[day] ?? day}요일: 종료 시간이 시작보다 빨라요.` };
+      }
+    }
+  }
+
   const { error } = await supabase
     .from("shops")
     .update({

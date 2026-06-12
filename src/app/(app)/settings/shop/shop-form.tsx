@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition, useState } from "react";
+import { useTransition, useState, useRef } from "react";
 import { toast } from "sonner";
 import { updateShopAction } from "@/lib/settings-actions";
 import { Spinner } from "@/components/spinner";
@@ -14,6 +14,14 @@ const DAYS = [
   { key: "sat", label: "토" },
   { key: "sun", label: "일" },
 ] as const;
+
+// 00:00 ~ 23:30, 30분 단위
+const TIME_SLOTS: string[] = [];
+for (let h = 0; h < 24; h++) {
+  for (const m of [0, 30]) {
+    TIME_SLOTS.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+  }
+}
 
 type DayHours = { open: string; close: string };
 type OpenHours = Record<string, DayHours>;
@@ -34,90 +42,58 @@ export function ShopSettingsForm({
   defaultCycleWeeks: number;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [message, setMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
   const [hours, setHours] = useState<OpenHours>(openHours);
+  const [isDirty, setDirty] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   function toggleDay(key: string) {
     setHours((prev) => {
       const next = { ...prev };
-      if (next[key]) {
-        delete next[key];
-      } else {
-        next[key] = { open: "10:00", close: "20:00" };
-      }
+      if (next[key]) delete next[key];
+      else next[key] = { open: "10:00", close: "20:00" };
       return next;
     });
+    setDirty(true);
   }
 
   function updateTime(key: string, field: "open" | "close", value: string) {
-    setHours((prev) => ({
-      ...prev,
-      [key]: { ...prev[key], [field]: value },
-    }));
+    setHours((prev) => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
+    setDirty(true);
   }
 
   function handleSubmit(formData: FormData) {
     formData.set("open_hours", JSON.stringify(hours));
-    setMessage(null);
     startTransition(async () => {
       const result = await updateShopAction(formData);
-      if (result?.error) {
-        setMessage({ type: "error", text: result.error });
-        toast.error(result.error);
-      } else {
-        setMessage({ type: "success", text: "저장되었습니다." });
-        toast.success("샵 정보가 저장되었습니다.");
-      }
+      if (result?.error) toast.error(result.error);
+      else { toast.success("샵 정보가 저장되었습니다."); setDirty(false); }
     });
   }
 
+  const SEL = "min-w-0 flex-1 rounded-md border border-border px-2 py-1 text-xs outline-none focus:border-primary";
+  const INPUT = "rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
+
   return (
-    <form action={handleSubmit} className={`flex flex-col gap-5 ${isPending ? "pointer-events-none" : ""}`}>
+    <form ref={formRef} action={handleSubmit} onChange={() => setDirty(true)}
+      className={`flex flex-col gap-5 ${isPending ? "pointer-events-none" : ""}`}>
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-ink-secondary">샵 이름</span>
-        <input
-          name="name"
-          type="text"
-          required
-          defaultValue={name}
-          className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
-        />
+        <input name="name" type="text" required defaultValue={name} className={INPUT} />
       </label>
 
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-ink-secondary">전화번호</span>
-        <input
-          name="phone"
-          type="tel"
-          defaultValue={phone}
-          className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
-          placeholder="02-1234-5678"
-        />
+        <input name="phone" type="tel" defaultValue={phone} className={INPUT} placeholder="02-1234-5678" />
       </label>
 
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-ink-secondary">주소</span>
-        <input
-          name="address"
-          type="text"
-          defaultValue={address}
-          className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
-          placeholder="서울시 강남구 ..."
-        />
+        <input name="address" type="text" defaultValue={address} className={INPUT} placeholder="서울시 강남구 ..." />
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-ink-secondary">
-          슬롯 단위 (분)
-        </span>
-        <select
-          name="slot_minutes"
-          defaultValue={slotMinutes}
-          className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
-        >
+        <span className="text-sm font-medium text-ink-secondary">슬롯 단위 (분)</span>
+        <select name="slot_minutes" defaultValue={slotMinutes} className={INPUT}>
           <option value={15}>15분</option>
           <option value={30}>30분</option>
           <option value={60}>60분</option>
@@ -125,17 +101,8 @@ export function ShopSettingsForm({
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-ink-secondary">
-          기본 재방문 주기 (주)
-        </span>
-        <input
-          name="default_cycle_weeks"
-          type="number"
-          min={1}
-          max={52}
-          defaultValue={defaultCycleWeeks}
-          className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
-        />
+        <span className="text-sm font-medium text-ink-secondary">기본 재방문 주기 (주)</span>
+        <input name="default_cycle_weeks" type="number" min={1} max={52} defaultValue={defaultCycleWeeks} className={INPUT} />
         <span className="text-[10px] text-ink-caption">시술별 주기가 없을 때 적용됩니다</span>
       </label>
 
@@ -145,46 +112,24 @@ export function ShopSettingsForm({
           {DAYS.map(({ key, label }) => {
             const active = !!hours[key];
             return (
-              <div
-                key={key}
-                className="flex flex-col gap-1.5 rounded-md bg-bg p-3 lg:flex-row lg:items-center lg:gap-3 lg:rounded-none lg:bg-transparent lg:p-0"
-              >
+              <div key={key} className="flex flex-col gap-1.5 rounded-md bg-bg p-3 lg:flex-row lg:items-center lg:gap-3 lg:rounded-none lg:bg-transparent lg:p-0">
                 <div className="flex items-center gap-3">
-                  <span className="w-6 text-center text-sm font-medium text-ink-secondary">
-                    {label}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => toggleDay(key)}
-                    className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-                      active ? "bg-primary" : "bg-border-light"
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${
-                        active ? "left-[22px]" : "left-0.5"
-                      }`}
-                    />
+                  <span className="w-6 text-center text-sm font-medium text-ink-secondary">{label}</span>
+                  <button type="button" onClick={() => toggleDay(key)}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition ${active ? "bg-primary" : "bg-border-light"}`}>
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${active ? "left-[22px]" : "left-0.5"}`} />
                   </button>
-                  {!active && (
-                    <span className="text-xs text-ink-caption">휴무</span>
-                  )}
+                  {!active && <span className="text-xs text-ink-caption">휴무</span>}
                 </div>
                 {active && (
                   <div className="flex min-w-0 items-center gap-1.5 pl-9 lg:pl-0">
-                    <input
-                      type="time"
-                      value={hours[key].open}
-                      onChange={(e) => updateTime(key, "open", e.target.value)}
-                      className="min-w-0 flex-1 rounded-md border border-border px-2 py-1 text-xs outline-none focus:border-primary"
-                    />
+                    <select value={hours[key].open} onChange={(e) => updateTime(key, "open", e.target.value)} className={SEL}>
+                      {TIME_SLOTS.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
                     <span className="shrink-0 text-xs text-ink-caption">~</span>
-                    <input
-                      type="time"
-                      value={hours[key].close}
-                      onChange={(e) => updateTime(key, "close", e.target.value)}
-                      className="min-w-0 flex-1 rounded-md border border-border px-2 py-1 text-xs outline-none focus:border-primary"
-                    />
+                    <select value={hours[key].close} onChange={(e) => updateTime(key, "close", e.target.value)} className={SEL}>
+                      {TIME_SLOTS.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
                   </div>
                 )}
               </div>
@@ -193,24 +138,11 @@ export function ShopSettingsForm({
         </div>
       </fieldset>
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="mt-2 flex items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-sm font-medium text-white transition hover:bg-primary-hover disabled:opacity-50"
-      >
+      <button type="submit" disabled={isPending || !isDirty}
+        className="mt-2 flex items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-sm font-medium text-white transition hover:bg-primary-hover disabled:opacity-50">
         {isPending && <Spinner />}
         저장
       </button>
-
-      {message && (
-        <p
-          className={`text-center text-sm ${
-            message.type === "success" ? "text-success" : "text-danger"
-          }`}
-        >
-          {message.text}
-        </p>
-      )}
     </form>
   );
 }
