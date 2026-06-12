@@ -101,14 +101,19 @@ export function QuickPetForm() {
           placeholder="010-0000-0000" />
       </label>
       {lookingUp && <p className="text-xs text-ink-disabled">조회 중...</p>}
-      {foundCustomer && <p className="text-sm text-green-600">기존 보호자: {foundCustomer.name}님</p>}
+      {foundCustomer && (
+        <p className="rounded-md bg-success-light px-3 py-2 text-[13px] text-success">기존 보호자: {foundCustomer.name}님과 연결됩니다</p>
+      )}
       {!foundCustomer && phone.replace(/[^0-9]/g, "").length >= 10 && !lookingUp && (
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-ink-secondary">보호자 이름 *</span>
-          <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required
-            className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
-            placeholder="홍길동" />
-        </label>
+        <>
+          <p className="text-[12px] text-ink-caption">새 보호자로 등록됩니다</p>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-ink-secondary">보호자 이름 *</span>
+            <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required
+              className="rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
+              placeholder="홍길동" />
+          </label>
+        </>
       )}
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-ink-secondary">펫 이름 *</span>
