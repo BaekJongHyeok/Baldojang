@@ -102,6 +102,7 @@ export async function changeReservationStatusAction(formData: FormData) {
   const supabase = await createClient();
   const reservationId = String(formData.get("reservation_id"));
   const newStatus = String(formData.get("status")) as
+    | "confirmed"
     | "completed"
     | "no_show"
     | "cancelled";

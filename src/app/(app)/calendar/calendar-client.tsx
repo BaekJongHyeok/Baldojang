@@ -199,7 +199,7 @@ export function CalendarClient({
     return { success: true };
   }, [services, router]);
 
-  const handleStatusChange = useCallback(async (reservationId: string, status: "no_show" | "cancelled") => {
+  const handleStatusChange = useCallback(async (reservationId: string, status: "confirmed" | "no_show" | "cancelled") => {
     setPatches((prev) => { const next = new Map(prev); next.set(reservationId, { status }); return next; });
     setSelectedId(null);
     const fd = new FormData();
