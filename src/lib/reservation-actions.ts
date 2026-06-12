@@ -72,6 +72,10 @@ export async function updateReservationAction(formData: FormData) {
     ? Number(formData.get("price_quoted"))
     : null;
 
+  if (!reservationId || !serviceId || !startsAt || !endsAt) {
+    return { error: "필수 항목이 누락되었습니다." };
+  }
+
   const { error } = await supabase
     .from("reservations")
     .update({
