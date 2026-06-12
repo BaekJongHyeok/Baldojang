@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { signOutAction } from "@/lib/auth-actions";
+import { LogoutButton } from "@/components/logout-button";
 import pkg from "../../../../package.json";
 
 /** 이메일 주소를 채워주세요 */
@@ -20,12 +20,10 @@ export default function SettingsPage() {
       {/* ── 계정 ── */}
       <Section title="계정">
         <SettingsLink href="/settings/account" icon={<UserIcon />} label="계정 정보" desc="이메일, 원장 이름, 비밀번호 변경" />
-        <form action={signOutAction}>
-          <button type="submit" className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-bg">
-            <span className="flex h-5 w-5 items-center justify-center text-ink-caption"><LogoutIcon /></span>
-            <span className="text-[14px] font-medium text-danger">로그아웃</span>
-          </button>
-        </form>
+        <LogoutButton className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-bg">
+          <span className="flex h-5 w-5 items-center justify-center text-ink-caption"><LogoutIcon /></span>
+          <span className="text-[14px] font-medium text-danger">로그아웃</span>
+        </LogoutButton>
       </Section>
 
       {/* ── 구독 ── */}

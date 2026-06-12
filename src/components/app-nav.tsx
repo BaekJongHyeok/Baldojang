@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOutAction } from "@/lib/auth-actions";
+import { LogoutButton } from "@/components/logout-button";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "홈", icon: HomeIcon },
@@ -50,15 +50,12 @@ export function AppNav({ shopName }: { shopName: string }) {
             );
           })}
         </nav>
-        <form action={signOutAction} className="border-t border-border p-2">
-          <button
-            type="submit"
-            className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-[14px] font-medium text-ink-caption transition-colors hover:bg-border-light"
-          >
+        <div className="border-t border-border p-2">
+          <LogoutButton className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-[14px] font-medium text-ink-caption transition-colors hover:bg-border-light">
             <LogoutIcon className="h-[18px] w-[18px] shrink-0" />
             로그아웃
-          </button>
-        </form>
+          </LogoutButton>
+        </div>
       </aside>
 
       {/* ── 모바일 하단 탭바 ── */}
