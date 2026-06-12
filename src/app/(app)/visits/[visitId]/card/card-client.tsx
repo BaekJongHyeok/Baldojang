@@ -388,30 +388,30 @@ type CardTemplateProps = {
 
 function MinimalCard({ photo, beforePhoto, petName, breed, serviceName, date, message, shopName, shopPhone, brandColor, w, h }: CardTemplateProps) {
   const p = Math.round(w * 0.055);
-  const photoH = Math.round(h * (beforePhoto ? 0.45 : 0.55));
+  const photoH = Math.round(h * (beforePhoto ? 0.42 : 0.50));
   return (
     <div style={{ width: w, height: h, background: "#FFFBF5", display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", overflow: "hidden" }}>
       <div style={{ padding: `${p * 0.8}px ${p}px ${p * 0.4}px`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-        <span style={{ fontSize: w * 0.026, fontWeight: 700, color: brandColor }}>{shopName}</span>
-        <span style={{ fontSize: w * 0.017, color: "#a8a29e" }}>{date}</span>
+        <span style={{ fontSize: w * 0.038, fontWeight: 700, color: brandColor }}>{shopName}</span>
+        <span style={{ fontSize: w * 0.022, color: "#a8a29e" }}>{date}</span>
       </div>
       <div style={{ height: photoH, padding: `0 ${p}px`, display: "flex", gap: w * 0.015, flexShrink: 0 }}>
         {beforePhoto && (
           <div style={{ flex: 1, borderRadius: w * 0.022, overflow: "hidden", position: "relative" }}>
             <img src={beforePhoto} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-            <span style={{ position: "absolute", top: w * 0.015, left: w * 0.015, background: "rgba(0,0,0,0.5)", color: "white", padding: `${w * 0.004}px ${w * 0.011}px`, borderRadius: w * 0.007, fontSize: w * 0.013, fontWeight: 600 }}>Before</span>
+            <span style={{ position: "absolute", top: w * 0.015, left: w * 0.015, background: "rgba(0,0,0,0.5)", color: "white", padding: `${w * 0.006}px ${w * 0.015}px`, borderRadius: w * 0.007, fontSize: w * 0.02, fontWeight: 600 }}>Before</span>
           </div>
         )}
         <div style={{ flex: 1, borderRadius: w * 0.022, overflow: "hidden", position: "relative" }}>
           <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-          {beforePhoto && <span style={{ position: "absolute", top: w * 0.015, left: w * 0.015, background: brandColor, color: "white", padding: `${w * 0.004}px ${w * 0.011}px`, borderRadius: w * 0.007, fontSize: w * 0.013, fontWeight: 600 }}>After</span>}
+          {beforePhoto && <span style={{ position: "absolute", top: w * 0.015, left: w * 0.015, background: brandColor, color: "white", padding: `${w * 0.006}px ${w * 0.015}px`, borderRadius: w * 0.007, fontSize: w * 0.02, fontWeight: 600 }}>After</span>}
         </div>
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: `${p * 0.5}px ${p}px ${p * 0.8}px`, textAlign: "center", overflow: "hidden" }}>
-        <p style={{ fontSize: w * 0.044, fontWeight: 800, color: "#1c1917", letterSpacing: -1, lineHeight: 1.2 }}>{petName}</p>
-        <p style={{ fontSize: w * 0.02, color: "#78716c", marginTop: h * 0.006 }}>{serviceName}{breed ? ` · ${breed}` : ""}</p>
-        <p style={{ fontSize: w * 0.022, color: brandColor, marginTop: h * 0.018, fontWeight: 600 }}>{message}</p>
-        <p style={{ fontSize: w * 0.015, color: "#a8a29e", marginTop: h * 0.012 }}>{shopName}{shopPhone ? ` · ${shopPhone}` : ""}</p>
+        <p style={{ fontSize: w * 0.088, fontWeight: 800, color: "#1c1917", letterSpacing: -2, lineHeight: 1.1 }}>{petName}</p>
+        <p style={{ fontSize: w * 0.032, color: "#78716c", marginTop: h * 0.008 }}>{serviceName}{breed ? ` · ${breed}` : ""}</p>
+        <p style={{ fontSize: w * 0.038, color: brandColor, marginTop: h * 0.015, fontWeight: 600, lineHeight: 1.4, maxWidth: "90%", wordBreak: "keep-all" }}>{message}</p>
+        <p style={{ fontSize: w * 0.025, color: "#a8a29e", marginTop: h * 0.015 }}>{shopName}{shopPhone ? ` · ${shopPhone}` : ""}</p>
       </div>
     </div>
   );
@@ -419,28 +419,28 @@ function MinimalCard({ photo, beforePhoto, petName, breed, serviceName, date, me
 
 function PhotoCard({ photo, beforePhoto, petName, serviceName, date, message, shopName, brandColor, w, h }: CardTemplateProps) {
   const textColor = brandColor === "#292524" ? "#f5f0eb" : brandColor;
-  const photoH = Math.round(h * 0.65);
+  const photoH = Math.round(h * 0.60);
   if (beforePhoto) {
     return (
       <div style={{ width: w, height: h, display: "flex", flexDirection: "column", overflow: "hidden", background: "#111" }}>
         <div style={{ padding: `${w * 0.03}px ${w * 0.044}px`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-          <span style={{ fontSize: w * 0.022, fontWeight: 700, color: "white" }}>{shopName}</span>
-          <span style={{ fontSize: w * 0.015, color: "rgba(255,255,255,0.6)" }}>{date}</span>
+          <span style={{ fontSize: w * 0.036, fontWeight: 700, color: "white" }}>{shopName}</span>
+          <span style={{ fontSize: w * 0.022, color: "rgba(255,255,255,0.6)" }}>{date}</span>
         </div>
         <div style={{ height: photoH, display: "flex", gap: 2, flexShrink: 0 }}>
           <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
             <img src={beforePhoto} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-            <span style={{ position: "absolute", bottom: w * 0.015, left: w * 0.015, background: "rgba(0,0,0,0.6)", color: "white", padding: `${w * 0.004}px ${w * 0.012}px`, borderRadius: w * 0.006, fontSize: w * 0.013, fontWeight: 700, letterSpacing: 1 }}>BEFORE</span>
+            <span style={{ position: "absolute", bottom: w * 0.015, left: w * 0.015, background: "rgba(0,0,0,0.6)", color: "white", padding: `${w * 0.006}px ${w * 0.015}px`, borderRadius: w * 0.006, fontSize: w * 0.02, fontWeight: 700, letterSpacing: 1 }}>BEFORE</span>
           </div>
           <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
             <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-            <span style={{ position: "absolute", bottom: w * 0.015, left: w * 0.015, background: brandColor, color: "white", padding: `${w * 0.004}px ${w * 0.012}px`, borderRadius: w * 0.006, fontSize: w * 0.013, fontWeight: 700, letterSpacing: 1 }}>AFTER</span>
+            <span style={{ position: "absolute", bottom: w * 0.015, left: w * 0.015, background: brandColor, color: "white", padding: `${w * 0.006}px ${w * 0.015}px`, borderRadius: w * 0.006, fontSize: w * 0.02, fontWeight: 700, letterSpacing: 1 }}>AFTER</span>
           </div>
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: `0 ${w * 0.044}px`, overflow: "hidden" }}>
-          <p style={{ fontSize: w * 0.044, fontWeight: 800, color: "white", letterSpacing: -1, lineHeight: 1.2 }}>{petName}</p>
-          <p style={{ fontSize: w * 0.02, color: "rgba(255,255,255,0.7)", marginTop: h * 0.005 }}>{serviceName}</p>
-          <p style={{ fontSize: w * 0.02, color: textColor, marginTop: h * 0.012, fontWeight: 600 }}>{message}</p>
+          <p style={{ fontSize: w * 0.08, fontWeight: 800, color: "white", letterSpacing: -2, lineHeight: 1.1 }}>{petName}</p>
+          <p style={{ fontSize: w * 0.032, color: "rgba(255,255,255,0.7)", marginTop: h * 0.006 }}>{serviceName}</p>
+          <p style={{ fontSize: w * 0.035, color: textColor, marginTop: h * 0.012, fontWeight: 600, lineHeight: 1.4, wordBreak: "keep-all" }}>{message}</p>
         </div>
       </div>
     );
@@ -448,15 +448,15 @@ function PhotoCard({ photo, beforePhoto, petName, serviceName, date, message, sh
   return (
     <div style={{ width: w, height: h, position: "relative", overflow: "hidden" }}>
       <img src={photo} alt="" crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,0.7) 100%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0) 35%, rgba(0,0,0,0.75) 100%)" }} />
       <div style={{ position: "absolute", top: w * 0.037, left: w * 0.044, right: w * 0.044, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: w * 0.022, fontWeight: 700, color: "white", textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>{shopName}</span>
-        <span style={{ fontSize: w * 0.015, color: "rgba(255,255,255,0.8)" }}>{date}</span>
+        <span style={{ fontSize: w * 0.036, fontWeight: 700, color: "white", textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>{shopName}</span>
+        <span style={{ fontSize: w * 0.022, color: "rgba(255,255,255,0.8)" }}>{date}</span>
       </div>
-      <div style={{ position: "absolute", bottom: w * 0.044, left: w * 0.044, right: w * 0.044, textAlign: "center" }}>
-        <p style={{ fontSize: w * 0.048, fontWeight: 800, color: "white", textShadow: "0 2px 12px rgba(0,0,0,0.5)", letterSpacing: -1, lineHeight: 1.2 }}>{petName}</p>
-        <p style={{ fontSize: w * 0.02, color: "rgba(255,255,255,0.9)", marginTop: h * 0.006 }}>{serviceName}</p>
-        <p style={{ fontSize: w * 0.02, color: textColor, marginTop: h * 0.015, fontWeight: 600 }}>{message}</p>
+      <div style={{ position: "absolute", bottom: w * 0.055, left: w * 0.044, right: w * 0.044, textAlign: "center" }}>
+        <p style={{ fontSize: w * 0.09, fontWeight: 800, color: "white", textShadow: "0 3px 16px rgba(0,0,0,0.5)", letterSpacing: -2, lineHeight: 1.1 }}>{petName}</p>
+        <p style={{ fontSize: w * 0.032, color: "rgba(255,255,255,0.9)", marginTop: h * 0.008 }}>{serviceName}</p>
+        <p style={{ fontSize: w * 0.038, color: textColor, marginTop: h * 0.015, fontWeight: 600, lineHeight: 1.4, wordBreak: "keep-all" }}>{message}</p>
       </div>
     </div>
   );
@@ -487,12 +487,12 @@ function PolaroidCard({ photo, petName, date, message, shopName, shopPhone, bran
           {photo && <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: `0 ${w * 0.04}px`, textAlign: "center", overflow: "hidden" }}>
-          <p style={{ fontFamily: "'Nanum Pen Script', cursive", fontSize: w * 0.044, fontWeight: 400, color: "#1c1917", lineHeight: 1.3 }}>{petName}</p>
-          <p style={{ fontFamily: "'Nanum Pen Script', cursive", fontSize: w * 0.028, color: brandColor, marginTop: h * 0.008 }}>{message}</p>
+          <p style={{ fontFamily: "'Nanum Pen Script', cursive", fontSize: w * 0.09, fontWeight: 400, color: "#1c1917", lineHeight: 1.2 }}>{petName}</p>
+          <p style={{ fontFamily: "'Nanum Pen Script', cursive", fontSize: w * 0.055, color: brandColor, marginTop: h * 0.008, lineHeight: 1.4, wordBreak: "keep-all" }}>{message}</p>
         </div>
-        <p style={{ position: "absolute", bottom: w * 0.02, right: w * 0.03, fontSize: w * 0.015, color: "#a8a29e" }}>{date}</p>
+        <p style={{ position: "absolute", bottom: w * 0.02, right: w * 0.03, fontSize: w * 0.022, color: "#a8a29e" }}>{date}</p>
       </div>
-      <p style={{ position: "absolute", bottom: w * 0.03, fontSize: w * 0.015, color: "#a8a29e" }}>{shopName}{shopPhone ? ` · ${shopPhone}` : ""}</p>
+      <p style={{ position: "absolute", bottom: w * 0.03, fontSize: w * 0.025, color: "#a8a29e" }}>{shopName}{shopPhone ? ` · ${shopPhone}` : ""}</p>
     </div>
   );
 }
@@ -510,49 +510,48 @@ function ReportCard({ photo, petName, breed, serviceName, date, message, shopNam
   return (
     <div style={{ width: w, height: h, background: "#FFFBF5", display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", overflow: "hidden" }}>
       {/* 헤더 */}
-      <div style={{ padding: `${p}px ${p}px ${p * 0.5}px`, display: "flex", alignItems: "center", gap: w * 0.025, flexShrink: 0 }}>
+      <div style={{ padding: `${p}px ${p}px ${p * 0.5}px`, display: "flex", alignItems: "center", gap: w * 0.03, flexShrink: 0 }}>
         <div style={{ width: photoSize, height: photoSize, borderRadius: w * 0.02, overflow: "hidden", background: "#e7e5e4", flexShrink: 0 }}>
           {photo && <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
         </div>
         <div>
-          <p style={{ fontSize: w * 0.04, fontWeight: 800, color: "#1c1917", letterSpacing: -0.5 }}>{petName}</p>
-          {breed && <p style={{ fontSize: w * 0.018, color: "#78716c", marginTop: h * 0.003 }}>{breed}</p>}
-          <p style={{ fontSize: w * 0.016, color: "#a8a29e", marginTop: h * 0.004 }}>{date}</p>
+          <p style={{ fontSize: w * 0.065, fontWeight: 800, color: "#1c1917", letterSpacing: -1, lineHeight: 1.1 }}>{petName}</p>
+          {breed && <p style={{ fontSize: w * 0.028, color: "#78716c", marginTop: h * 0.003 }}>{breed}</p>}
+          <p style={{ fontSize: w * 0.022, color: "#a8a29e", marginTop: h * 0.004 }}>{date}</p>
         </div>
       </div>
 
-      {/* 구분선 */}
-      <div style={{ margin: `0 ${p}px`, borderTop: "1px solid #e7e5e4" }} />
+      <div style={{ margin: `0 ${p}px`, borderTop: "2px solid #e7e5e4" }} />
 
       {/* 시술 내역 */}
       <div style={{ padding: `${p * 0.6}px ${p}px`, flexShrink: 0 }}>
-        <p style={{ fontSize: w * 0.016, fontWeight: 700, color: "#78716c", letterSpacing: 1, textTransform: "uppercase" }}>시술 내역</p>
+        <p style={{ fontSize: w * 0.022, fontWeight: 700, color: "#78716c", letterSpacing: 1, textTransform: "uppercase" }}>시술 내역</p>
         <div style={{ marginTop: h * 0.01, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <p style={{ fontSize: w * 0.026, fontWeight: 700, color: "#1c1917" }}>{serviceName}</p>
-          {duration && <p style={{ fontSize: w * 0.018, color: "#78716c" }}>{duration}분</p>}
+          <p style={{ fontSize: w * 0.038, fontWeight: 700, color: "#1c1917" }}>{serviceName}</p>
+          {duration && <p style={{ fontSize: w * 0.028, color: "#78716c" }}>{duration}분</p>}
         </div>
-        {styleMemo && <p style={{ fontSize: w * 0.018, color: "#78716c", marginTop: h * 0.006 }}>{styleMemo}</p>}
+        {styleMemo && <p style={{ fontSize: w * 0.026, color: "#78716c", marginTop: h * 0.006, lineHeight: 1.4 }}>{styleMemo}</p>}
       </div>
 
       <div style={{ margin: `0 ${p}px`, borderTop: "1px solid #e7e5e4" }} />
 
       {/* 원장 한마디 */}
       <div style={{ padding: `${p * 0.6}px ${p}px`, flexShrink: 0 }}>
-        <p style={{ fontSize: w * 0.016, fontWeight: 700, color: "#78716c", letterSpacing: 1 }}>원장 한마디</p>
-        <p style={{ fontSize: w * 0.024, color: brandColor, fontWeight: 600, marginTop: h * 0.01, lineHeight: 1.5 }}>{message}</p>
+        <p style={{ fontSize: w * 0.022, fontWeight: 700, color: "#78716c", letterSpacing: 1 }}>원장 한마디</p>
+        <p style={{ fontSize: w * 0.035, color: brandColor, fontWeight: 600, marginTop: h * 0.01, lineHeight: 1.5, wordBreak: "keep-all" }}>{message}</p>
       </div>
 
       <div style={{ margin: `0 ${p}px`, borderTop: "1px solid #e7e5e4" }} />
 
       {/* 다음 미용 권장 */}
-      <div style={{ padding: `${p * 0.6}px ${p}px`, background: brandColor, margin: `${p * 0.4}px ${p}px`, borderRadius: w * 0.015, flexShrink: 0 }}>
-        <p style={{ fontSize: w * 0.016, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: 1 }}>다음 미용 권장</p>
-        <p style={{ fontSize: w * 0.034, fontWeight: 800, color: "white", marginTop: h * 0.005 }}>{nextDateFormatted}</p>
+      <div style={{ padding: `${p * 0.7}px ${p}px`, background: brandColor, margin: `${p * 0.4}px ${p}px`, borderRadius: w * 0.015, flexShrink: 0 }}>
+        <p style={{ fontSize: w * 0.022, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: 1 }}>다음 미용 권장</p>
+        <p style={{ fontSize: w * 0.055, fontWeight: 800, color: "white", marginTop: h * 0.006 }}>{nextDateFormatted}</p>
       </div>
 
       {/* 하단 */}
       <div style={{ flex: 1, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: `0 ${p}px ${p * 0.6}px` }}>
-        <p style={{ fontSize: w * 0.015, color: "#a8a29e" }}>{shopName}{shopPhone ? ` · ${shopPhone}` : ""}</p>
+        <p style={{ fontSize: w * 0.025, color: "#a8a29e" }}>{shopName}{shopPhone ? ` · ${shopPhone}` : ""}</p>
       </div>
     </div>
   );
