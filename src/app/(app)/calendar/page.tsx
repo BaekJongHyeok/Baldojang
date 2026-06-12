@@ -28,8 +28,10 @@ export default async function CalendarPage({
 
   const baseDate = new Date(dateStr + "T00:00:00Z");
   const currentWeekStart = startOfWeek(baseDate, { weekStartsOn: 1 });
-  const rangeStart = subWeeks(currentWeekStart, 1);
-  const rangeEnd = addWeeks(currentWeekStart, 2);
+  // 데이터 창: 앞 2주 ~ 뒤 3주 (총 35일). 연타 시 경계에 닿기 전에
+  // 클라이언트의 백그라운드 재중심(replace)이 창을 따라오도록 여유를 둔다.
+  const rangeStart = subWeeks(currentWeekStart, 2);
+  const rangeEnd = addWeeks(currentWeekStart, 3);
 
   const fromISO = new Date(
     Date.UTC(rangeStart.getUTCFullYear(), rangeStart.getUTCMonth(), rangeStart.getUTCDate()) - 9 * 60 * 60 * 1000
@@ -62,7 +64,7 @@ export default async function CalendarPage({
       .or("expires_at.is.null,expires_at.gte." + new Date().toISOString().slice(0, 10)),
   ]);
 
-  const allDays = Array.from({ length: 21 }, (_, i) => {
+  const allDays = Array.from({ length: 35 }, (_, i) => {
     const d = addDays(rangeStart, i);
     const ds = format(d, "yyyy-MM-dd");
     const dayKey = dateToDayKey(ds);

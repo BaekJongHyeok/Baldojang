@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addDays, subDays, startOfWeek, format } from "date-fns";
 import type { CalendarReservation, ShopCalendarConfig, DayHours } from "@/lib/calendar-data";
@@ -86,9 +86,19 @@ export function CalendarClient({
   const rangeStart = allDays[0].date;
   const rangeEnd = allDays[allDays.length - 1].date;
 
+  const [, startTransition] = useTransition();
+
   function navigateTo(dateStr: string) {
-    if (dateStr >= rangeStart && dateStr <= rangeEnd) setSelectedDate(dateStr);
-    else router.push(`/calendar?date=${dateStr}`);
+    if (dateStr >= rangeStart && dateStr <= rangeEnd) {
+      // 범위 안: 즉시 화면 전환 + 백그라운드로 데이터 창을 새 날짜 중심으로 재요청.
+      // 다음 ◀▶도 항상 범위 안에 머물러 "한 번 걸러 느려지는" 경계 왕복이 사라진다.
+      setSelectedDate(dateStr);
+      startTransition(() => {
+        router.replace(`/calendar?date=${dateStr}`, { scroll: false });
+      });
+    } else {
+      router.push(`/calendar?date=${dateStr}`);
+    }
   }
 
   const currentWeekDays = useMemo(() => {
