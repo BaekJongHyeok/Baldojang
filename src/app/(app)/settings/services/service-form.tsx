@@ -37,10 +37,12 @@ export function ServiceFormDialog({
   action,
   service,
   onClose,
+  defaultCycleWeeks,
 }: {
   action: (formData: FormData) => Promise<{ error?: string; success?: boolean }>;
   service?: Service;
   onClose: () => void;
+  defaultCycleWeeks?: number;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -186,7 +188,7 @@ export function ServiceFormDialog({
             <span className="text-sm font-medium text-ink-secondary">
               권장 재방문 주기 (주, 선택)
             </span>
-            <span className="text-xs text-ink-disabled">펫별 주기가 우선 적용됩니다</span>
+            <span className="text-xs text-ink-disabled">비워두면 기본 주기({defaultCycleWeeks ?? 5}주)가 적용돼요</span>
             <input
               name="recommend_cycle_weeks"
               type="number"

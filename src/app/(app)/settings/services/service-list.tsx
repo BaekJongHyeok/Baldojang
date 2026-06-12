@@ -3,11 +3,13 @@
 import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Json } from "@/types/database";
+import { toast } from "sonner";
 import {
   createServiceAction,
   updateServiceAction,
   toggleServiceAction,
   reorderServiceAction,
+  updateDefaultCycleAction,
 } from "@/lib/settings-actions";
 import { ServiceFormDialog } from "./service-form";
 
@@ -33,11 +35,14 @@ function formatPrice(price: Json): string {
   return parts.join(" / ") + "원";
 }
 
-export function ServiceList({ services }: { services: Service[] }) {
+export function ServiceList({ services, defaultCycleWeeks }: { services: Service[]; defaultCycleWeeks: number }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [cycle, setCycle] = useState(defaultCycleWeeks);
+  const [cycleEditing, setCycleEditing] = useState(false);
+  const [cycleValue, setCycleValue] = useState(String(defaultCycleWeeks));
 
   function handleToggle(service: Service) {
     const fd = new FormData();
@@ -59,8 +64,46 @@ export function ServiceList({ services }: { services: Service[] }) {
     });
   }
 
+  function saveCycle() {
+    const num = Number(cycleValue);
+    if (num < 1 || num > 52) { toast.error("1~52주 범위로 입력해주세요."); return; }
+    const fd = new FormData();
+    fd.set("default_cycle_weeks", String(num));
+    startTransition(async () => {
+      const result = await updateDefaultCycleAction(fd);
+      if (result?.error) { toast.error(result.error); return; }
+      setCycle(num);
+      setCycleEditing(false);
+      toast.success("기본 주기가 변경됐어요.");
+      router.refresh();
+    });
+  }
+
   return (
     <div className="mt-6">
+      {/* 기본 재방문 주기 */}
+      <div className="mb-4 flex items-center justify-between rounded-lg border border-border bg-white px-4 py-3">
+        <div>
+          <p className="text-[13px] font-medium text-ink">기본 재방문 주기</p>
+          <p className="text-[11px] text-ink-caption">시술별 주기가 없을 때 적용돼요</p>
+        </div>
+        {!cycleEditing ? (
+          <button onClick={() => setCycleEditing(true)} className="flex items-center gap-1 text-[14px] font-semibold text-ink hover:text-primary">
+            {cycle}주
+            <svg className="h-3.5 w-3.5 text-ink-caption" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
+          </button>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <input type="number" min={1} max={52} value={cycleValue} onChange={(e) => setCycleValue(e.target.value)}
+              className="w-16 rounded-md border border-border px-2 py-1 text-[14px] text-ink outline-none focus:border-primary" autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter") saveCycle(); if (e.key === "Escape") setCycleEditing(false); }} />
+            <span className="text-[13px] text-ink-caption">주</span>
+            <button onClick={saveCycle} disabled={isPending} className="text-[12px] font-medium text-primary hover:underline">{isPending ? "..." : "저장"}</button>
+            <button onClick={() => { setCycleEditing(false); setCycleValue(String(cycle)); }} className="text-[12px] text-ink-caption hover:underline">취소</button>
+          </div>
+        )}
+      </div>
+
       <button
         onClick={() => setShowAdd(true)}
         className="mb-4 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-primary-hover"
@@ -72,6 +115,7 @@ export function ServiceList({ services }: { services: Service[] }) {
         <ServiceFormDialog
           action={createServiceAction}
           onClose={() => setShowAdd(false)}
+          defaultCycleWeeks={cycle}
         />
       )}
 
@@ -80,6 +124,7 @@ export function ServiceList({ services }: { services: Service[] }) {
           action={updateServiceAction}
           service={services.find((s) => s.id === editId)}
           onClose={() => setEditId(null)}
+          defaultCycleWeeks={cycle}
         />
       )}
 

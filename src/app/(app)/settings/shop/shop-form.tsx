@@ -34,14 +34,12 @@ export function ShopSettingsForm({
   address,
   openHours,
   slotMinutes,
-  defaultCycleWeeks,
 }: {
   name: string;
   phone: string;
   address: string;
   openHours: OpenHours;
   slotMinutes: number;
-  defaultCycleWeeks: number;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -106,12 +104,6 @@ export function ShopSettingsForm({
           <option value={30}>30분</option>
           <option value={60}>60분</option>
         </select>
-      </label>
-
-      <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-ink-secondary">기본 재방문 주기 (주)</span>
-        <input name="default_cycle_weeks" type="number" min={1} max={52} defaultValue={defaultCycleWeeks} className={INPUT} />
-        <span className="text-[10px] text-ink-caption">시술별 주기가 없을 때 적용됩니다</span>
       </label>
 
       <fieldset className="flex flex-col gap-1.5">

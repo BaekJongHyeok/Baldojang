@@ -4,6 +4,22 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Json } from "@/types/database";
 
+export async function updateDefaultCycleAction(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "인증이 필요합니다." };
+  const { data: staff } = await supabase.from("staff").select("shop_id").eq("id", user.id).single();
+  if (!staff) return { error: "스태프 정보를 찾을 수 없습니다." };
+
+  const weeks = Number(formData.get("default_cycle_weeks")) || 5;
+  const { error } = await supabase.from("shops").update({ default_cycle_weeks: weeks }).eq("id", staff.shop_id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/services");
+  revalidatePath("/retention");
+  return { success: true };
+}
+
 export async function updateStaffNameAction(formData: FormData) {
   const supabase = await createClient();
   const {

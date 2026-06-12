@@ -13,8 +13,7 @@ export default function SettingsPage() {
       {/* ── 샵 운영 ── */}
       <Section title="샵 운영" className="mt-6">
         <SettingsLink href="/settings/shop" icon={<ShopIcon />} label="샵 정보" desc="상호, 전화번호, 주소, 영업시간" />
-        <SettingsLink href="/settings/services" icon={<ScissorsIcon />} label="시술 메뉴" desc="시술 항목, 가격, 소요시간 관리" />
-        <SettingsLink href="/settings/shop" icon={<CycleIcon />} label="재방문 주기" desc="기본 재방문 주기, 슬롯 단위" />
+        <SettingsLink href="/settings/services" icon={<ScissorsIcon />} label="시술 메뉴" desc="시술 항목, 가격, 소요시간, 재방문 주기" />
         <SettingsRow icon={<BellIcon />} label="알림톡 설정" desc="준비 중" disabled />
       </Section>
 
@@ -120,9 +119,7 @@ function ShopIcon() {
 function ScissorsIcon() {
   return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M7.848 8.25l1.536.887M7.848 8.25a3 3 0 11-5.196-3 3 3 0 015.196 3zm1.536.887a2.165 2.165 0 011.083 1.839c.005.351.054.695.14 1.024M9.384 9.137l2.077 1.199M7.848 15.75l1.536-.887m-1.536.887a3 3 0 01-5.196 3 3 3 0 015.196-3zm1.536-.887a2.165 2.165 0 001.083-1.838c.005-.352.054-.695.14-1.025m-1.223 2.863l2.077-1.199m0-3.328a4.323 4.323 0 012.068-1.379l5.325-1.628a4.5 4.5 0 012.48-.044l.803.215-7.794 4.5m-2.882-1.664A4.331 4.331 0 0010.607 12m3.736 0l7.794 4.5-.802.215a4.5 4.5 0 01-2.48-.043l-5.326-1.629a4.324 4.324 0 01-2.068-1.379M14.343 12l-2.882 1.664" /></svg>;
 }
-function CycleIcon() {
-  return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M21.015 4.356v4.992" /></svg>;
-}
+
 function BellIcon() {
   return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>;
 }

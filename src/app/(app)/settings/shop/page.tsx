@@ -23,7 +23,6 @@ export default async function ShopSettingsPage() {
           address={ctx.shop.address ?? ""}
           openHours={openHours}
           slotMinutes={ctx.shop.slotMinutes}
-          defaultCycleWeeks={ctx.shop.defaultCycleWeeks}
         />
       </div>
     </div>
