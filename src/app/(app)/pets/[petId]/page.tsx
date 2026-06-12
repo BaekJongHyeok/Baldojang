@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { calcAge, sizeLabel, formatPhone } from "@/lib/utils";
-import { DeactivateButton } from "./deactivate-button";
+import { DeactivateButton, ReactivateButton } from "./deactivate-button";
 import { InlineCycleEdit } from "./inline-cycle-edit";
 import { InlineCautionEdit } from "./inline-caution-edit";
 import { getPetPhotoUrl } from "@/lib/storage";
@@ -118,12 +118,19 @@ export default async function PetChartPage({
 
             {/* 히어로 액션 */}
             <div className="mt-3 flex gap-2 border-t border-border pt-3">
-              <Link
-                href={`/calendar?book=${petId}`}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-primary py-2 text-[13px] font-medium text-white transition-colors hover:bg-primary-hover"
-              >
-                예약 잡기
-              </Link>
+              {pet.is_active ? (
+                <Link
+                  href={`/calendar?book=${petId}`}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-primary py-2 text-[13px] font-medium text-white transition-colors hover:bg-primary-hover"
+                >
+                  예약 잡기
+                </Link>
+              ) : (
+                <div className="flex flex-1 flex-col items-center">
+                  <span className="flex w-full items-center justify-center rounded-md bg-border-light py-2 text-[13px] font-medium text-ink-disabled">예약 잡기</span>
+                  <span className="mt-1 text-[11px] text-ink-disabled">비활성 펫은 예약할 수 없어요</span>
+                </div>
+              )}
               <Link href={`/pets/${petId}/edit`} className="flex flex-1 items-center justify-center rounded-md border border-border py-2 text-[13px] font-medium text-ink transition-colors hover:bg-bg">
                 수정
               </Link>
@@ -169,14 +176,10 @@ export default async function PetChartPage({
                 <dd className="text-ink">{pet.neutered === null ? <Link href={`/pets/${petId}/edit`} className="text-ink-disabled hover:text-primary">미입력</Link> : pet.neutered ? "완료" : "미완료"}</dd>
               </div>
             </dl>
-            {/* 비활성화 — 기본 정보 카드 내 최하단 */}
-            {pet.is_active && (
-              <>
-                <div className="mt-2 border-t border-border pt-2">
-                  <DeactivateButton petId={petId} />
-                </div>
-              </>
-            )}
+            {/* 활성 상태 토글 — 기본 정보 카드 내 최하단 */}
+            <div className="mt-2 border-t border-border pt-2">
+              {pet.is_active ? <DeactivateButton petId={petId} /> : <ReactivateButton petId={petId} />}
+            </div>
           </div>
         </div>
 

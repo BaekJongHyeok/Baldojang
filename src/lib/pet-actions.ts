@@ -219,6 +219,22 @@ export async function deactivatePetAction(formData: FormData) {
   redirect("/pets");
 }
 
+export async function reactivatePetAction(formData: FormData) {
+  const supabase = await createClient();
+  const petId = String(formData.get("pet_id"));
+
+  const { error } = await supabase
+    .from("pets")
+    .update({ is_active: true })
+    .eq("id", petId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/pets/${petId}`);
+  revalidatePath("/pets");
+  return { success: true };
+}
+
 export async function lookupCustomerAction(phone: string) {
   const supabase = await createClient();
   const shopId = await getShopId();
