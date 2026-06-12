@@ -169,14 +169,15 @@ export default async function PetChartPage({
                 <dd className="text-ink">{pet.neutered === null ? <Link href={`/pets/${petId}/edit`} className="text-ink-disabled hover:text-primary">미입력</Link> : pet.neutered ? "완료" : "미완료"}</dd>
               </div>
             </dl>
+            {/* 비활성화 — 기본 정보 카드 내 최하단 */}
+            {pet.is_active && (
+              <>
+                <div className="mt-2 border-t border-border pt-2">
+                  <DeactivateButton petId={petId} />
+                </div>
+              </>
+            )}
           </div>
-
-          {/* 비활성화 (하단 강등) */}
-          {pet.is_active && (
-            <div className="border-t border-border-light pt-2">
-              <DeactivateButton petId={petId} />
-            </div>
-          )}
         </div>
 
         {/* ── 우측: 방문 기록 ── */}

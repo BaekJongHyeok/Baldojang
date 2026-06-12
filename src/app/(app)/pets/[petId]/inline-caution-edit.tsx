@@ -118,7 +118,12 @@ export function InlineCautionEdit({
             ))}
           </div>
         )}
-        {displayMemo && <p className="mt-2 text-[13px] text-danger/80">{displayMemo}</p>}
+        {displayMemo && (
+          <div className="mt-2 border-t border-danger/10 pt-2">
+            <p className="text-[11px] font-medium text-danger/60">메모</p>
+            <p className="mt-0.5 text-[13px] text-danger/80">{displayMemo}</p>
+          </div>
+        )}
       </div>
     );
   }

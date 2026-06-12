@@ -19,7 +19,7 @@ export function DeactivateButton({ petId }: { petId: string }) {
     return (
       <button
         onClick={() => setConfirm(true)}
-        className="w-full py-2 text-center text-[13px] text-ink-disabled transition-colors hover:text-danger"
+        className="w-full rounded-md border border-border py-1.5 text-center text-[12px] font-medium text-ink-caption transition-colors hover:border-danger/30 hover:bg-danger-light hover:text-danger"
       >
         비활성화
       </button>
