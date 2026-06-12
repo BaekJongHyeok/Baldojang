@@ -105,15 +105,15 @@ export function ReservationDetail({
           )}
 
           {/* ── 액션 ── */}
-          <div className="mt-4 flex flex-col gap-2">
+          <div className="mt-4 flex flex-col gap-3">
             {/* confirmed */}
             {r.status === "confirmed" && !confirm && (
               <>
                 <button onClick={onComplete} className="w-full rounded-md bg-primary py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-primary-hover">완료</button>
-                <button onClick={onEdit} className="w-full rounded-md border border-border py-2 text-[14px] font-medium text-ink transition-colors hover:bg-bg">수정</button>
-                <div className="flex gap-2">
-                  <button onClick={() => setConfirm("no_show")} className="flex-1 rounded-md border border-danger/30 py-2 text-[13px] font-medium text-danger transition-colors hover:bg-danger-light">노쇼</button>
-                  <button onClick={() => setConfirm("cancelled")} className="flex-1 rounded-md border border-border py-2 text-[13px] font-medium text-ink-caption transition-colors hover:bg-bg">취소</button>
+                <div className="flex justify-center gap-6">
+                  <CircleAction icon={<PencilIcon />} label="수정" onClick={onEdit} />
+                  <CircleAction icon={<BanIcon />} label="노쇼" danger onClick={() => setConfirm("no_show")} />
+                  <CircleAction icon={<XCircleIcon />} label="취소" danger onClick={() => setConfirm("cancelled")} />
                 </div>
               </>
             )}
@@ -122,8 +122,10 @@ export function ReservationDetail({
             {r.status === "completed" && !confirm && (
               <>
                 <p className="text-center text-[13px] text-success">시술이 완료됐어요</p>
-                <Link href={`/pets/${r.pet.id}`} className="rounded-md border border-border py-2.5 text-center text-[14px] font-medium text-ink transition-colors hover:bg-bg">펫 차트</Link>
-                <button onClick={() => setConfirm("revert_complete")} className="py-1.5 text-[12px] text-ink-disabled transition-colors hover:text-ink-caption">완료 되돌리기</button>
+                <Link href={`/pets/${r.pet.id}`} className="block rounded-md bg-primary py-2.5 text-center text-[14px] font-medium text-white transition-colors hover:bg-primary-hover">펫 차트</Link>
+                <div className="flex justify-center gap-6">
+                  <CircleAction icon={<UndoIcon />} label="되돌리기" onClick={() => setConfirm("revert_complete")} />
+                </div>
               </>
             )}
 
@@ -131,9 +133,11 @@ export function ReservationDetail({
             {r.status === "no_show" && !confirm && (
               <>
                 <p className="text-center text-[13px] text-danger">노쇼로 처리된 예약이에요</p>
-                <Link href={`/pets/${r.pet.id}`} className="rounded-md border border-border py-2.5 text-center text-[14px] font-medium text-ink transition-colors hover:bg-bg">펫 차트</Link>
-                <button onClick={() => onStatusChange(r.id, "confirmed")} className="py-1.5 text-[12px] text-ink-disabled transition-colors hover:text-ink-caption">확정으로 되돌리기</button>
-                <button onClick={() => setConfirm("delete")} className="py-1 text-[12px] text-ink-disabled transition-colors hover:text-danger">삭제</button>
+                <div className="flex justify-center gap-6">
+                  <CircleAction icon={<ChartIcon />} label="펫 차트" href={`/pets/${r.pet.id}`} />
+                  <CircleAction icon={<UndoIcon />} label="되돌리기" onClick={() => onStatusChange(r.id, "confirmed")} />
+                  <CircleAction icon={<TrashIcon />} label="삭제" danger onClick={() => setConfirm("delete")} />
+                </div>
               </>
             )}
 
@@ -141,9 +145,11 @@ export function ReservationDetail({
             {r.status === "cancelled" && !confirm && (
               <>
                 <p className="text-center text-[13px] text-ink-caption">취소된 예약이에요</p>
-                <Link href={`/pets/${r.pet.id}`} className="rounded-md border border-border py-2.5 text-center text-[14px] font-medium text-ink transition-colors hover:bg-bg">펫 차트</Link>
-                <button onClick={() => onStatusChange(r.id, "confirmed")} className="py-1.5 text-[12px] text-ink-disabled transition-colors hover:text-ink-caption">확정으로 되돌리기</button>
-                <button onClick={() => setConfirm("delete")} className="py-1 text-[12px] text-ink-disabled transition-colors hover:text-danger">삭제</button>
+                <div className="flex justify-center gap-6">
+                  <CircleAction icon={<ChartIcon />} label="펫 차트" href={`/pets/${r.pet.id}`} />
+                  <CircleAction icon={<UndoIcon />} label="되돌리기" onClick={() => onStatusChange(r.id, "confirmed")} />
+                  <CircleAction icon={<TrashIcon />} label="삭제" danger onClick={() => setConfirm("delete")} />
+                </div>
               </>
             )}
 
@@ -193,4 +199,42 @@ export function ReservationDetail({
       </div>
     </div>
   );
+}
+
+/* ── 원형 아이콘 액션 버튼 ── */
+function CircleAction({ icon, label, danger, onClick, href }: {
+  icon: React.ReactNode; label: string; danger?: boolean;
+  onClick?: () => void; href?: string;
+}) {
+  const colorClass = danger ? "text-danger" : "text-ink-secondary";
+  const inner = (
+    <div className="flex flex-col items-center gap-1">
+      <div className={`flex h-12 w-12 items-center justify-center rounded-full bg-border-light transition-transform active:scale-95 ${colorClass}`}>
+        {icon}
+      </div>
+      <span className={`text-[11px] font-medium ${colorClass}`}>{label}</span>
+    </div>
+  );
+  if (href) return <Link href={href} className="flex flex-col items-center">{inner}</Link>;
+  return <button type="button" onClick={onClick} className="flex flex-col items-center">{inner}</button>;
+}
+
+/* ── Icons (20px) ── */
+function PencilIcon() {
+  return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>;
+}
+function BanIcon() {
+  return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>;
+}
+function XCircleIcon() {
+  return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+}
+function UndoIcon() {
+  return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>;
+}
+function TrashIcon() {
+  return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>;
+}
+function ChartIcon() {
+  return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>;
 }
