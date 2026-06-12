@@ -209,22 +209,38 @@ export function PetForm({
                 <p className="text-[14px] font-medium text-ink">{foundCustomer?.name ?? customer?.name ?? ""}</p>
                 <p className="text-[12px] text-ink-caption tabular-nums">{formatPhone(foundCustomer?.phone ?? customer?.phone ?? "")}</p>
               </div>
-              <button type="button" onClick={() => setChangingCustomer(true)} className="text-[12px] font-medium text-primary hover:underline">보호자 변경</button>
+              <button type="button" onClick={() => { setChangingCustomer(true); setPhone(""); setFoundCustomer(null); setCustomerName(""); }} className="text-[12px] font-medium text-primary hover:underline">보호자 변경</button>
             </div>
           ) : (
             <>
+              <p className="text-[12px] text-ink-caption">현재 보호자: {customer?.name} · {formatPhone(customer?.phone ?? "")}</p>
               <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-ink-secondary">전화번호로 검색</span>
-                <input type="tel" value={phone} onChange={handlePhoneChange} className={INPUT_CLASS} placeholder="010-0000-0000" />
+                <span className="text-sm font-medium text-ink-secondary">새 보호자 전화번호</span>
+                <input type="tel" value={phone} onChange={handlePhoneChange} className={INPUT_CLASS} placeholder="새 보호자 전화번호 검색" />
               </label>
               {lookingUp && <p className="text-xs text-ink-disabled">조회 중...</p>}
               {foundCustomer && foundCustomer.id !== customer?.id && (
                 <div className="rounded-md border border-primary/20 bg-primary-light p-3">
-                  <p className="text-[13px] font-medium text-primary">기존 {customer?.name} → {foundCustomer.name} 변경</p>
-                  <p className="mt-0.5 text-[11px] text-ink-caption">기록은 펫을 따라 이동합니다.</p>
+                  <p className="text-[13px] font-medium text-primary">{foundCustomer.name}님({formatPhone(foundCustomer.phone)})으로 변경</p>
+                  <p className="mt-0.5 text-[11px] text-ink-caption">{customer?.name} → {foundCustomer.name} 변경, 방문 기록·예약은 펫을 따라 이동합니다.</p>
                 </div>
               )}
-              <button type="button" onClick={() => { setChangingCustomer(false); setPhone(customer?.phone ? formatPhone(customer.phone) : ""); setFoundCustomer(customer ?? null); }}
+              {!foundCustomer && phone.replace(/[^0-9]/g, "").length >= 10 && !lookingUp && (
+                <>
+                  <p className="text-[12px] text-ink-caption">미등록 번호 — 신규 보호자를 생성합니다.</p>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-sm font-medium text-ink-secondary">새 보호자 이름</span>
+                    <input type="text" name="customer_name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required className={INPUT_CLASS} placeholder="홍길동" />
+                  </label>
+                  {customerName.trim() && (
+                    <div className="rounded-md border border-primary/20 bg-primary-light p-3">
+                      <p className="text-[13px] font-medium text-primary">{customerName.trim()}님(신규)으로 변경</p>
+                      <p className="mt-0.5 text-[11px] text-ink-caption">{customer?.name} → {customerName.trim()} 변경, 방문 기록·예약은 펫을 따라 이동합니다.</p>
+                    </div>
+                  )}
+                </>
+              )}
+              <button type="button" onClick={() => { setChangingCustomer(false); setPhone(customer?.phone ? formatPhone(customer.phone) : ""); setFoundCustomer(customer ?? null); setCustomerName(""); }}
                 className="text-[12px] text-ink-caption hover:underline">변경 취소</button>
             </>
           )}
