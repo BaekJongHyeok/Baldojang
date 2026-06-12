@@ -11,7 +11,7 @@ export type CalendarReservation = {
   status: "confirmed" | "completed" | "no_show" | "cancelled";
   memo: string | null;
   price_quoted: number | null;
-  pet: { id: string; name: string; photo_url: string | null };
+  pet: { id: string; name: string; photo_url: string | null; caution_tags: string[] };
   service: { name: string; duration_minutes: number };
   customer: { id: string; name: string; phone: string } | null;
 };
@@ -69,7 +69,7 @@ export async function getReservations(
   const { data } = await supabase
     .from("reservations")
     .select(
-      "id, starts_at, ends_at, status, memo, price_quoted, pets(id, name, photo_url, customers(id, name, phone)), services(name, duration_minutes)",
+      "id, starts_at, ends_at, status, memo, price_quoted, pets(id, name, photo_url, caution_tags, customers(id, name, phone)), services(name, duration_minutes)",
     )
     .eq("shop_id", shopId)
     .gte("starts_at", from)
@@ -93,7 +93,7 @@ export async function getReservations(
       price_quoted: r.price_quoted,
       status: r.status,
       memo: r.memo,
-      pet: { id: pet?.id ?? "", name: pet?.name ?? "", photo_url: pet?.photo_url ?? null },
+      pet: { id: pet?.id ?? "", name: pet?.name ?? "", photo_url: pet?.photo_url ?? null, caution_tags: pet?.caution_tags ?? [] },
       service: { name: service?.name ?? "", duration_minutes: service?.duration_minutes ?? 60 },
       customer,
     };

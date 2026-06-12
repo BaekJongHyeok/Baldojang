@@ -136,7 +136,7 @@ export function CalendarClient({
     const svc = services.find((s) => s.id === serviceId);
     const tempId = `temp-${Date.now()}`;
     const priceQuoted = fd.get("price_quoted") ? Number(fd.get("price_quoted")) : null;
-    const optimistic: CalendarReservation = { id: tempId, starts_at: startsAt, ends_at: endsAt, status: "confirmed", memo, price_quoted: priceQuoted, pet: { id: petId, name: pet?.name ?? "", photo_url: null }, service: { name: svc?.name ?? "", duration_minutes: svc?.duration_minutes ?? 60 }, customer: pet?.customer ?? null };
+    const optimistic: CalendarReservation = { id: tempId, starts_at: startsAt, ends_at: endsAt, status: "confirmed", memo, price_quoted: priceQuoted, pet: { id: petId, name: pet?.name ?? "", photo_url: null, caution_tags: pet?.caution_tags ?? [] }, service: { name: svc?.name ?? "", duration_minutes: svc?.duration_minutes ?? 60 }, customer: pet?.customer ?? null };
     setTempItems((prev) => [...prev, optimistic]);
     setFormState(null);
     const result = await createReservationAction(fd);
