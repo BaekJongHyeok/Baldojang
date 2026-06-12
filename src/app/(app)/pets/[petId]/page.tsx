@@ -107,21 +107,27 @@ export default async function PetChartPage({
               </Link>
             </div>
 
-            {/* 보호자 */}
+            {/* 보호자 정보 행 */}
             {customer && (
-              <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[12px] text-ink-caption">보호자</p>
-                  <div className="flex items-center gap-1">
-                    <Link href={`/customers/${customer.id}`} className="text-[14px] font-medium text-ink hover:text-primary">{customer.name}</Link>
+              <div className="mt-3 flex flex-col gap-1.5 border-t border-border pt-3 text-[14px]">
+                <div className="flex justify-between">
+                  <span className="text-ink-caption">보호자</span>
+                  <Link href={`/customers/${customer.id}`} className="flex items-center gap-0.5 font-medium text-ink hover:text-primary">
+                    {customer.name}
                     <svg className="h-3.5 w-3.5 text-ink-disabled" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                    <span className="text-[13px] text-ink-caption tabular-nums">{formatPhone(customer.phone)}</span>
-                  </div>
+                  </Link>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-ink-caption">전화번호</span>
+                  <span className="text-ink tabular-nums">{formatPhone(customer.phone)}</span>
                 </div>
                 {passBadge && (
-                  <Link href={`/customers/${customer.id}`} className="rounded-sm bg-primary-light px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary-light/80">
-                    {passBadge.label} {passBadge.balance}
-                  </Link>
+                  <div className="flex justify-between">
+                    <span className="text-ink-caption">선불권</span>
+                    <Link href={`/customers/${customer.id}`} className="text-ink hover:text-primary">
+                      {passBadge.label} · {passBadge.balance}
+                    </Link>
+                  </div>
                 )}
               </div>
             )}
