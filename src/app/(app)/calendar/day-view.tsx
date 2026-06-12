@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import type { CalendarReservation, DayHours } from "@/lib/calendar-data";
 import { kstHourMin, nowKSTMinutes } from "@/lib/calendar-utils";
 
@@ -50,6 +50,13 @@ export function DayView({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // 현재 시각 — 1분마다 갱신 (마운트 시 1회 설치, 휴무 분기보다 앞에 위치해 훅 순서 고정)
+  const [nowMinState, setNowMinState] = useState(() => nowKSTMinutes());
+  useEffect(() => {
+    const id = setInterval(() => setNowMinState(nowKSTMinutes()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   // 휴무일(hours === null)에도 모든 훅이 동일하게 호출되도록,
   // early return은 훅 선언 이후로 미루고 파생값은 null-safe로 계산한다.
   // (이전: 여기서 early return → 렌더마다 훅 개수가 달라져 React 훅 규칙 위반 → 날짜 이동 시 크래시)
@@ -71,7 +78,7 @@ export function DayView({
     rows.push({ min: h * 60 + 30, isHour: false, label: "" });
   }
 
-  const nowMin = nowKSTMinutes();
+  const nowMin = nowMinState;
   const nowTop = isToday && nowMin >= gridStartMin && nowMin <= gridEndMin ? (nowMin - gridStartMin) * pxPerMin : null;
 
   // Auto-scroll to now or open time (1회, 날짜 변경 시만)

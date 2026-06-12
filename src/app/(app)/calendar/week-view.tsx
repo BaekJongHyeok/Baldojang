@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import type { CalendarReservation, DayHours } from "@/lib/calendar-data";
 import { kstHourMin, kstDateStr, nowKSTMinutes } from "@/lib/calendar-utils";
 
@@ -63,9 +63,13 @@ export function WeekView({
     rows.push({ min: h * 60 + 30, isHour: false, label: "" });
   }
 
-  // 현재 시각 라인 (렌더 시 1회 캡처, deps에 넣지 않음)
+  // 현재 시각 라인 — 1분마다 갱신 (deps 빈 배열: 타이머는 마운트 시 1회만 설치, 루프 없음)
+  const [nowMin, setNowMin] = useState(() => nowKSTMinutes());
+  useEffect(() => {
+    const id = setInterval(() => setNowMin(nowKSTMinutes()), 60_000);
+    return () => clearInterval(id);
+  }, []);
   const isThisWeek = weekDays.some((d) => d.date === today);
-  const nowMin = nowKSTMinutes();
   const nowTop = isThisWeek && nowMin >= gridStartMin && nowMin <= gridEndMin ? (nowMin - gridStartMin) * pxPerMin : null;
 
   // 진입 시 스크롤: 주 시작일 문자열이 바뀔 때만 1회 실행
