@@ -28,14 +28,12 @@ export function WeekView({
   weekDays,
   slotMinutes,
   today,
-  onSelectDate,
   onSelect,
 }: {
   reservations: CalendarReservation[];
   weekDays: WeekDay[];
   slotMinutes: number;
   today: string;
-  onSelectDate: (date: string) => void;
   onSelect: (id: string) => void;
 }) {
   const { gridStartHour, gridEndHour } = useMemo(() => {
@@ -78,10 +76,9 @@ export function WeekView({
           {weekDays.map((d, i) => {
             const isToday = d.date === today;
             return (
-              <button
+              <div
                 key={d.date}
-                onClick={() => onSelectDate(d.date)}
-                className={`flex-1 border-l border-border py-2 text-center transition-colors hover:bg-bg`}
+                className="flex-1 border-l border-border py-2 text-center"
               >
                 <span className={`block text-[11px] font-medium ${isToday ? "text-primary" : !d.hours ? "text-ink-disabled" : "text-ink-caption"}`}>
                   {DAY_LABELS[i]}
@@ -91,7 +88,7 @@ export function WeekView({
                 }`}>
                   {d.date.slice(8).replace(/^0/, "")}
                 </span>
-              </button>
+              </div>
             );
           })}
         </div>
