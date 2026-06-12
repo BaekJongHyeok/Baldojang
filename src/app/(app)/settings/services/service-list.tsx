@@ -12,6 +12,7 @@ import {
   updateDefaultCycleAction,
 } from "@/lib/settings-actions";
 import { ServiceFormDialog } from "./service-form";
+import { Dialog } from "@/components/ui/dialog";
 
 type Service = {
   id: string;
@@ -164,23 +165,35 @@ export function ServiceList({ services, defaultCycleWeeks }: { services: Service
                 </div>
               </div>
 
-              {/* 확인 다이얼로그 (인라인) */}
-              {confirmToggleId === s.id && (
-                <div className="absolute inset-x-4 mt-2 rounded-md bg-bg p-3">
-                  <p className="text-[13px] text-ink">{s.is_active ? `"${s.name}" 시술을 비활성화할까요?` : `"${s.name}" 시술을 다시 활성화할까요?`}</p>
-                  <div className="mt-2 flex gap-2">
-                    <button onClick={() => setConfirmToggleId(null)} className="flex-1 rounded-md border border-border py-1.5 text-[12px] font-medium text-ink-secondary">취소</button>
-                    <button onClick={() => handleToggle(s)} disabled={isPending}
-                      className={`flex-1 rounded-md py-1.5 text-[12px] font-medium text-white disabled:opacity-50 ${s.is_active ? "bg-danger" : "bg-success"}`}>
-                      {s.is_active ? "비활성화" : "활성화"}
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           ))}
         </div>
       )}
+
+      {/* 비활성화/활성화 확인 다이얼로그 */}
+      <Dialog open={!!confirmToggleId} onClose={() => setConfirmToggleId(null)} className="max-w-sm">
+        {(() => {
+          const s = services.find((sv) => sv.id === confirmToggleId);
+          if (!s) return null;
+          return (
+            <>
+              <p className="text-[14px] font-medium text-ink">
+                {s.is_active ? `"${s.name}" 시술을 비활성화할까요?` : `"${s.name}" 시술을 다시 활성화할까요?`}
+              </p>
+              <p className="mt-1 text-[12px] text-ink-caption">
+                {s.is_active ? "메뉴에서 숨겨지고 기존 기록은 유지돼요." : "메뉴에 다시 표시돼요."}
+              </p>
+              <div className="mt-4 flex gap-2">
+                <button onClick={() => setConfirmToggleId(null)} className="flex-1 rounded-md border border-border py-2 text-[13px] font-medium text-ink-secondary">돌아가기</button>
+                <button onClick={() => handleToggle(s)} disabled={isPending}
+                  className={`flex-1 rounded-md py-2 text-[13px] font-medium text-white disabled:opacity-50 ${s.is_active ? "bg-danger" : "bg-primary"}`}>
+                  {s.is_active ? "비활성화" : "활성화"}
+                </button>
+              </div>
+            </>
+          );
+        })()}
+      </Dialog>
 
       {/* 기본 재방문 주기 — 시술 목록 아래 가벼운 행 */}
       <div className="mt-6 flex items-center gap-3 px-1 text-[14px]">
