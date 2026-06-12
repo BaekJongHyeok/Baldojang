@@ -1,25 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getAuthContext } from "@/lib/auth-cache";
 import { ServiceList } from "./service-list";
 
 export default async function ServicesSettingsPage() {
+  const ctx = await getAuthContext();
+  if (!ctx) redirect("/login");
+
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: staff } = await supabase
-    .from("staff")
-    .select("shop_id")
-    .eq("id", user.id)
-    .single();
-  if (!staff) redirect("/dashboard");
-
   const { data: services } = await supabase
     .from("services")
     .select("id, name, duration_minutes, price, recommend_cycle_weeks, sort_order, is_active")
-    .eq("shop_id", staff.shop_id)
+    .eq("shop_id", ctx.staff.shopId)
     .order("sort_order", { ascending: true });
 
   return (

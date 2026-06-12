@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
+import { getAuthContext } from "@/lib/auth-cache";
 import { PetForm } from "@/components/pet-form";
 import { updatePetAction } from "@/lib/pet-actions";
 import { getPetPhotoUrl } from "@/lib/storage";
@@ -9,20 +10,10 @@ export default async function EditPetPage({
 }: {
   params: Promise<{ petId: string }>;
 }) {
-  const { petId } = await params;
+  const [{ petId }, ctx] = await Promise.all([params, getAuthContext()]);
+  if (!ctx) redirect("/login");
+
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: staff } = await supabase
-    .from("staff")
-    .select("shop_id")
-    .eq("id", user.id)
-    .single();
-  if (!staff) redirect("/dashboard");
-
   const { data: pet } = await supabase
     .from("pets")
     .select(
@@ -61,7 +52,7 @@ export default async function EditPetPage({
             customer_id: pet.customer_id,
           }}
           customer={customer ?? undefined}
-          shopId={staff.shop_id}
+          shopId={ctx.staff.shopId}
           initialPhotoSignedUrl={photoSignedUrl ?? undefined}
         />
       </div>

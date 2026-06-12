@@ -5,17 +5,17 @@ import { calcAge, sizeLabel, formatPhone } from "@/lib/utils";
 import { DeactivateButton } from "./deactivate-button";
 import { InlineCycleEdit } from "./inline-cycle-edit";
 import { getPetPhotoUrl } from "@/lib/storage";
+import { getAuthContext } from "@/lib/auth-cache";
 
 export default async function PetChartPage({
   params,
 }: {
   params: Promise<{ petId: string }>;
 }) {
-  const { petId } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const [{ petId }, ctx] = await Promise.all([params, getAuthContext()]);
+  if (!ctx) redirect("/login");
 
+  const supabase = await createClient();
   const { data: pet } = await supabase
     .from("pets")
     .select("id, name, breed, size, birth_date, weight_kg, photo_url, caution_tags, caution_memo, vaccinated, neutered, cycle_weeks, is_active, customer_id, customers(id, name, phone)")
@@ -24,20 +24,26 @@ export default async function PetChartPage({
 
   if (!pet) notFound();
 
-  const photoSignedUrl = await getPetPhotoUrl(pet.photo_url);
   const customer = Array.isArray(pet.customers) ? pet.customers[0] : pet.customers;
 
-  const { data: visits } = await supabase
-    .from("visits")
-    .select("id, visited_at, style_memo, behavior_memo, before_photos, after_photos, services(name)")
-    .eq("pet_id", petId)
-    .order("visited_at", { ascending: false });
+  // 병렬: signed URL, 방문 이력, 선불권
+  const [photoSignedUrl, visitsResult, passesResult] = await Promise.all([
+    getPetPhotoUrl(pet.photo_url),
+    supabase
+      .from("visits")
+      .select("id, visited_at, style_memo, behavior_memo, before_photos, after_photos, services(name)")
+      .eq("pet_id", petId)
+      .order("visited_at", { ascending: false }),
+    customer
+      ? supabase.from("passes").select("type, name, balance, remaining, expires_at").eq("customer_id", customer.id)
+      : Promise.resolve({ data: null }),
+  ]);
 
-  // 선불권
+  const visits = visitsResult.data;
+
   let passBadge: { label: string; balance: string } | null = null;
   if (customer) {
-    const { data: passes } = await supabase.from("passes").select("type, name, balance, remaining, expires_at").eq("customer_id", customer.id);
-    const active = (passes ?? []).filter((p) => {
+    const active = (passesResult.data ?? []).filter((p) => {
       if (p.expires_at && new Date(p.expires_at) < new Date()) return false;
       if (p.type === "amount") return (p.balance ?? 0) > 0;
       return (p.remaining ?? 0) > 0;

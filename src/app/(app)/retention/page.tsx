@@ -1,63 +1,53 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getAuthContext } from "@/lib/auth-cache";
 import { RetentionClient } from "./retention-client";
 
 export default async function RetentionPage() {
+  const ctx = await getAuthContext();
+  if (!ctx) redirect("/login");
+  const shopId = ctx.staff.shopId;
+  const defaultCycle = ctx.shop?.defaultCycleWeeks ?? 5;
+
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: staff } = await supabase
-    .from("staff")
-    .select("shop_id")
-    .eq("id", user.id)
-    .single();
-  if (!staff) redirect("/dashboard");
-
-  // 샵 기본 주기
-  const { data: shop } = await supabase.from("shops").select("default_cycle_weeks").eq("id", staff.shop_id).single();
-  const defaultCycle = shop?.default_cycle_weeks ?? 5;
-
-  // 활성 펫 + 마지막 visit + 시술 + 보호자
-  const { data: pets } = await supabase
-    .from("pets")
-    .select("id, name, breed, size, photo_url, cycle_weeks, customer_id, customers(name, phone)")
-    .eq("shop_id", staff.shop_id)
-    .eq("is_active", true);
-
-  // 마지막 완료 visit (pet별)
-  const { data: visits } = await supabase
-    .from("visits")
-    .select("pet_id, visited_at, services(name, recommend_cycle_weeks)")
-    .eq("shop_id", staff.shop_id)
-    .order("visited_at", { ascending: false });
-
-  // 미래 confirmed 예약
   const now = new Date().toISOString();
-  const { data: futureRes } = await supabase
-    .from("reservations")
-    .select("pet_id")
-    .eq("shop_id", staff.shop_id)
-    .eq("status", "confirmed")
-    .gte("starts_at", now);
-
-  const futureSet = new Set((futureRes ?? []).map((r) => r.pet_id));
-
-  // 최근 연락 기록 (2주 이내)
   const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-  const { data: contacts } = await supabase
-    .from("retention_contacts")
-    .select("pet_id, contacted_at")
-    .gte("contacted_at", twoWeeksAgo);
 
-  const contactedSet = new Set((contacts ?? []).map((c: { pet_id: string }) => c.pet_id));
+  // 병렬: 펫, 방문, 미래 예약, 연락 기록
+  const [petsResult, visitsResult, futureResResult, contactsResult] = await Promise.all([
+    supabase
+      .from("pets")
+      .select("id, name, breed, size, photo_url, cycle_weeks, customer_id, customers(name, phone)")
+      .eq("shop_id", shopId)
+      .eq("is_active", true),
+    supabase
+      .from("visits")
+      .select("pet_id, visited_at, services(name, recommend_cycle_weeks)")
+      .eq("shop_id", shopId)
+      .order("visited_at", { ascending: false }),
+    supabase
+      .from("reservations")
+      .select("pet_id")
+      .eq("shop_id", shopId)
+      .eq("status", "confirmed")
+      .gte("starts_at", now),
+    supabase
+      .from("retention_contacts")
+      .select("pet_id, contacted_at")
+      .gte("contacted_at", twoWeeksAgo),
+  ]);
+
+  const pets = petsResult.data ?? [];
+  const visits = visitsResult.data ?? [];
+  const futureSet = new Set((futureResResult.data ?? []).map((r) => r.pet_id));
+  const contactedSet = new Set((contactsResult.data ?? []).map((c: { pet_id: string }) => c.pet_id));
 
   // pet별 마지막 visit 매핑 (주기 우선순위: 펫별 → 시술별 → 샵 기본)
   const petCycleMap: Record<string, number | null> = {};
-  for (const p of pets ?? []) petCycleMap[p.id] = p.cycle_weeks;
+  for (const p of pets) petCycleMap[p.id] = p.cycle_weeks;
 
   const lastVisitMap: Record<string, { visited_at: string; serviceName: string; cycleWeeks: number; cycleSource: string }> = {};
-  for (const v of visits ?? []) {
+  for (const v of visits) {
     if (lastVisitMap[v.pet_id]) continue;
     const svc = Array.isArray(v.services) ? v.services[0] : v.services;
     const petCycle = petCycleMap[v.pet_id];
@@ -76,7 +66,7 @@ export default async function RetentionPage() {
 
   // 추천 목록 구성
   const nowMs = Date.now();
-  const items = (pets ?? [])
+  const items = pets
     .filter((p) => !futureSet.has(p.id) && !contactedSet.has(p.id) && lastVisitMap[p.id])
     .map((p) => {
       const lv = lastVisitMap[p.id];
@@ -86,36 +76,26 @@ export default async function RetentionPage() {
       const daysUntil = Math.floor((recommendDate.getTime() - nowMs) / (24 * 60 * 60 * 1000));
 
       let status: "approaching" | "recommended" | "overdue";
-      if (daysUntil > 7) return null; // 아직 멀음
+      if (daysUntil > 7) return null;
       if (daysUntil >= 0) status = "approaching";
       else if (daysUntil >= -14) status = "recommended";
       else status = "overdue";
 
       const customer = Array.isArray(p.customers) ? p.customers[0] : p.customers;
       return {
-        id: p.id,
-        name: p.name,
-        breed: p.breed,
-        photoUrl: p.photo_url,
-        customerName: customer?.name ?? "",
-        customerPhone: customer?.phone ?? "",
-        lastVisitDate: lv.visited_at,
-        serviceName: lv.serviceName,
-        elapsedWeeks,
-        cycleWeeks: lv.cycleWeeks,
-        cycleSource: lv.cycleSource,
-        status,
+        id: p.id, name: p.name, breed: p.breed, photoUrl: p.photo_url,
+        customerName: customer?.name ?? "", customerPhone: customer?.phone ?? "",
+        lastVisitDate: lv.visited_at, serviceName: lv.serviceName,
+        elapsedWeeks, cycleWeeks: lv.cycleWeeks, cycleSource: lv.cycleSource, status,
       };
     })
     .filter(Boolean) as {
       id: string; name: string; breed: string | null; photoUrl: string | null;
       customerName: string; customerPhone: string; lastVisitDate: string;
       serviceName: string; elapsedWeeks: number; cycleWeeks: number;
-      cycleSource: string;
-      status: "approaching" | "recommended" | "overdue";
+      cycleSource: string; status: "approaching" | "recommended" | "overdue";
     }[];
 
-  // 정렬: overdue → recommended → approaching
   const order = { overdue: 0, recommended: 1, approaching: 2 };
   items.sort((a, b) => order[a.status] - order[b.status] || b.elapsedWeeks - a.elapsedWeeks);
 

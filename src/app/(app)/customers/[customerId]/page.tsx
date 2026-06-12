@@ -26,53 +26,52 @@ export default async function CustomerDetailPage({
 
   if (!customer) notFound();
 
-  const { data: pets } = await supabase
-    .from("pets")
-    .select("id, name, breed, size, photo_url, caution_tags, is_active")
-    .eq("customer_id", customerId)
-    .order("created_at", { ascending: false });
+  // 1차 병렬: 펫, 선불권
+  const [petsResult, passesResult] = await Promise.all([
+    supabase
+      .from("pets")
+      .select("id, name, breed, size, photo_url, caution_tags, is_active")
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("passes")
+      .select("id, type, name, total_amount, balance, total_count, remaining, expires_at, created_at")
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false }),
+  ]);
 
-  // 선불권 조회
-  const { data: passes } = await supabase
-    .from("passes")
-    .select("id, type, name, total_amount, balance, total_count, remaining, expires_at, created_at")
-    .eq("customer_id", customerId)
-    .order("created_at", { ascending: false });
+  const pets = petsResult.data ?? [];
+  const passes = passesResult.data ?? [];
 
-  // 모든 펫의 방문 이력 (통합)
-  const petIds = (pets ?? []).map((p) => p.id);
-  let allVisits: { id: string; visited_at: string; petName: string; petId: string; serviceName: string }[] = [];
-  if (petIds.length > 0) {
-    const { data: visits } = await supabase
-      .from("visits")
-      .select("id, pet_id, visited_at, services(name)")
-      .in("pet_id", petIds)
-      .order("visited_at", { ascending: false })
-      .limit(30);
+  // 2차 병렬: 방문 이력 + signed URL (펫 데이터에 의존)
+  const petIds = pets.map((p) => p.id);
+  const photoPaths = pets.map((p) => p.photo_url).filter((u): u is string => !!u);
 
-    const petNameMap: Record<string, string> = {};
-    for (const p of pets ?? []) petNameMap[p.id] = p.name;
+  const [visitsResult, photoUrlMap] = await Promise.all([
+    petIds.length > 0
+      ? supabase
+          .from("visits")
+          .select("id, pet_id, visited_at, services(name)")
+          .in("pet_id", petIds)
+          .order("visited_at", { ascending: false })
+          .limit(30)
+      : Promise.resolve({ data: [] as { id: string; pet_id: string; visited_at: string; services: { name: string } | { name: string }[] | null }[] }),
+    getPetPhotoUrls(photoPaths),
+  ]);
 
-    allVisits = (visits ?? []).map((v) => {
-      const svc = Array.isArray(v.services) ? v.services[0] : v.services;
-      return {
-        id: v.id,
-        visited_at: v.visited_at,
-        petName: petNameMap[v.pet_id] ?? "",
-        petId: v.pet_id,
-        serviceName: svc?.name ?? "—",
-      };
-    });
-  }
+  const petNameMap: Record<string, string> = {};
+  for (const p of pets) petNameMap[p.id] = p.name;
 
-  // signed URL 일괄 생성
-  const photoPaths = (pets ?? [])
-    .map((p) => p.photo_url)
-    .filter((u): u is string => !!u);
-  const photoUrlMap = await getPetPhotoUrls(photoPaths);
+  const allVisits = (visitsResult.data ?? []).map((v) => {
+    const svc = Array.isArray(v.services) ? v.services[0] : v.services;
+    return {
+      id: v.id, visited_at: v.visited_at,
+      petName: petNameMap[v.pet_id] ?? "", petId: v.pet_id,
+      serviceName: svc?.name ?? "—",
+    };
+  });
 
-  // 예약 링크용 펫 목록 (활성만)
-  const activePets = (pets ?? []).filter((p) => p.is_active);
+  const activePets = pets.filter((p) => p.is_active);
   const bookHref = activePets.length === 1
     ? `/calendar?book=${activePets[0].id}`
     : "/calendar";

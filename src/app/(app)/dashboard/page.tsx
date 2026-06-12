@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { todayKST, formatTimestampKST } from "@/lib/calendar-utils";
+import { getAuthContext } from "@/lib/auth-cache";
 
 function statusLabel(s: string) {
   switch (s) { case "confirmed": return "확정"; case "completed": return "완료"; case "no_show": return "노쇼"; case "cancelled": return "취소"; default: return s; }
@@ -17,43 +18,43 @@ function statusClass(s: string) {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: staff } = await supabase.from("staff").select("shop_id").eq("id", user.id).single();
-  if (!staff) redirect("/login");
+  const ctx = await getAuthContext();
+  if (!ctx) redirect("/login");
+  const shopId = ctx.staff.shopId;
 
   const today = todayKST();
   const todayStart = new Date(today + "T00:00:00+09:00").toISOString();
   const todayEnd = new Date(today + "T23:59:59+09:00").toISOString();
 
-  const { data: todayRes } = await supabase
-    .from("reservations")
-    .select("id, starts_at, ends_at, status, pets(name, photo_url), services(name)")
-    .eq("shop_id", staff.shop_id)
-    .gte("starts_at", todayStart)
-    .lte("starts_at", todayEnd)
-    .order("starts_at");
+  const supabase = await createClient();
+  const defCycle = ctx.shop?.defaultCycleWeeks ?? 5;
+  const cutoff = new Date(Date.now() - (defCycle - 1) * 7 * 86400000).toISOString();
+  const nowISO = new Date().toISOString();
 
-  const reservations = todayRes ?? [];
+  // 병렬: 오늘 예약, 오늘 결제, 재방문용 방문, 미래 예약
+  const [todayResResult, todayPayResult, oldVisitsResult, futureResResult] = await Promise.all([
+    supabase
+      .from("reservations")
+      .select("id, starts_at, ends_at, status, pets(name, photo_url), services(name)")
+      .eq("shop_id", shopId)
+      .gte("starts_at", todayStart)
+      .lte("starts_at", todayEnd)
+      .order("starts_at"),
+    supabase
+      .from("payments").select("amount").eq("shop_id", shopId)
+      .gte("paid_at", todayStart).lte("paid_at", todayEnd),
+    supabase.from("visits").select("pet_id").eq("shop_id", shopId).lte("visited_at", cutoff),
+    supabase.from("reservations").select("pet_id").eq("shop_id", shopId).eq("status", "confirmed").gte("starts_at", nowISO),
+  ]);
+
+  const reservations = todayResResult.data ?? [];
   const active = reservations.filter((r) => r.status !== "cancelled");
   const totalCount = active.length;
   const completedCount = active.filter((r) => r.status === "completed").length;
+  const todayRevenue = (todayPayResult.data ?? []).reduce((s, p) => s + p.amount, 0);
 
-  const { data: todayPayments } = await supabase
-    .from("payments").select("amount").eq("shop_id", staff.shop_id)
-    .gte("paid_at", todayStart).lte("paid_at", todayEnd);
-  const todayRevenue = (todayPayments ?? []).reduce((s, p) => s + p.amount, 0);
-
-  const { data: shopCfg } = await supabase.from("shops").select("default_cycle_weeks").eq("id", staff.shop_id).single();
-  const defCycle = shopCfg?.default_cycle_weeks ?? 5;
-  const cutoff = new Date(Date.now() - (defCycle - 1) * 7 * 86400000).toISOString();
-  const { data: oldVisits } = await supabase.from("visits").select("pet_id").eq("shop_id", staff.shop_id).lte("visited_at", cutoff);
-  const oldPetIds = new Set((oldVisits ?? []).map((v) => v.pet_id));
-  const nowISO = new Date().toISOString();
-  const { data: futureRes } = await supabase.from("reservations").select("pet_id").eq("shop_id", staff.shop_id).eq("status", "confirmed").gte("starts_at", nowISO);
-  const futurePetIds = new Set((futureRes ?? []).map((r) => r.pet_id));
+  const oldPetIds = new Set((oldVisitsResult.data ?? []).map((v) => v.pet_id));
+  const futurePetIds = new Set((futureResResult.data ?? []).map((r) => r.pet_id));
   const retentionCount = [...oldPetIds].filter((id) => !futurePetIds.has(id)).length;
 
   const dateLabel = new Date(today + "T00:00:00Z").toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
@@ -161,7 +162,6 @@ export default async function DashboardPage() {
 
       {/* 하단 보조 패널 */}
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        {/* 재방문 */}
         <div className="rounded-lg border border-border bg-white">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-[14px] font-semibold text-ink">재방문 추천</h2>
@@ -177,8 +177,6 @@ export default async function DashboardPage() {
             )}
           </div>
         </div>
-
-        {/* 매출 요약 */}
         <div className="rounded-lg border border-border bg-white">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-[14px] font-semibold text-ink">매출</h2>
