@@ -79,7 +79,8 @@ export function ServiceFormDialog({
           {service ? "시술 수정" : "시술 추가"}
         </h2>
 
-        <form action={handleSubmit} className="mt-4 flex flex-col gap-4">
+        {/* onSubmit + preventDefault: React 19 form action 자동 리셋 차단 */}
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(new FormData(e.currentTarget)); }} className="mt-4 flex flex-col gap-4">
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-ink-secondary">시술 이름</span>
             <input

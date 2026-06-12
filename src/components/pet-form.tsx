@@ -181,7 +181,8 @@ export function PetForm({
   );
 
   return (
-    <form action={handleSubmit} onChange={() => setDirty(true)} className={`flex flex-col gap-6 pb-20 ${isPending ? "pointer-events-none" : ""}`}>
+    // onSubmit + preventDefault: React 19 form action 자동 리셋 차단 (에러 시 입력 소실 방지)
+    <form onSubmit={(e) => { e.preventDefault(); handleSubmit(new FormData(e.currentTarget)); }} onChange={() => setDirty(true)} className={`flex flex-col gap-6 pb-20 ${isPending ? "pointer-events-none" : ""}`}>
       {/* 보호자 섹션 */}
       {!isEdit ? (
         <fieldset className="flex flex-col gap-3 rounded-lg bg-white p-5">

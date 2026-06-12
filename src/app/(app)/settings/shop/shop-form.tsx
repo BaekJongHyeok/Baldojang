@@ -76,7 +76,11 @@ export function ShopSettingsForm({
   const INPUT = "rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
 
   return (
-    <form ref={formRef} action={handleSubmit} onChange={() => setDirty(true)}
+    // onSubmit + preventDefault: React 19의 form action 자동 리셋(저장 직후 필드가
+    // 초기값으로 되돌아가 보이는 문제)을 차단한다. action={...}로 되돌리지 말 것.
+    <form ref={formRef}
+      onSubmit={(e) => { e.preventDefault(); handleSubmit(new FormData(e.currentTarget)); }}
+      onChange={() => setDirty(true)}
       className={`flex flex-col gap-5 ${isPending ? "pointer-events-none" : ""}`}>
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-ink-secondary">샵 이름</span>
