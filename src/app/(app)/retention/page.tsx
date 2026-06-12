@@ -99,5 +99,5 @@ export default async function RetentionPage() {
   const order = { overdue: 0, recommended: 1, approaching: 2 };
   items.sort((a, b) => order[a.status] - order[b.status] || b.elapsedWeeks - a.elapsedWeeks);
 
-  return <RetentionClient items={items} />;
+  return <RetentionClient items={items} defaultCycleWeeks={defaultCycle} />;
 }
