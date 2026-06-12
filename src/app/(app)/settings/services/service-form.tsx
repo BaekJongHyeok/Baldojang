@@ -182,6 +182,7 @@ export function ServiceFormDialog({
             <span className="text-sm font-medium text-ink-secondary">
               권장 재방문 주기 (주, 선택)
             </span>
+            <span className="text-xs text-ink-disabled">펫별 주기가 우선 적용됩니다</span>
             <input
               name="recommend_cycle_weeks"
               type="number"

@@ -26,7 +26,7 @@ export default async function EditPetPage({
   const { data: pet } = await supabase
     .from("pets")
     .select(
-      "id, name, breed, size, birth_date, weight_kg, photo_url, caution_tags, caution_memo, vaccinated, neutered, customer_id, customers(id, name, phone)",
+      "id, name, breed, size, birth_date, weight_kg, photo_url, caution_tags, caution_memo, vaccinated, neutered, cycle_weeks, customer_id, customers(id, name, phone)",
     )
     .eq("id", petId)
     .single();
@@ -57,6 +57,7 @@ export default async function EditPetPage({
             caution_memo: pet.caution_memo,
             vaccinated: pet.vaccinated,
             neutered: pet.neutered,
+            cycle_weeks: pet.cycle_weeks,
             customer_id: pet.customer_id,
           }}
           customer={customer ?? undefined}

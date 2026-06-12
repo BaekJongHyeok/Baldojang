@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { calcAge, sizeLabel, formatPhone } from "@/lib/utils";
 import { DeactivateButton } from "./deactivate-button";
+import { InlineCycleEdit } from "./inline-cycle-edit";
 import { getPetPhotoUrl } from "@/lib/storage";
 
 export default async function PetChartPage({
@@ -17,7 +18,7 @@ export default async function PetChartPage({
 
   const { data: pet } = await supabase
     .from("pets")
-    .select("id, name, breed, size, birth_date, weight_kg, photo_url, caution_tags, caution_memo, vaccinated, neutered, is_active, customer_id, customers(id, name, phone)")
+    .select("id, name, breed, size, birth_date, weight_kg, photo_url, caution_tags, caution_memo, vaccinated, neutered, cycle_weeks, is_active, customer_id, customers(id, name, phone)")
     .eq("id", petId)
     .single();
 
@@ -119,6 +120,7 @@ export default async function PetChartPage({
           <div className="rounded-lg border border-border bg-white p-4">
             <p className="text-[13px] font-semibold text-ink-caption">기본 정보</p>
             <dl className="mt-2 flex flex-col gap-1.5 text-[14px]">
+              <InlineCycleEdit petId={petId} cycleWeeks={pet.cycle_weeks} />
               <div className="flex justify-between"><dt className="text-ink-caption">접종</dt><dd className="text-ink">{pet.vaccinated === null ? "모름" : pet.vaccinated ? "완료" : "미완료"}</dd></div>
               <div className="flex justify-between"><dt className="text-ink-caption">중성화</dt><dd className="text-ink">{pet.neutered === null ? "모름" : pet.neutered ? "완료" : "미완료"}</dd></div>
             </dl>

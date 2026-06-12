@@ -11,6 +11,7 @@ type Item = {
   id: string; name: string; breed: string | null; photoUrl: string | null;
   customerName: string; customerPhone: string; lastVisitDate: string;
   serviceName: string; elapsedWeeks: number; cycleWeeks: number;
+  cycleSource: string;
   status: "approaching" | "recommended" | "overdue";
 };
 
@@ -79,6 +80,7 @@ export function RetentionClient({ items }: { items: Item[] }) {
                         {item.serviceName} · {new Date(item.lastVisitDate).toLocaleDateString("ko-KR")}
                         {item.breed && ` · ${item.breed}`}
                       </p>
+                      <p className="text-[10px] text-ink-disabled">주기 {item.cycleWeeks}주 · {item.cycleSource} 설정</p>
                       <p className="text-xs text-ink-caption">
                         보호자 {item.customerName}
                       </p>

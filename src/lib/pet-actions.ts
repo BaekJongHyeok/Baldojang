@@ -82,6 +82,9 @@ export async function createPetAction(formData: FormData) {
         formData.get("neutered") === ""
           ? null
           : formData.get("neutered") === "true",
+      cycle_weeks: formData.get("cycle_weeks")
+        ? Number(formData.get("cycle_weeks"))
+        : null,
     })
     .select("id")
     .single();
@@ -139,6 +142,9 @@ export async function updatePetAction(formData: FormData) {
         formData.get("neutered") === ""
           ? null
           : formData.get("neutered") === "true",
+      cycle_weeks: formData.get("cycle_weeks")
+        ? Number(formData.get("cycle_weeks"))
+        : null,
     })
     .eq("id", petId);
 
@@ -189,4 +195,21 @@ export async function lookupCustomerAction(phone: string) {
     .single();
 
   return { customer: data };
+}
+
+export async function updatePetCycleAction(formData: FormData) {
+  const supabase = await createClient();
+  const petId = String(formData.get("pet_id"));
+  const raw = formData.get("cycle_weeks");
+  const cycleWeeks = raw && String(raw) !== "" ? Number(raw) : null;
+
+  const { error } = await supabase
+    .from("pets")
+    .update({ cycle_weeks: cycleWeeks })
+    .eq("id", petId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/pets/${petId}`);
+  return { success: true };
 }

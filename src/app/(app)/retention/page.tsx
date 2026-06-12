@@ -21,7 +21,7 @@ export default async function RetentionPage() {
   // 활성 펫 + 마지막 visit + 시술 + 보호자
   const { data: pets } = await supabase
     .from("pets")
-    .select("id, name, breed, size, photo_url, customer_id, customers(name, phone)")
+    .select("id, name, breed, size, photo_url, cycle_weeks, customer_id, customers(name, phone)")
     .eq("shop_id", staff.shop_id)
     .eq("is_active", true);
 
@@ -52,15 +52,25 @@ export default async function RetentionPage() {
 
   const contactedSet = new Set((contacts ?? []).map((c: { pet_id: string }) => c.pet_id));
 
-  // pet별 마지막 visit 매핑
-  const lastVisitMap: Record<string, { visited_at: string; serviceName: string; cycleWeeks: number }> = {};
+  // pet별 마지막 visit 매핑 (주기 우선순위: 펫별 → 시술별 → 샵 기본)
+  const petCycleMap: Record<string, number | null> = {};
+  for (const p of pets ?? []) petCycleMap[p.id] = p.cycle_weeks;
+
+  const lastVisitMap: Record<string, { visited_at: string; serviceName: string; cycleWeeks: number; cycleSource: string }> = {};
   for (const v of visits ?? []) {
     if (lastVisitMap[v.pet_id]) continue;
     const svc = Array.isArray(v.services) ? v.services[0] : v.services;
+    const petCycle = petCycleMap[v.pet_id];
+    let cycleWeeks: number;
+    let cycleSource: string;
+    if (petCycle != null) { cycleWeeks = petCycle; cycleSource = "펫"; }
+    else if (svc?.recommend_cycle_weeks) { cycleWeeks = svc.recommend_cycle_weeks; cycleSource = "시술"; }
+    else { cycleWeeks = defaultCycle; cycleSource = "기본"; }
     lastVisitMap[v.pet_id] = {
       visited_at: v.visited_at,
       serviceName: svc?.name ?? "",
-      cycleWeeks: svc?.recommend_cycle_weeks ?? defaultCycle,
+      cycleWeeks,
+      cycleSource,
     };
   }
 
@@ -93,6 +103,7 @@ export default async function RetentionPage() {
         serviceName: lv.serviceName,
         elapsedWeeks,
         cycleWeeks: lv.cycleWeeks,
+        cycleSource: lv.cycleSource,
         status,
       };
     })
@@ -100,6 +111,7 @@ export default async function RetentionPage() {
       id: string; name: string; breed: string | null; photoUrl: string | null;
       customerName: string; customerPhone: string; lastVisitDate: string;
       serviceName: string; elapsedWeeks: number; cycleWeeks: number;
+      cycleSource: string;
       status: "approaching" | "recommended" | "overdue";
     }[];
 

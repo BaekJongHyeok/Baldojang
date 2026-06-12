@@ -282,6 +282,7 @@ export type Database = {
           caution_tags: string[]
           created_at: string
           customer_id: string
+          cycle_weeks: number | null
           id: string
           is_active: boolean
           name: string
@@ -299,6 +300,7 @@ export type Database = {
           caution_tags?: string[]
           created_at?: string
           customer_id: string
+          cycle_weeks?: number | null
           id?: string
           is_active?: boolean
           name: string
@@ -316,6 +318,7 @@ export type Database = {
           caution_tags?: string[]
           created_at?: string
           customer_id?: string
+          cycle_weeks?: number | null
           id?: string
           is_active?: boolean
           name?: string

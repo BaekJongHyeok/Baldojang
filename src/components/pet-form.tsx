@@ -53,6 +53,7 @@ type Pet = {
   vaccinated: boolean | null;
   neutered: boolean | null;
   customer_id: string;
+  cycle_weeks: number | null;
 };
 
 type Customer = {
@@ -382,6 +383,19 @@ export function PetForm({
             defaultValue={pet?.caution_memo ?? ""}
             className="min-w-0 rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
             placeholder="자유 서술 주의사항"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink-secondary">재방문 주기 (주)</span>
+          <input
+            name="cycle_weeks"
+            type="number"
+            min={1}
+            max={52}
+            defaultValue={pet?.cycle_weeks ?? ""}
+            className="min-w-0 rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/20"
+            placeholder="미설정 시 시술 주기 적용"
           />
         </label>
 
