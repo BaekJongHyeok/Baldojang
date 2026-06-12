@@ -279,35 +279,52 @@ export function CompleteDialog({
                     ))}
                   </select>
 
-                  {selectedPass && selectedPass.type === "amount" && (
-                    <div className="rounded-md bg-bg px-3 py-2 text-[13px]">
-                      <div className="flex items-center justify-between">
-                        <span className="text-ink-caption">선불권 차감</span>
-                        <span className="font-medium text-ink tabular-nums">₩{passDeductAmount.toLocaleString()}</span>
-                      </div>
-                      {extraAmount > 0 && (
-                        <div className="mt-1.5 flex items-center justify-between border-t border-border-light pt-1.5">
-                          <span className="text-ink-caption">부족분</span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-medium text-ink tabular-nums">₩{extraAmount.toLocaleString()}</span>
-                            <select value={extraMethod} onChange={(e) => setExtraMethod(e.target.value)}
-                              className="rounded-sm border border-border px-1.5 py-0.5 text-[11px]">
-                              {PAY_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                            </select>
-                          </div>
+                  {selectedPass && selectedPass.type === "amount" && (() => {
+                    const afterBalance = passBalance - passDeductAmount;
+                    const extraLabel = PAY_METHODS.find((m) => m.value === extraMethod)?.label ?? extraMethod;
+                    return (
+                      <div className="rounded-md bg-bg px-3 py-2 text-[13px]">
+                        <div className="flex items-center justify-between">
+                          <span className="text-ink-caption">선불권 차감</span>
+                          <span className="font-medium text-ink tabular-nums">₩{passDeductAmount.toLocaleString()}</span>
                         </div>
-                      )}
-                      {extraAmount === 0 && amount > 0 && (
-                        <p className="mt-1 text-[11px] text-success">전액 선불권 결제</p>
-                      )}
-                    </div>
-                  )}
+                        <div className="mt-1.5 flex items-center justify-between border-t border-border-light pt-1.5">
+                          <span className="text-ink-caption">차감 후 잔액</span>
+                          <span className={`font-medium tabular-nums ${afterBalance <= 0 ? "text-ink-disabled" : "text-ink"}`}>
+                            ₩{afterBalance.toLocaleString()}{afterBalance <= 0 && " · 소진"}
+                          </span>
+                        </div>
+                        {extraAmount > 0 && (
+                          <div className="mt-1.5 flex items-center justify-between border-t border-border-light pt-1.5">
+                            <span className="text-ink-caption">부족분</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium text-ink tabular-nums">₩{extraAmount.toLocaleString()}</span>
+                              <select value={extraMethod} onChange={(e) => setExtraMethod(e.target.value)}
+                                className="rounded-sm border border-border px-1.5 py-0.5 text-[11px]">
+                                {PAY_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                              </select>
+                            </div>
+                          </div>
+                        )}
+                        <p className="mt-2 text-[11px] text-ink-caption">
+                          {extraAmount > 0
+                            ? `선불권 ₩${passDeductAmount.toLocaleString()} + ${extraLabel} ₩${extraAmount.toLocaleString()}`
+                            : `선불권 ₩${passDeductAmount.toLocaleString()} 결제`}
+                        </p>
+                      </div>
+                    );
+                  })()}
 
-                  {selectedPass && selectedPass.type === "count" && (
-                    <p className="text-[13px] text-ink-secondary">
-                      1회 차감 (잔여 <span className="font-medium tabular-nums">{(selectedPass.remaining ?? 0) - 1}회</span>)
-                    </p>
-                  )}
+                  {selectedPass && selectedPass.type === "count" && (() => {
+                    const afterCount = (selectedPass.remaining ?? 0) - 1;
+                    return (
+                      <div className="rounded-md bg-bg px-3 py-2 text-[13px] text-ink-secondary">
+                        1회 차감 · {afterCount > 0
+                          ? <span>사용 후 <span className="font-medium tabular-nums text-ink">{afterCount}회</span> 남음</span>
+                          : <span className="font-medium text-warning">마지막 회차예요</span>}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
