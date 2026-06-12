@@ -247,42 +247,50 @@ export function PetForm({
 
         {/* 사진 */}
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-ink-secondary">사진</span>
+          <span className="text-sm font-medium text-ink-secondary">프로필 사진</span>
           {fileInput}
           {previewUrl ? (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3">
-                <img src={previewUrl} alt="펫 사진" className="h-16 w-16 rounded-md object-cover" />
-                <div className="flex gap-1.5">
-                  <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-                    className="rounded-md border border-border px-3 py-1.5 text-[12px] font-medium text-ink-secondary hover:bg-bg">
-                    {uploading ? "업로드 중..." : "교체"}
-                  </button>
-                  {!confirmPhotoDelete ? (
-                    <button type="button" onClick={() => setConfirmPhotoDelete(true)}
-                      className="rounded-md border border-border px-3 py-1.5 text-[12px] font-medium text-ink-caption hover:bg-bg">
-                      삭제
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-4">
+                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="group relative shrink-0">
+                  <img src={previewUrl} alt="펫 사진" className="h-[128px] w-[128px] rounded-full object-cover" />
+                  <div className="absolute inset-0 flex items-center justify-center rounded-full bg-ink/0 transition-colors group-hover:bg-ink/20">
+                    <svg className="h-6 w-6 text-white opacity-0 transition-opacity group-hover:opacity-100" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
+                  </div>
+                </button>
+                <div className="flex flex-col gap-2">
+                  <p className="text-[11px] text-ink-disabled">차트와 캘린더에<br />이렇게 표시돼요</p>
+                  <div className="flex gap-1.5">
+                    <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+                      className="rounded-md border border-border px-3 py-1.5 text-[12px] font-medium text-ink-secondary hover:bg-bg">
+                      {uploading ? "업로드 중..." : "교체"}
                     </button>
-                  ) : (
-                    <button type="button" onClick={() => { removePhoto(); setConfirmPhotoDelete(false); }}
-                      className="rounded-md border border-danger/30 bg-danger-light px-3 py-1.5 text-[12px] font-medium text-danger">
-                      삭제 확인
-                    </button>
+                    {!confirmPhotoDelete ? (
+                      <button type="button" onClick={() => setConfirmPhotoDelete(true)}
+                        className="rounded-md border border-border px-3 py-1.5 text-[12px] font-medium text-ink-caption hover:bg-bg">
+                        삭제
+                      </button>
+                    ) : (
+                      <button type="button" onClick={() => { removePhoto(); setConfirmPhotoDelete(false); }}
+                        className="rounded-md border border-danger/30 bg-danger-light px-3 py-1.5 text-[12px] font-medium text-danger">
+                        삭제 확인
+                      </button>
+                    )}
+                  </div>
+                  {confirmPhotoDelete && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-ink-caption">프로필 사진을 삭제할까요?</span>
+                      <button type="button" onClick={() => setConfirmPhotoDelete(false)} className="text-[11px] text-ink-caption hover:underline">취소</button>
+                    </div>
                   )}
                 </div>
               </div>
-              {confirmPhotoDelete && (
-                <div className="flex items-center justify-between rounded-md bg-border-light px-3 py-2">
-                  <span className="text-[12px] text-ink-caption">프로필 사진을 삭제할까요?</span>
-                  <button type="button" onClick={() => setConfirmPhotoDelete(false)} className="text-[12px] text-ink-caption hover:underline">취소</button>
-                </div>
-              )}
             </div>
           ) : (
             <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-              className="flex items-center gap-1.5 rounded-md border border-dashed border-border px-4 py-3 text-[13px] text-ink-caption transition-colors hover:border-primary hover:text-primary">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
-              {uploading ? "업로드 중..." : "사진 추가"}
+              className="flex h-[128px] w-[128px] flex-col items-center justify-center gap-1.5 rounded-full border-2 border-dashed border-border text-ink-caption transition-colors hover:border-primary hover:text-primary">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
+              <span className="text-[11px] font-medium">{uploading ? "업로드 중..." : "사진 추가"}</span>
             </button>
           )}
         </div>
