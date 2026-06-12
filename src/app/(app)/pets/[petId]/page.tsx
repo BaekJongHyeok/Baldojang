@@ -4,6 +4,7 @@ import Link from "next/link";
 import { calcAge, sizeLabel, formatPhone } from "@/lib/utils";
 import { DeactivateButton } from "./deactivate-button";
 import { InlineCycleEdit } from "./inline-cycle-edit";
+import { InlineCautionEdit } from "./inline-caution-edit";
 import { getPetPhotoUrl } from "@/lib/storage";
 import { getAuthContext } from "@/lib/auth-cache";
 
@@ -74,7 +75,6 @@ export default async function PetChartPage({
 
   return (
     <div>
-      {/* 뒤로가기 */}
       <Link href="/pets" className="text-[13px] text-ink-caption hover:text-ink-secondary">&larr; 펫 목록</Link>
 
       <div className="mt-3 grid gap-5 lg:grid-cols-[320px_1fr]">
@@ -87,7 +87,7 @@ export default async function PetChartPage({
                 {photoSignedUrl ? (
                   <img src={photoSignedUrl} alt={pet.name} className="h-full w-full object-cover" />
                 ) : (
-                  (pet.breed ?? pet.name).charAt(0)
+                  pet.name.charAt(0)
                 )}
               </div>
               <div className="min-w-0">
@@ -106,7 +106,8 @@ export default async function PetChartPage({
                   <p className="text-[12px] text-ink-caption">보호자</p>
                   <Link href={`/customers/${customer.id}`} className="text-[14px] font-medium text-ink hover:text-primary">{customer.name}</Link>
                 </div>
-                <a href={`tel:${customer.phone}`} className="rounded-md border border-border px-2.5 py-1.5 text-[12px] font-medium text-ink-secondary hover:bg-bg tabular-nums">
+                <a href={`tel:${customer.phone}`} className="flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-[12px] font-medium text-ink-secondary hover:bg-bg tabular-nums">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
                   {formatPhone(customer.phone)}
                 </a>
                 {passBadge && (
@@ -120,7 +121,7 @@ export default async function PetChartPage({
           {latestVisit && (latestStyleMemo || latestService) && (
             <div className="rounded-lg border border-border bg-white p-4">
               <div className="flex items-center justify-between">
-                <p className="text-[13px] font-semibold text-ink-caption">지난 시술</p>
+                <p className="text-[13px] font-semibold text-ink-caption">지난 미용</p>
                 <span className="text-[11px] text-ink-disabled tabular-nums">{new Date(latestVisit.visited_at).toLocaleDateString("ko-KR")}</span>
               </div>
               <p className="mt-1 text-[14px] font-medium text-ink">{latestService?.name ?? ""}</p>
@@ -134,54 +135,74 @@ export default async function PetChartPage({
           {isIncomplete && (
             <Link href={`/pets/${petId}/edit`} className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning-light px-4 py-3 transition-colors hover:bg-warning-light/80">
               <svg className="h-4 w-4 shrink-0 text-warning" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
-              <span className="text-[13px] font-medium text-warning">정보 완성하기 — {missingFields.join(", ")} 미입력</span>
+              <span className="flex-1 text-[13px] font-medium text-warning">정보 완성하기 — {missingFields.join(", ")} 미입력</span>
+              <svg className="h-4 w-4 shrink-0 text-warning" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
             </Link>
           )}
 
-          {/* 주의사항 */}
-          {(pet.caution_tags.length > 0 || pet.caution_memo) && (
-            <div className="rounded-lg border border-danger/20 bg-danger-light p-4">
-              <p className="flex items-center gap-1.5 text-[13px] font-semibold text-danger">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                </svg>
-                주의사항
-              </p>
-              {pet.caution_tags.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {pet.caution_tags.map((tag) => (
-                    <span key={tag} className="rounded-sm bg-white/70 px-2 py-0.5 text-[12px] font-medium text-danger">{tag}</span>
-                  ))}
-                </div>
-              )}
-              {pet.caution_memo && <p className="mt-2 text-[13px] text-danger/80">{pet.caution_memo}</p>}
-            </div>
-          )}
+          {/* 주의사항 (인라인 편집) */}
+          <InlineCautionEdit petId={petId} cautionTags={pet.caution_tags} cautionMemo={pet.caution_memo} />
 
           {/* 기본 정보 */}
           <div className="rounded-lg border border-border bg-white p-4">
             <p className="text-[13px] font-semibold text-ink-caption">기본 정보</p>
             <dl className="mt-2 flex flex-col gap-1.5 text-[14px]">
               <InlineCycleEdit petId={petId} cycleWeeks={pet.cycle_weeks} />
-              <div className="flex justify-between"><dt className="text-ink-caption">접종</dt><dd className="text-ink">{pet.vaccinated === null ? "모름" : pet.vaccinated ? "완료" : "미완료"}</dd></div>
-              <div className="flex justify-between"><dt className="text-ink-caption">중성화</dt><dd className="text-ink">{pet.neutered === null ? "모름" : pet.neutered ? "완료" : "미완료"}</dd></div>
+              <div className="flex justify-between">
+                <dt className="text-ink-caption">생일</dt>
+                <dd className="text-ink">{pet.birth_date ? new Date(pet.birth_date + "T00:00:00").toLocaleDateString("ko-KR") : <Link href={`/pets/${petId}/edit`} className="text-ink-disabled hover:text-primary">미입력</Link>}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink-caption">몸무게</dt>
+                <dd className="text-ink">{pet.weight_kg ? `${pet.weight_kg}kg` : <Link href={`/pets/${petId}/edit`} className="text-ink-disabled hover:text-primary">미입력</Link>}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink-caption">접종</dt>
+                <dd className="text-ink">{pet.vaccinated === null ? <Link href={`/pets/${petId}/edit`} className="text-ink-disabled hover:text-primary">미입력</Link> : pet.vaccinated ? "완료" : "미완료"}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink-caption">중성화</dt>
+                <dd className="text-ink">{pet.neutered === null ? <Link href={`/pets/${petId}/edit`} className="text-ink-disabled hover:text-primary">미입력</Link> : pet.neutered ? "완료" : "미완료"}</dd>
+              </div>
             </dl>
           </div>
 
           {/* 액션 */}
-          <div className="flex gap-2">
-            <Link href={`/pets/${petId}/edit`} className="flex-1 rounded-md border border-border py-2 text-center text-[14px] font-medium text-ink hover:bg-bg">수정</Link>
-            {pet.is_active && <DeactivateButton petId={petId} />}
+          <div className="flex flex-col gap-2">
+            <Link
+              href={`/calendar?book=${petId}`}
+              className="flex items-center justify-center gap-1.5 rounded-md bg-primary py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-primary-hover"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+              예약 잡기
+            </Link>
+            <div className="flex gap-2">
+              <Link href={`/pets/${petId}/edit`} className="flex-1 rounded-md border border-border py-2 text-center text-[14px] font-medium text-ink hover:bg-bg">수정</Link>
+              {pet.is_active && <DeactivateButton petId={petId} />}
+            </div>
           </div>
         </div>
 
-        {/* ── 우측: 방문 기록 테이블 ── */}
+        {/* ── 우측: 방문 기록 ── */}
         <div className="rounded-lg border border-border bg-white">
           <div className="border-b border-border px-4 py-3">
             <h2 className="text-[14px] font-semibold text-ink">방문 이력</h2>
           </div>
           {!visits || visits.length === 0 ? (
-            <p className="px-4 py-10 text-center text-[14px] text-ink-caption">방문 기록이 없습니다</p>
+            <div className="flex flex-col items-center justify-center px-4 py-16">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-border-light">
+                <svg className="h-6 w-6 text-ink-disabled" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
+                </svg>
+              </div>
+              <p className="mt-3 text-[14px] font-medium text-ink-caption">아직 방문 기록이 없어요</p>
+              <Link
+                href={`/calendar?book=${petId}`}
+                className="mt-3 rounded-md bg-primary px-4 py-2 text-[13px] font-medium text-white hover:bg-primary-hover"
+              >
+                첫 예약 잡기
+              </Link>
+            </div>
           ) : (
             <>
               {/* 데스크톱 테이블 */}

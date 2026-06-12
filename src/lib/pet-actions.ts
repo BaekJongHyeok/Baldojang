@@ -237,6 +237,28 @@ export async function lookupCustomerAction(phone: string) {
   return { customer: data };
 }
 
+export async function updatePetCautionAction(formData: FormData) {
+  const supabase = await createClient();
+  const petId = String(formData.get("pet_id"));
+  const tagsRaw = formData.get("caution_tags");
+  const cautionTags: string[] = tagsRaw
+    ? String(tagsRaw).split(",").map((t) => t.trim()).filter(Boolean)
+    : [];
+  const cautionMemo = formData.get("caution_memo")
+    ? String(formData.get("caution_memo")).trim() || null
+    : null;
+
+  const { error } = await supabase
+    .from("pets")
+    .update({ caution_tags: cautionTags, caution_memo: cautionMemo })
+    .eq("id", petId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/pets/${petId}`);
+  return { success: true };
+}
+
 export async function updatePetCycleAction(formData: FormData) {
   const supabase = await createClient();
   const petId = String(formData.get("pet_id"));
