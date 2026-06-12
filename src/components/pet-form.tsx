@@ -240,11 +240,8 @@ export function PetForm({
           <input name="pet_name" type="text" required defaultValue={pet?.name ?? ""} className={INPUT_CLASS} placeholder="멍멍이" />
         </label>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-ink-secondary">견종</span>
-          <input name="breed" type="text" list="breed-list" defaultValue={pet?.breed ?? ""} className={INPUT_CLASS} placeholder="말티즈" />
-          <datalist id="breed-list">{BREEDS.map((b) => <option key={b} value={b} />)}</datalist>
-        </label>
+        <BreedCombobox defaultValue={pet?.breed ?? ""} />
+
 
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink-secondary">체급</span>
@@ -330,7 +327,7 @@ export function PetForm({
               </button>
             ))}
           </div>
-          <div className="mt-1 flex gap-1.5">
+          <div className="mt-1 flex gap-1.5 lg:w-1/2">
             <input type="text" value={customTag} onChange={(e) => setCustomTag(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomTag(); } }}
               className="min-w-0 flex-1 rounded-lg border border-border px-3 py-1.5 text-xs outline-none focus:border-primary"
@@ -372,10 +369,10 @@ export function PetForm({
       {error && <p className="text-center text-sm text-danger">{error}</p>}
 
       {/* 하단 고정 저장 바 */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-white px-4 py-3 lg:pl-[200px]">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-white px-4 py-3 lg:left-[200px]">
         <div className="mx-auto flex max-w-5xl gap-2">
           <button type="button" onClick={() => router.back()}
-            className="w-1/3 rounded-md py-2.5 text-[14px] font-medium text-ink-caption transition-colors hover:text-ink">
+            className="w-1/3 rounded-md border border-border bg-white py-2.5 text-[14px] font-medium text-ink transition-colors hover:bg-bg">
             취소
           </button>
           <button type="submit" disabled={isPending || uploading || (!isDirty && isEdit)}
@@ -386,5 +383,72 @@ export function PetForm({
         </div>
       </div>
     </form>
+  );
+}
+
+/* ── 견종 콤보박스 ── */
+function BreedCombobox({ defaultValue }: { defaultValue: string }) {
+  const [value, setValue] = useState(defaultValue);
+  const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const filtered = value
+    ? BREEDS.filter((b) => b.toLowerCase().includes(value.toLowerCase()))
+    : BREEDS;
+
+  const showList = open || focused;
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setFocused(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-1.5" ref={wrapRef}>
+      <span className="text-sm font-medium text-ink-secondary">견종</span>
+      <div className="relative">
+        <input type="hidden" name="breed" value={value} />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => { setValue(e.target.value); setOpen(true); }}
+          onFocus={() => setFocused(true)}
+          className={`${INPUT_CLASS} w-full pr-9`}
+          placeholder="말티즈"
+          autoComplete="off"
+        />
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-ink-caption hover:text-ink"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d={open ? "M4.5 15.75l7.5-7.5 7.5 7.5" : "M19.5 8.25l-7.5 7.5-7.5-7.5"} />
+          </svg>
+        </button>
+        {showList && filtered.length > 0 && (
+          <ul className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-white py-1 shadow-lg">
+            {filtered.map((b) => (
+              <li key={b}>
+                <button
+                  type="button"
+                  onClick={() => { setValue(b); setOpen(false); setFocused(false); }}
+                  className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-bg ${b === value ? "font-medium text-primary" : "text-ink"}`}
+                >
+                  {b}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 }
