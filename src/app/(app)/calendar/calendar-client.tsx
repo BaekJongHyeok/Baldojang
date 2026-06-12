@@ -341,6 +341,8 @@ export function CalendarClient({
           reservationId={completeReservation.id} petName={completeReservation.pet.name}
           startsAt={completeReservation.starts_at} endsAt={completeReservation.ends_at}
           slotMinutes={config.slotMinutes} priceQuoted={completeReservation.price_quoted}
+          servicePrice={(() => { const svc = services.find((s) => s.name === completeReservation.service.name); return svc?.price ?? null; })()}
+          petSize={(() => { const pet = pets.find((p) => p.id === completeReservation.pet.id); return pet?.size ?? null; })()}
           passes={completeReservation.customer ? passes.filter((p) => p.customerId === completeReservation.customer!.id).map((p) => ({ id: p.id, type: p.type, name: p.name, balance: p.balance, remaining: p.remaining, expires_at: p.expires_at })) : []}
           onClose={() => setCompleteId(null)} onSubmit={handleComplete}
         />

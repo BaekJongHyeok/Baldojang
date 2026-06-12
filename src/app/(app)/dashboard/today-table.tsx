@@ -18,6 +18,8 @@ type TodayItem = {
   petName: string;
   serviceName: string;
   serviceDuration: number;
+  servicePrice: Record<string, number> | null;
+  petSize: string | null;
   customerPhone: string | null;
   customerId: string | null;
   visitId: string | null;
@@ -159,6 +161,8 @@ export function TodayTable({ items, slotMinutes, today }: { items: TodayItem[]; 
           endsAt={completeItem.endsAt}
           slotMinutes={slotMinutes}
           priceQuoted={completeItem.priceQuoted}
+          servicePrice={completeItem.servicePrice}
+          petSize={completeItem.petSize}
           passes={completeItem.passes}
           onClose={() => setCompleteItem(null)}
           onSubmit={handleComplete}

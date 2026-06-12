@@ -31,7 +31,7 @@ export default async function DashboardPage() {
   const [todayResResult, todayPayResult, weekPayResult, monthPayResult, oldVisitsResult, futureResResult, weekResResult] = await Promise.all([
     supabase
       .from("reservations")
-      .select("id, starts_at, ends_at, status, price_quoted, pet_id, pets(name, photo_url, customer_id, customers(id, phone)), services(name, duration_minutes)")
+      .select("id, starts_at, ends_at, status, price_quoted, pet_id, pets(name, size, photo_url, customer_id, customers(id, phone)), services(name, duration_minutes, price)")
       .eq("shop_id", shopId)
       .gte("starts_at", todayStart)
       .lte("starts_at", todayEnd)
@@ -116,6 +116,8 @@ export default async function DashboardPage() {
       petName: pet?.name ?? "?",
       serviceName: svc?.name ?? "",
       serviceDuration: svc?.duration_minutes ?? 60,
+      servicePrice: svc?.price ? (svc.price as Record<string, number>) : null,
+      petSize: (pet?.size as string) ?? null,
       customerPhone: customer?.phone ?? null,
       customerId: customer?.id ?? null,
       visitId: visitMap[r.id] ?? null,

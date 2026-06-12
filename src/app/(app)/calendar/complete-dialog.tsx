@@ -37,11 +37,24 @@ function buildEndSlots(startsAt: string, endsAt: string): string[] {
 function formatComma(n: number): string { return n ? n.toLocaleString() : ""; }
 function parseComma(s: string): number { return Number(s.replace(/[^0-9]/g, "")) || 0; }
 
+function resolvePrice(priceQuoted: number | null, servicePrice: Record<string, number> | null, petSize: string | null): { amount: number; sizeWarning: boolean } {
+  if (priceQuoted != null && priceQuoted > 0) return { amount: priceQuoted, sizeWarning: false };
+  if (!servicePrice) return { amount: 0, sizeWarning: false };
+  if (servicePrice.all != null) return { amount: servicePrice.all, sizeWarning: false };
+  if (petSize && servicePrice[petSize] != null) return { amount: servicePrice[petSize], sizeWarning: false };
+  // 사이즈 미설정 — 첫 값 사용 + 경고
+  const first = Object.values(servicePrice).find((v) => v != null && v > 0);
+  return { amount: first ?? 0, sizeWarning: true };
+}
+
 export function CompleteDialog({
-  reservationId, petName, startsAt, endsAt, slotMinutes, priceQuoted, passes, onClose, onSubmit,
+  reservationId, petName, startsAt, endsAt, slotMinutes, priceQuoted,
+  servicePrice, petSize, passes, onClose, onSubmit,
 }: {
   reservationId: string; petName: string; startsAt: string; endsAt: string;
-  slotMinutes: number; priceQuoted: number | null; passes: PassOption[];
+  slotMinutes: number; priceQuoted: number | null;
+  servicePrice?: Record<string, number> | null; petSize?: string | null;
+  passes: PassOption[];
   onClose: () => void;
   onSubmit: (fd: FormData) => Promise<{ error?: string; success?: boolean; visitId?: string }>;
 }) {
@@ -87,7 +100,8 @@ export function CompleteDialog({
   // 결제
   const activePasses = useMemo(() => passes.filter((p) => getPassStatus(p) === "active"), [passes]);
   const hasActivePasses = activePasses.length > 0;
-  const defaultAmount = priceQuoted ?? 0;
+  const resolved = useMemo(() => resolvePrice(priceQuoted, servicePrice ?? null, petSize ?? null), [priceQuoted, servicePrice, petSize]);
+  const defaultAmount = resolved.amount;
 
   type PayMode = "card" | "cash" | "transfer" | "pass";
   const [payMode, setPayMode] = useState<PayMode>("card");
@@ -238,6 +252,7 @@ export function CompleteDialog({
                       className="min-w-0 flex-1 rounded-md border border-border px-3 py-2 text-[14px] text-ink tabular-nums outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/20" placeholder="0" />
                     <span className="text-[14px] text-ink-caption">원</span>
                   </div>
+                  {resolved.sizeWarning && <p className="mt-1 text-[11px] text-warning">사이즈 미설정 — 금액을 확인해주세요</p>}
                 </div>
               )}
 
@@ -251,6 +266,7 @@ export function CompleteDialog({
                         className="min-w-0 flex-1 rounded-md border border-border px-3 py-2 text-[14px] text-ink tabular-nums outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/20" placeholder="0" />
                       <span className="text-[14px] text-ink-caption">원</span>
                     </div>
+                    {resolved.sizeWarning && <p className="mt-1 text-[11px] text-warning">사이즈 미설정 — 금액을 확인해주세요</p>}
                   </div>
 
                   <select value={selectedPassId} onChange={(e) => setSelectedPassId(e.target.value)}
