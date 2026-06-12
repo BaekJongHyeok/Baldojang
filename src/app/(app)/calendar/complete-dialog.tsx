@@ -110,14 +110,24 @@ export function CompleteDialog({
 
   // 결제
   const activePasses = useMemo(() => passes.filter((p) => getPassStatus(p) === "active"), [passes]);
-  const [amount, setAmount] = useState(priceQuoted ?? 0);
-  const [amountDisplay, setAmountDisplay] = useState(formatComma(priceQuoted ?? 0));
+  const defaultAmount = priceQuoted ?? 0;
+  const [amount, setAmount] = useState(defaultAmount);
+  const [amountDisplay, setAmountDisplay] = useState(formatComma(defaultAmount));
   const [method, setMethod] = useState<string>("card");
   const [usePass, setUsePass] = useState(false);
   const [selectedPassId, setSelectedPassId] = useState("");
   const [extraMethod, setExtraMethod] = useState("card");
 
   const isLater = method === "later";
+
+  // 선불권 체크 시 금액이 0이면 시술가로 복원
+  function toggleUsePass(checked: boolean) {
+    setUsePass(checked);
+    if (checked && amount === 0 && defaultAmount > 0) {
+      setAmount(defaultAmount);
+      setAmountDisplay(formatComma(defaultAmount));
+    }
+  }
 
   const selectedPass = activePasses.find((p) => p.id === selectedPassId);
   const passBalance = selectedPass?.type === "amount" ? (selectedPass.balance ?? 0) : 0;
@@ -135,6 +145,8 @@ export function CompleteDialog({
 
   function doComplete() {
     if (timeError) return;
+    if (usePass && !selectedPassId) { setError("선불권을 선택해주세요."); return; }
+    if (!isLater && !usePass && amount <= 0) { setError("금액을 입력해주세요."); return; }
     const actualEndsAt = `${dateStr}T${actualEnd}:00+09:00`;
     const fd = new FormData();
     fd.set("reservation_id", reservationId);
@@ -255,22 +267,25 @@ export function CompleteDialog({
               {!isLater && (
                 <div className="mt-3 flex flex-col gap-3">
                   {/* 금액 (콤마 포맷) */}
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={amountDisplay}
-                      onChange={(e) => handleAmountChange(e.target.value)}
-                      className="min-w-0 flex-1 rounded-md border border-border px-3 py-2 text-[14px] text-ink tabular-nums outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/20"
-                      placeholder="0"
-                    />
-                    <span className="text-[14px] text-ink-caption">원</span>
+                  <div>
+                    <p className="mb-1 text-[11px] text-ink-caption">{usePass ? "시술 금액" : "결제 금액"}</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={amountDisplay}
+                        onChange={(e) => handleAmountChange(e.target.value)}
+                        className="min-w-0 flex-1 rounded-md border border-border px-3 py-2 text-[14px] text-ink tabular-nums outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/20"
+                        placeholder="0"
+                      />
+                      <span className="text-[14px] text-ink-caption">원</span>
+                    </div>
                   </div>
 
                   {/* 선불권 */}
                   {activePasses.length > 0 ? (
                     <label className="flex items-center gap-1.5 text-[13px] text-ink-secondary">
-                      <input type="checkbox" checked={usePass} onChange={(e) => setUsePass(e.target.checked)} className="rounded" />
+                      <input type="checkbox" checked={usePass} onChange={(e) => toggleUsePass(e.target.checked)} className="rounded" />
                       선불권 사용
                     </label>
                   ) : passes.length > 0 ? (
@@ -289,16 +304,25 @@ export function CompleteDialog({
                         ))}
                       </select>
                       {selectedPass && selectedPass.type === "amount" && (
-                        <div className="rounded-md bg-bg px-3 py-2 text-[13px] text-ink-secondary">
-                          차감 <span className="font-medium text-ink tabular-nums">₩{passDeductAmount.toLocaleString()}</span>
+                        <div className="rounded-md bg-bg px-3 py-2 text-[13px]">
+                          <div className="flex items-center justify-between">
+                            <span className="text-ink-caption">선불권 차감</span>
+                            <span className="font-medium text-ink tabular-nums">₩{passDeductAmount.toLocaleString()}</span>
+                          </div>
                           {extraAmount > 0 && (
-                            <span className="ml-2">
-                              + 부족분 <span className="font-medium text-ink tabular-nums">₩{extraAmount.toLocaleString()}</span>
-                              <select value={extraMethod} onChange={(e) => setExtraMethod(e.target.value)}
-                                className="ml-1 rounded-sm border border-border px-1.5 py-0.5 text-[11px]">
-                                {METHODS.filter((m) => m.value !== "later").map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                              </select>
-                            </span>
+                            <div className="mt-1.5 flex items-center justify-between border-t border-border-light pt-1.5">
+                              <span className="text-ink-caption">부족분</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium text-ink tabular-nums">₩{extraAmount.toLocaleString()}</span>
+                                <select value={extraMethod} onChange={(e) => setExtraMethod(e.target.value)}
+                                  className="rounded-sm border border-border px-1.5 py-0.5 text-[11px]">
+                                  {METHODS.filter((m) => m.value !== "later").map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                                </select>
+                              </div>
+                            </div>
+                          )}
+                          {extraAmount === 0 && amount > 0 && (
+                            <p className="mt-1 text-[11px] text-success">전액 선불권 결제</p>
                           )}
                         </div>
                       )}
