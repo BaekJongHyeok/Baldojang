@@ -32,7 +32,7 @@ export default async function PetChartPage({
     getPetPhotoUrl(pet.photo_url),
     supabase
       .from("visits")
-      .select("id, visited_at, style_memo, behavior_memo, before_photos, after_photos, services(name)")
+      .select("id, visited_at, style_memo, behavior_memo, before_photos, after_photos, services(name, recommend_cycle_weeks)")
       .eq("pet_id", petId)
       .order("visited_at", { ascending: false }),
     customer
@@ -64,14 +64,14 @@ export default async function PetChartPage({
   const latestService = latestVisit ? (Array.isArray(latestVisit.services) ? latestVisit.services[0] : latestVisit.services) : null;
   const latestStyleMemo = latestVisit?.style_memo || null;
 
-  // 프로필 완성도 체크
-  const missingFields = [
-    !pet.breed && "견종",
-    !pet.size && "체급",
-    !pet.birth_date && "생일",
-    !pet.weight_kg && "몸무게",
-  ].filter(Boolean);
-  const isIncomplete = missingFields.length > 0;
+  // 재방문 주기 출처
+  const shopDefaultCycle = ctx.shop?.defaultCycleWeeks ?? 5;
+  const serviceCycle = latestService && "recommend_cycle_weeks" in latestService ? (latestService as { recommend_cycle_weeks: number | null }).recommend_cycle_weeks : null;
+  let effectiveCycle: number;
+  let cycleSource: string;
+  if (pet.cycle_weeks != null) { effectiveCycle = pet.cycle_weeks; cycleSource = "펫 설정"; }
+  else if (serviceCycle != null) { effectiveCycle = serviceCycle; cycleSource = "시술 기준"; }
+  else { effectiveCycle = shopDefaultCycle; cycleSource = "샵 기본"; }
 
   return (
     <div>
@@ -80,7 +80,7 @@ export default async function PetChartPage({
       <div className="mt-3 grid gap-5 lg:grid-cols-[320px_1fr]">
         {/* ── 좌측: 정보 패널 ── */}
         <div className="flex flex-col gap-4">
-          {/* 프로필 */}
+          {/* 프로필 + 히어로 액션 */}
           <div className="rounded-lg border border-border bg-white p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-border-light text-[20px] font-bold text-ink-caption overflow-hidden">
@@ -90,7 +90,7 @@ export default async function PetChartPage({
                   pet.name.charAt(0)
                 )}
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <h1 className="text-[20px] font-bold text-ink">{pet.name}</h1>
                 <p className="text-[13px] text-ink-caption">{[details, age, weight].filter(Boolean).join(" · ")}</p>
                 {!pet.is_active && (
@@ -115,6 +115,19 @@ export default async function PetChartPage({
                 )}
               </div>
             )}
+
+            {/* 히어로 액션 */}
+            <div className="mt-3 flex gap-2 border-t border-border pt-3">
+              <Link
+                href={`/calendar?book=${petId}`}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-primary py-2 text-[13px] font-medium text-white transition-colors hover:bg-primary-hover"
+              >
+                예약 잡기
+              </Link>
+              <Link href={`/pets/${petId}/edit`} className="flex flex-1 items-center justify-center rounded-md border border-border py-2 text-[13px] font-medium text-ink transition-colors hover:bg-bg">
+                수정
+              </Link>
+            </div>
           </div>
 
           {/* 지난 시술 히어로 */}
@@ -131,15 +144,6 @@ export default async function PetChartPage({
             </div>
           )}
 
-          {/* 정보 완성 안내 */}
-          {isIncomplete && (
-            <Link href={`/pets/${petId}/edit`} className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning-light px-4 py-3 transition-colors hover:bg-warning-light/80">
-              <svg className="h-4 w-4 shrink-0 text-warning" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
-              <span className="flex-1 text-[13px] font-medium text-warning">정보 완성하기 — {missingFields.join(", ")} 미입력</span>
-              <svg className="h-4 w-4 shrink-0 text-warning" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-            </Link>
-          )}
-
           {/* 주의사항 (인라인 편집) */}
           <InlineCautionEdit petId={petId} cautionTags={pet.caution_tags} cautionMemo={pet.caution_memo} />
 
@@ -147,7 +151,7 @@ export default async function PetChartPage({
           <div className="rounded-lg border border-border bg-white p-4">
             <p className="text-[13px] font-semibold text-ink-caption">기본 정보</p>
             <dl className="mt-2 flex flex-col gap-1.5 text-[14px]">
-              <InlineCycleEdit petId={petId} cycleWeeks={pet.cycle_weeks} />
+              <InlineCycleEdit petId={petId} cycleWeeks={pet.cycle_weeks} effectiveCycle={effectiveCycle} cycleSource={cycleSource} />
               <div className="flex justify-between">
                 <dt className="text-ink-caption">생일</dt>
                 <dd className="text-ink">{pet.birth_date ? new Date(pet.birth_date + "T00:00:00").toLocaleDateString("ko-KR") : <Link href={`/pets/${petId}/edit`} className="text-ink-disabled hover:text-primary">미입력</Link>}</dd>
@@ -167,20 +171,12 @@ export default async function PetChartPage({
             </dl>
           </div>
 
-          {/* 액션 */}
-          <div className="flex flex-col gap-2">
-            <Link
-              href={`/calendar?book=${petId}`}
-              className="flex items-center justify-center gap-1.5 rounded-md bg-primary py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-primary-hover"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
-              예약 잡기
-            </Link>
-            <div className="flex gap-2">
-              <Link href={`/pets/${petId}/edit`} className="flex-1 rounded-md border border-border py-2 text-center text-[14px] font-medium text-ink hover:bg-bg">수정</Link>
-              {pet.is_active && <DeactivateButton petId={petId} />}
+          {/* 비활성화 (하단 강등) */}
+          {pet.is_active && (
+            <div className="border-t border-border-light pt-2">
+              <DeactivateButton petId={petId} />
             </div>
-          </div>
+          )}
         </div>
 
         {/* ── 우측: 방문 기록 ── */}

@@ -19,7 +19,7 @@ export function DeactivateButton({ petId }: { petId: string }) {
     return (
       <button
         onClick={() => setConfirm(true)}
-        className="flex-1 rounded-md border border-danger/30 py-2 text-center text-[14px] font-medium text-danger hover:bg-danger-light"
+        className="w-full py-2 text-center text-[13px] text-ink-disabled transition-colors hover:text-danger"
       >
         비활성화
       </button>
@@ -27,11 +27,15 @@ export function DeactivateButton({ petId }: { petId: string }) {
   }
 
   return (
-    <div className="flex flex-1 gap-1.5">
-      <button onClick={() => setConfirm(false)} className="flex-1 rounded-md border border-border py-2 text-[13px] font-medium text-ink-secondary">취소</button>
-      <button onClick={handleDeactivate} disabled={isPending} className="flex-1 rounded-md bg-danger py-2 text-[13px] font-medium text-white disabled:opacity-40">
-        {isPending ? "처리 중..." : "확인"}
-      </button>
+    <div className="rounded-lg border border-danger/20 bg-danger-light p-4">
+      <p className="text-[13px] font-semibold text-danger">이 펫을 비활성화할까요?</p>
+      <p className="mt-1 text-[12px] text-danger/70">목록에서 숨겨지고 기록은 보존됩니다. 언제든 다시 활성화할 수 있어요.</p>
+      <div className="mt-3 flex gap-2">
+        <button onClick={() => setConfirm(false)} className="flex-1 rounded-md border border-border bg-white py-2 text-[13px] font-medium text-ink-secondary">취소</button>
+        <button onClick={handleDeactivate} disabled={isPending} className="flex-1 rounded-md bg-danger py-2 text-[13px] font-medium text-white disabled:opacity-40">
+          {isPending ? "처리 중..." : "비활성화"}
+        </button>
+      </div>
     </div>
   );
 }

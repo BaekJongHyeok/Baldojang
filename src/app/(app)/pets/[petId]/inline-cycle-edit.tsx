@@ -4,7 +4,17 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { updatePetCycleAction } from "@/lib/pet-actions";
 
-export function InlineCycleEdit({ petId, cycleWeeks }: { petId: string; cycleWeeks: number | null }) {
+export function InlineCycleEdit({
+  petId,
+  cycleWeeks,
+  effectiveCycle,
+  cycleSource,
+}: {
+  petId: string;
+  cycleWeeks: number | null;
+  effectiveCycle: number;
+  cycleSource: string;
+}) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(cycleWeeks?.toString() ?? "");
   const [current, setCurrent] = useState(cycleWeeks);
@@ -22,6 +32,10 @@ export function InlineCycleEdit({ petId, cycleWeeks }: { petId: string; cycleWee
       else { setCurrent(num); setEditing(false); toast.success("재방문 주기가 변경되었습니다."); }
     });
   }
+
+  // 표시할 주기와 출처 (현재 값 기준)
+  const displayCycle = current ?? effectiveCycle;
+  const displaySource = current != null ? "펫 설정" : cycleSource;
 
   if (editing) {
     return (
@@ -50,7 +64,8 @@ export function InlineCycleEdit({ petId, cycleWeeks }: { petId: string; cycleWee
     <div className="flex items-center justify-between">
       <dt className="text-ink-caption">재방문 주기</dt>
       <dd className="flex items-center gap-1.5">
-        <span className="text-ink">{current ? `${current}주` : "미설정"}</span>
+        <span className="text-ink">{displayCycle}주</span>
+        <span className="text-[11px] text-ink-disabled">· {displaySource}</span>
         <button onClick={() => setEditing(true)} className="text-[12px] text-primary hover:underline">변경</button>
       </dd>
     </div>
