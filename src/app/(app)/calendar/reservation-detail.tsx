@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { formatPhone } from "@/lib/utils";
 import { PhoneButton } from "@/components/phone-button";
+import { PetAvatar } from "@/components/pet-avatar";
 import { formatTimestampKST } from "@/lib/calendar-utils";
 import type { CalendarReservation } from "@/lib/calendar-data";
 
@@ -45,11 +46,7 @@ export function ReservationDetail({
         <div className="px-5 pt-2 pb-5 lg:pt-5">
           {/* ── 헤더 ── */}
           <div className="flex items-center gap-3 pr-8">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-border-light text-[14px] font-bold text-ink-caption overflow-hidden">
-              {r.pet.photo_url
-                ? <img src={r.pet.photo_url} alt="" className="h-full w-full object-cover" />
-                : r.pet.name.charAt(0)}
-            </div>
+            <PetAvatar name={r.pet.name} photoUrl={r.pet.photo_url} size="lg" />
             <div className="min-w-0 flex-1">
               <Link href={`/pets/${r.pet.id}`} className="inline-flex items-center gap-0.5 text-[17px] font-bold text-ink hover:text-primary">
                 {r.pet.name}
