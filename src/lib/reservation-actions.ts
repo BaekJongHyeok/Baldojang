@@ -167,7 +167,6 @@ export async function deleteReservationAction(formData: FormData) {
   const supabase = await createClient();
   const reservationId = String(formData.get("reservation_id"));
 
-  // confirmed 상태만 삭제 가능 (완료/노쇼/취소는 기록 보존)
   const { data: reservation } = await supabase
     .from("reservations")
     .select("status")

@@ -115,6 +115,7 @@ export function ReservationDetail({
                   <CircleAction icon={<UserXIcon />} label="노쇼" danger onClick={() => setConfirm("no_show")} />
                   <CircleAction icon={<XIcon />} label="취소" onClick={() => setConfirm("cancelled")} />
                 </div>
+                <button onClick={() => setConfirm("delete")} className="mt-1 w-full py-1 text-[11px] text-ink-disabled transition-colors hover:text-danger">삭제</button>
               </>
             )}
 
@@ -174,8 +175,8 @@ export function ReservationDetail({
             )}
             {confirm === "delete" && r.status !== "completed" && (
               <div className="rounded-lg border border-danger/20 bg-danger-light p-3">
-                <p className="text-[14px] font-medium text-danger">이 예약을 삭제할까요?</p>
-                <p className="mt-0.5 text-[12px] text-danger/70">잘못 만든 예약을 지울 때만 사용하세요. 보호자가 취소한 경우엔 &lsquo;취소&rsquo;로 처리해야 기록이 남아요.</p>
+                <p className="text-[14px] font-medium text-danger">예약을 완전히 삭제할까요?</p>
+                <p className="mt-0.5 text-[12px] text-danger/70">보호자가 취소한 예약이라면 &lsquo;취소&rsquo;를 사용해주세요 — 취소는 기록이 남아요.</p>
                 <div className="mt-3 flex gap-2">
                   <button onClick={() => setConfirm(null)} className="flex-1 rounded-md border border-border bg-white py-2 text-[13px] font-medium text-ink-secondary">돌아가기</button>
                   <button onClick={() => onDelete(r.id)} className="flex-1 rounded-md bg-danger py-2 text-[13px] font-medium text-white">삭제</button>
