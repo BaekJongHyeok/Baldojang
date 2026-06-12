@@ -281,9 +281,6 @@ export async function completeWithVisitAction(formData: FormData) {
   if (!staff) return { error: "스태프 정보를 찾을 수 없습니다." };
 
   const reservationId = String(formData.get("reservation_id"));
-  const actualEndsAt = formData.get("actual_ends_at")
-    ? String(formData.get("actual_ends_at"))
-    : null;
   const styleMemo = formData.get("style_memo")
     ? String(formData.get("style_memo"))
     : null;
@@ -389,12 +386,10 @@ export async function completeWithVisitAction(formData: FormData) {
     }
   }
 
-  // 명시적 종료 시각으로 ends_at 업데이트
-  const newEndsAt = actualEndsAt ?? reservation.ends_at;
-
+  // reservation의 starts_at/ends_at은 "예약된 시간" — 완료 처리에서 수정하지 않음
   const { error: statusErr } = await supabase
     .from("reservations")
-    .update({ status: "completed", ends_at: newEndsAt })
+    .update({ status: "completed" })
     .eq("id", reservationId);
 
   if (statusErr) {

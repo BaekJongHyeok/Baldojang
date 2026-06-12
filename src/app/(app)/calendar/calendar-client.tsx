@@ -233,23 +233,24 @@ export function CalendarClient({
 
   const handleComplete = useCallback(async (fd: FormData): Promise<{ error?: string; success?: boolean; visitId?: string }> => {
     const reservationId = String(fd.get("reservation_id"));
-    const actualEndsAt = fd.get("actual_ends_at") ? String(fd.get("actual_ends_at")) : null;
-    setPatches((prev) => { const next = new Map(prev); next.set(reservationId, { status: "completed" as const, ...(actualEndsAt ? { ends_at: actualEndsAt } : {}) }); return next; });
+    setPatches((prev) => { const next = new Map(prev); next.set(reservationId, { status: "completed" as const }); return next; });
     setCompleteId(null);
     setSelectedId(null);
     const result = await completeWithVisitAction(fd);
     if (result?.error) { setPatches((prev) => { const next = new Map(prev); next.delete(reservationId); return next; }); toast.error(result.error); return result; }
+    // 토스트 1개로 통일: 선불권 소진 안내는 description으로 병합
+    let passDesc: string | undefined;
     const passId = String(fd.get("pass_id") ?? "");
-    const passType = String(fd.get("pass_type") ?? "");
-    const passAmount = Number(fd.get("pass_amount") ?? 0);
     if (passId) {
+      const passType = String(fd.get("pass_type") ?? "");
+      const passAmount = Number(fd.get("pass_amount") ?? 0);
       const usedPass = passes.find((p) => p.id === passId);
       if (usedPass) {
         const newBalance = passType === "amount" ? (usedPass.balance ?? 0) - passAmount : (usedPass.remaining ?? 0) - 1;
-        if (newBalance <= 0) toast.info("선불권이 모두 소진됐어요. 재충전을 권유해보세요.");
+        if (newBalance <= 0) passDesc = "선불권이 모두 소진됐어요. 재충전을 권유해보세요.";
       }
     }
-    if (result.visitId) toast("완료 카드를 만들어보세요", { action: { label: "완료 카드 만들기", onClick: () => router.push(`/visits/${result.visitId}/card`) } });
+    if (result.visitId) toast("완료 카드를 만들어보세요", { description: passDesc, action: { label: "완료 카드 만들기", onClick: () => router.push(`/visits/${result.visitId}/card`) } });
     router.refresh();
     return { success: true, visitId: result.visitId };
   }, [router, passes]);
