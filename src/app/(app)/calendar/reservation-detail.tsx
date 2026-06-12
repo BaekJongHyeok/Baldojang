@@ -113,12 +113,17 @@ export function ReservationDetail({
 
           {confirm && (
             <div className="rounded-md bg-bg p-3">
-              <p className="text-[14px] text-ink">
-                {confirm === "no_show" ? "노쇼 처리하시겠습니까?" : "예약을 취소하시겠습니까?"}
+              <p className="text-[14px] font-medium text-ink">
+                {confirm === "no_show" ? "노쇼로 처리할까요?" : "예약을 취소할까요?"}
               </p>
-              <div className="mt-2 flex gap-2">
-                <button onClick={() => setConfirm(null)} className="flex-1 rounded-md border border-border py-2 text-[13px] font-medium text-ink-secondary">아니오</button>
-                <button onClick={() => onStatusChange(r.id, confirm)} className="flex-1 rounded-md bg-danger py-2 text-[13px] font-medium text-white">확인</button>
+              <p className="mt-0.5 text-[12px] text-ink-caption">
+                {confirm === "no_show" ? "예약은 노쇼로 기록되고 시간대는 비워져요." : "예약이 취소되고 시간대는 비워져요."}
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button onClick={() => setConfirm(null)} className="flex-1 rounded-md border border-border py-2 text-[13px] font-medium text-ink-secondary">돌아가기</button>
+                <button onClick={() => onStatusChange(r.id, confirm)} className="flex-1 rounded-md bg-danger py-2 text-[13px] font-medium text-white">
+                  {confirm === "no_show" ? "노쇼 처리" : "예약 취소"}
+                </button>
               </div>
             </div>
           )}
