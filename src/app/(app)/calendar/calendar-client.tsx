@@ -34,6 +34,7 @@ export function CalendarClient({
   pets,
   services,
   passes,
+  bookPetId,
 }: {
   reservations: CalendarReservation[];
   allDays: DayInfo[];
@@ -43,6 +44,7 @@ export function CalendarClient({
   pets: FormPet[];
   services: FormService[];
   passes: { id: string; type: string; name: string; balance: number | null; remaining: number | null; expires_at: string | null; customerId: string }[];
+  bookPetId?: string;
 }) {
   const router = useRouter();
   const [patches, setPatches] = useState<Map<string, Partial<CalendarReservation> | "remove">>(new Map());
@@ -81,6 +83,19 @@ export function CalendarClient({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [formState, setFormState] = useState<FormState>(null);
   const [completeId, setCompleteId] = useState<string | null>(null);
+
+  // ?book= 파라미터: 마운트 시 1회, 유효한 펫이면 생성 폼 자동 오픈
+  const bookHandledRef = useRef(false);
+  useEffect(() => {
+    if (bookHandledRef.current || !bookPetId) return;
+    bookHandledRef.current = true;
+    const pet = pets.find((p) => p.id === bookPetId);
+    if (pet) {
+      setFormState({ mode: "create" });
+    }
+    // URL에서 book 제거 (새로고침 시 재오픈 방지)
+    router.replace(`/calendar?date=${initialDate}`, { scroll: false });
+  }, [bookPetId, pets, router, initialDate]);
 
   const reservations = localReservations;
   const rangeStart = allDays[0].date;
@@ -189,7 +204,7 @@ export function CalendarClient({
     else router.refresh();
   }, [router]);
 
-  const handleComplete = useCallback(async (fd: FormData): Promise<{ error?: string; success?: boolean }> => {
+  const handleComplete = useCallback(async (fd: FormData): Promise<{ error?: string; success?: boolean; visitId?: string }> => {
     const reservationId = String(fd.get("reservation_id"));
     const actualEndsAt = fd.get("actual_ends_at") ? String(fd.get("actual_ends_at")) : null;
     setPatches((prev) => { const next = new Map(prev); next.set(reservationId, { status: "completed" as const, ...(actualEndsAt ? { ends_at: actualEndsAt } : {}) }); return next; });
@@ -209,7 +224,7 @@ export function CalendarClient({
     }
     if (result.visitId) toast("완료 카드를 만들어보세요", { action: { label: "카드 만들기", onClick: () => router.push(`/visits/${result.visitId}/card`) } });
     router.refresh();
-    return { success: true };
+    return { success: true, visitId: result.visitId };
   }, [router, passes]);
 
   // --- 헤더 날짜 텍스트 ---
@@ -309,6 +324,7 @@ export function CalendarClient({
           pets={pets} services={services} hours={currentDayInfo?.hours ?? null}
           slotMinutes={config.slotMinutes} date={selectedDate}
           initialTime={formState.mode === "create" ? formState.time : undefined}
+          initialPetId={formState.mode === "create" ? bookPetId : undefined}
           existingReservations={dayReservations}
           editReservation={formState.mode === "edit" ? formState.reservation : undefined}
           onClose={() => setFormState(null)}

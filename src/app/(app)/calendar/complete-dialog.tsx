@@ -62,7 +62,7 @@ export function CompleteDialog({
   priceQuoted: number | null;
   passes: PassOption[];
   onClose: () => void;
-  onSubmit: (fd: FormData) => Promise<{ error?: string; success?: boolean }>;
+  onSubmit: (fd: FormData) => Promise<{ error?: string; success?: boolean; visitId?: string }>;
 }) {
   const [isPending, startTransition] = useTransition();
   const [done, setDone] = useState(false);
@@ -164,7 +164,7 @@ export function CompleteDialog({
     startTransition(async () => {
       const result = await onSubmit(fd);
       if (result?.error) setError(result.error);
-      else setDone(true);
+      else { if (result?.visitId) setVisitId(result.visitId); setDone(true); }
     });
   }
 

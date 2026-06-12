@@ -30,6 +30,7 @@ type Props = {
   slotMinutes: number;
   date: string;
   initialTime?: string;
+  initialPetId?: string;
   existingReservations: CalendarReservation[];
   editReservation?: CalendarReservation;
   onClose: () => void;
@@ -69,6 +70,7 @@ export function ReservationForm({
   slotMinutes,
   date,
   initialTime,
+  initialPetId,
   existingReservations,
   editReservation,
   onClose,
@@ -85,7 +87,7 @@ export function ReservationForm({
   const editServiceId = editReservation ? (services.find((s) => s.name === editReservation.service.name && s.duration_minutes === editReservation.service.duration_minutes)?.id ?? services.find((s) => s.name === editReservation.service.name)?.id ?? "") : "";
 
   const [petSearch, setPetSearch] = useState("");
-  const [petId, setPetId] = useState(editReservation?.pet.id ?? "");
+  const [petId, setPetId] = useState(editReservation?.pet.id ?? initialPetId ?? "");
   const [serviceId, setServiceId] = useState(editServiceId);
   const [startTime, setStartTime] = useState(editStartTime || initialTime || "");
   const [endTime, setEndTime] = useState(editEndTime);
