@@ -1,9 +1,17 @@
-/** 전화번호 자동 하이픈 포맷 (010-1234-5678) */
+/** 전화번호 자동 하이픈 포맷 (010-1234-5678 / 02-1234-5678 / 031-123-4567) */
 export function formatPhone(value: string): string {
   const digits = value.replace(/[^0-9]/g, "").slice(0, 11);
+  // 02 지역번호: 2-4-4 또는 2-3-4
+  if (digits.startsWith("02")) {
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+    if (digits.length <= 10) return `${digits.slice(0, 2)}-${digits.slice(2, digits.length - 4)}-${digits.slice(digits.length - 4)}`;
+    return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  // 010/011/031 등 3자리: 3-4-4 또는 3-3-4
   if (digits.length <= 3) return digits;
   if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, digits.length - 4)}-${digits.slice(digits.length - 4)}`;
 }
 
 /** 생년월일로부터 나이 계산 */

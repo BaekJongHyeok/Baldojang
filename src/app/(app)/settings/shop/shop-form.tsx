@@ -3,6 +3,7 @@
 import { useTransition, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { formatPhone } from "@/lib/utils";
 import { updateShopAction } from "@/lib/settings-actions";
 import { Spinner } from "@/components/spinner";
 
@@ -44,6 +45,7 @@ export function ShopSettingsForm({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [shopPhone, setShopPhone] = useState(phone ? formatPhone(phone) : "");
   const [hours, setHours] = useState<OpenHours>(openHours);
   const [isDirty, setDirty] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -89,7 +91,7 @@ export function ShopSettingsForm({
 
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-ink-secondary">전화번호</span>
-        <input name="phone" type="tel" defaultValue={phone} className={INPUT} placeholder="02-1234-5678" />
+        <input name="phone" type="tel" value={shopPhone} onChange={(e) => { setShopPhone(formatPhone(e.target.value)); setDirty(true); }} className={INPUT} placeholder="02-1234-5678" />
       </label>
 
       <label className="flex flex-col gap-1.5">
