@@ -112,7 +112,7 @@ export default async function DashboardPage() {
 
       {/* KPI 스트립 */}
       <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-4">
-        <KPI label="오늘 예약" value={String(totalCount)} suffix="건" sub={noshowCount > 0 ? `노쇼 ${noshowCount}` : undefined} />
+        <KPI label="오늘 예약" value={String(totalCount)} suffix="건" sub={noshowCount > 0 ? `노쇼 ${noshowCount}` : undefined} subDanger />
         <KPI label="완료" value={String(completedCount)} suffix="건" />
         <KPI label="오늘 매출" value={`₩${todayRev.service.toLocaleString()}`} sub={todayRev.pass > 0 ? `+ 선불권 ₩${todayRev.pass.toLocaleString()}` : undefined} />
         <KPI label="이번 주 예약" value={String(weekBookingCount)} suffix="건" href="/calendar" />
@@ -122,7 +122,9 @@ export default async function DashboardPage() {
       <div className="mt-5 rounded-lg border border-border bg-white">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="text-[14px] font-semibold text-ink">오늘 예약</h2>
-          <Link href={`/calendar?date=${today}`} className="text-[12px] font-medium text-primary hover:underline">캘린더 보기</Link>
+          <Link href={`/calendar?date=${today}`} aria-label="캘린더 보기" className="flex h-8 w-8 items-center justify-center rounded-full text-ink-caption transition-colors hover:bg-border-light hover:text-ink">
+            <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+          </Link>
         </div>
 
         {active.length === 0 ? (
@@ -248,7 +250,9 @@ export default async function DashboardPage() {
         <div className="rounded-lg border border-border bg-white">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-[14px] font-semibold text-ink">재방문 추천</h2>
-            <Link href="/retention" className="text-[12px] font-medium text-primary hover:underline">전체 보기</Link>
+            <Link href="/retention" aria-label="재방문 추천" className="flex h-8 w-8 items-center justify-center rounded-full text-ink-caption transition-colors hover:bg-border-light hover:text-ink">
+              <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+            </Link>
           </div>
           <div className="px-4 py-4">
             {retentionCount > 0 ? (
@@ -270,7 +274,9 @@ export default async function DashboardPage() {
         <div className="rounded-lg border border-border bg-white">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-[14px] font-semibold text-ink">매출</h2>
-            <Link href="/reports" className="text-[12px] font-medium text-primary hover:underline">리포트</Link>
+            <Link href="/reports" aria-label="매출 리포트" className="flex h-8 w-8 items-center justify-center rounded-full text-ink-caption transition-colors hover:bg-border-light hover:text-ink">
+              <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
+            </Link>
           </div>
           <div className="px-4 py-4">
             <dl className="flex flex-col gap-2 text-[14px]">
@@ -302,14 +308,14 @@ export default async function DashboardPage() {
   );
 }
 
-function KPI({ label, value, suffix, sub, href, highlight }: { label: string; value: string; suffix?: string; sub?: string; href?: string; highlight?: boolean }) {
+function KPI({ label, value, suffix, sub, subDanger, href }: { label: string; value: string; suffix?: string; sub?: string; subDanger?: boolean; href?: string }) {
   const inner = (
-    <div className={`bg-white px-4 py-3 ${highlight ? "text-primary" : ""}`}>
-      <p className="text-[12px] text-ink-caption">{label}</p>
-      <p className={`mt-0.5 text-[20px] font-bold tabular-nums ${highlight ? "text-primary" : "text-ink"}`}>
+    <div className="overflow-hidden bg-white px-4 py-3">
+      <p className="truncate text-[12px] text-ink-caption">{label}</p>
+      <p className="mt-0.5 truncate text-[20px] font-bold tabular-nums text-ink">
         {value}{suffix && <span className="text-[14px] font-medium text-ink-caption ml-0.5">{suffix}</span>}
       </p>
-      {sub && <p className="text-[11px] text-danger">{sub}</p>}
+      {sub && <p className={`truncate text-[11px] ${subDanger ? "text-danger" : "text-ink-caption"}`}>{sub}</p>}
     </div>
   );
   if (href) return <Link href={href} className="hover:bg-border-light/50 transition-colors">{inner}</Link>;
