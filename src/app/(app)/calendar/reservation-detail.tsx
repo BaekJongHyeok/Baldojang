@@ -118,36 +118,15 @@ export function ReservationDetail({
               </>
             )}
 
-            {/* completed */}
-            {r.status === "completed" && !confirm && (
+            {/* 종료 상태 (completed / no_show / cancelled) — 통일 구조 */}
+            {isTerminal && !confirm && (
               <>
-                <p className="text-center text-[13px] text-success">시술이 완료됐어요</p>
-                <Link href={`/pets/${r.pet.id}`} className="block rounded-md bg-primary py-2.5 text-center text-[14px] font-medium text-white transition-colors hover:bg-primary-hover">펫 차트</Link>
-                <div className="flex justify-around">
-                  <CircleAction icon={<UndoIcon />} label="되돌리기" onClick={() => setConfirm("revert_complete")} />
-                </div>
-              </>
-            )}
-
-            {/* no_show */}
-            {r.status === "no_show" && !confirm && (
-              <>
-                <p className="text-center text-[13px] text-danger">노쇼로 처리된 예약이에요</p>
+                <p className="text-center text-[13px] text-ink-caption">
+                  {r.status === "completed" ? "시술이 완료됐어요" : r.status === "no_show" ? "노쇼로 처리된 예약이에요" : "취소된 예약이에요"}
+                </p>
                 <div className="flex justify-around">
                   <CircleAction icon={<ChartIcon />} label="펫 차트" href={`/pets/${r.pet.id}`} />
-                  <CircleAction icon={<UndoIcon />} label="되돌리기" onClick={() => onStatusChange(r.id, "confirmed")} />
-                  <CircleAction icon={<TrashIcon />} label="삭제" danger onClick={() => setConfirm("delete")} />
-                </div>
-              </>
-            )}
-
-            {/* cancelled */}
-            {r.status === "cancelled" && !confirm && (
-              <>
-                <p className="text-center text-[13px] text-ink-caption">취소된 예약이에요</p>
-                <div className="flex justify-around">
-                  <CircleAction icon={<ChartIcon />} label="펫 차트" href={`/pets/${r.pet.id}`} />
-                  <CircleAction icon={<UndoIcon />} label="되돌리기" onClick={() => onStatusChange(r.id, "confirmed")} />
+                  <CircleAction icon={<UndoIcon />} label="되돌리기" onClick={() => r.status === "completed" ? setConfirm("revert_complete") : onStatusChange(r.id, "confirmed")} />
                   <CircleAction icon={<TrashIcon />} label="삭제" danger onClick={() => setConfirm("delete")} />
                 </div>
               </>
@@ -184,7 +163,16 @@ export function ReservationDetail({
             )}
 
             {/* 삭제 confirm */}
-            {confirm === "delete" && (
+            {confirm === "delete" && r.status === "completed" && (
+              <div className="rounded-lg border border-border bg-bg p-3">
+                <p className="text-[14px] font-medium text-ink">방문 기록이 있는 예약이에요</p>
+                <p className="mt-0.5 text-[12px] text-ink-caption">먼저 &lsquo;되돌리기&rsquo;로 완료를 취소한 후 삭제할 수 있어요.</p>
+                <div className="mt-3">
+                  <button onClick={() => setConfirm(null)} className="w-full rounded-md border border-border bg-white py-2 text-[13px] font-medium text-ink-secondary">돌아가기</button>
+                </div>
+              </div>
+            )}
+            {confirm === "delete" && r.status !== "completed" && (
               <div className="rounded-lg border border-danger/20 bg-danger-light p-3">
                 <p className="text-[14px] font-medium text-danger">이 예약을 삭제할까요?</p>
                 <p className="mt-0.5 text-[12px] text-danger/70">잘못 만든 예약을 지울 때만 사용하세요. 보호자가 취소한 경우엔 &lsquo;취소&rsquo;로 처리해야 기록이 남아요.</p>
