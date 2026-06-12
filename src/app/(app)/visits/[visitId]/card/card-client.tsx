@@ -6,7 +6,7 @@ import { toPng } from "html-to-image";
 import { toast } from "sonner";
 import { formatTimestampKST } from "@/lib/calendar-utils";
 import { resizeImage, formatPhone } from "@/lib/utils";
-import { addVisitPhotosAction, deleteVisitPhotoAction, moveVisitPhotoAction } from "@/lib/visit-actions";
+import { addVisitPhotosAction, deleteVisitPhotoAction } from "@/lib/visit-actions";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/spinner";
 
@@ -32,7 +32,10 @@ const CARD_SIZES = { "4:5": { w: 1080, h: 1350 }, "9:16": { w: 1080, h: 1920 } }
 export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   const router = useRouter();
   const renderRef = useRef<HTMLDivElement>(null);
-  const [template, setTemplate] = useState<"minimal" | "photo">("minimal");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [template, setTemplate] = useState<"minimal" | "photo" | "ba">(
+    visit.beforePhotos.length > 0 && visit.afterPhotos.length > 0 ? "ba" : "minimal"
+  );
   const [ratio, setRatio] = useState<"4:5" | "9:16">("4:5");
 
   const [beforePhotos, setBeforePhotos] = useState(visit.beforePhotos);
@@ -42,31 +45,21 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   const [downloading, setDownloading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [confirmDelete, setConfirmDelete] = useState<{ path: string; type: "before" | "after" } | null>(null);
-
-  // 비포/애프터 모드
-  const [baMode, setBaMode] = useState(beforePhotos.length > 0 && afterPhotos.length > 0);
-  const [assignStep, setAssignStep] = useState<"ask" | "upload" | null>(null);
+  const [uploadTarget, setUploadTarget] = useState<"before" | "after" | "single" | null>(null);
 
   const brandColor = shop.brandColor || "#292524";
-  const totalPhotos = beforePhotos.length + afterPhotos.length;
-  const hasPhotos = totalPhotos > 0;
-  const hasBothPhotos = beforePhotos.length > 0 && afterPhotos.length > 0;
-
-  // 단일 모드: 카드에 표시할 사진 (어느 배열에 있든 첫 장)
+  const isBA = template === "ba";
   const singlePhoto = afterPhotos[0]?.url ?? beforePhotos[0]?.url ?? "";
-
-  // BA 모드: before/after 각각
   const beforeUrl = beforePhotos[0]?.url ?? null;
   const afterUrl = afterPhotos[0]?.url ?? null;
+  const hasPhotos = (afterPhotos.length + beforePhotos.length) > 0;
 
   const displayMsg = customMsg || message;
   const size = CARD_SIZES[ratio];
 
-  // 카드 props
   const cardProps = {
-    photo: baMode && afterUrl ? afterUrl : singlePhoto,
-    beforePhoto: baMode && hasBothPhotos ? beforeUrl : null,
+    photo: isBA && afterUrl ? afterUrl : singlePhoto,
+    beforePhoto: isBA && beforeUrl && afterUrl ? beforeUrl : null,
     petName: pet.name,
     breed: pet.breed,
     serviceName,
@@ -110,70 +103,52 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
     return { path, url };
   }
 
-  // 0장 → 사진 추가 (after로 저장)
-  function handleFirstUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    startTransition(async () => {
-      const photo = await uploadPhoto(file, "after");
-      if (photo) { setAfterPhotos([photo]); toast.success("사진이 등록됐어요."); router.refresh(); }
-    });
+  // 슬롯 클릭 → 파일 선택 트리거
+  function triggerUpload(target: "before" | "after" | "single") {
+    setUploadTarget(target);
+    fileRef.current?.click();
   }
 
-  // BA 모드: 기존 사진 타입 지정
-  function handleAssignType(type: "before" | "after") {
-    const existingPhoto = afterPhotos[0] ?? beforePhotos[0];
-    if (!existingPhoto) return;
-    const currentType = afterPhotos.length > 0 ? "after" : "before";
-    if (currentType === type) {
-      setAssignStep("upload");
-      return;
-    }
-    // 이동 필요
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !uploadTarget) return;
+    e.target.value = ""; // 같은 파일 재선택 허용
+
+    const dbType = uploadTarget === "single" ? "after" : uploadTarget;
+    const isReplace = uploadTarget === "single" ? afterPhotos.length > 0 || beforePhotos.length > 0
+      : uploadTarget === "before" ? beforePhotos.length > 0 : afterPhotos.length > 0;
+    const oldPhoto = uploadTarget === "single" ? (afterPhotos[0] ?? beforePhotos[0])
+      : uploadTarget === "before" ? beforePhotos[0] : afterPhotos[0];
+
     startTransition(async () => {
-      const fd = new FormData();
-      fd.set("visit_id", visit.id); fd.set("path", existingPhoto.path);
-      fd.set("from", currentType); fd.set("to", type);
-      const result = await moveVisitPhotoAction(fd);
-      if (result?.error) { toast.error(result.error); return; }
-      if (type === "before") {
-        setBeforePhotos([existingPhoto]); setAfterPhotos([]);
-      } else {
-        setAfterPhotos([existingPhoto]); setBeforePhotos([]);
+      // 교체 시 기존 사진 삭제
+      if (isReplace && oldPhoto) {
+        const oldType = afterPhotos.includes(oldPhoto) ? "after" : "before";
+        const fd = new FormData();
+        fd.set("visit_id", visit.id); fd.set("path", oldPhoto.path); fd.set("type", oldType);
+        await deleteVisitPhotoAction(fd);
+        if (oldType === "before") setBeforePhotos([]);
+        else setAfterPhotos([]);
       }
-      setAssignStep("upload");
-      router.refresh();
-    });
-  }
-
-  // BA 모드: 나머지 사진 업로드
-  function handleSecondUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const type = afterPhotos.length === 0 ? "after" : "before";
-    startTransition(async () => {
-      const photo = await uploadPhoto(file, type);
+      const photo = await uploadPhoto(file, dbType);
       if (photo) {
-        if (type === "before") setBeforePhotos([photo]);
+        if (dbType === "before") setBeforePhotos([photo]);
         else setAfterPhotos([photo]);
-        setAssignStep(null);
-        toast.success("비포/애프터 카드가 준비됐어요!");
+        toast.success("사진이 등록됐어요.");
         router.refresh();
       }
     });
+    setUploadTarget(null);
   }
 
-  function handleDelete() {
-    if (!confirmDelete) return;
-    const { path, type } = confirmDelete;
+  function handleDeleteSlot(type: "before" | "after") {
+    const photo = type === "before" ? beforePhotos[0] : afterPhotos[0];
+    if (!photo) return;
     const prevB = beforePhotos, prevA = afterPhotos;
-    if (type === "before") setBeforePhotos(beforePhotos.filter((p) => p.path !== path));
-    else setAfterPhotos(afterPhotos.filter((p) => p.path !== path));
-    if (type === "before" && beforePhotos.length <= 1) { setBaMode(false); setAssignStep(null); }
-    if (type === "after" && afterPhotos.length <= 1 && beforePhotos.length === 0) { setBaMode(false); setAssignStep(null); }
-    setConfirmDelete(null);
+    if (type === "before") setBeforePhotos([]);
+    else setAfterPhotos([]);
     const fd = new FormData();
-    fd.set("visit_id", visit.id); fd.set("path", path); fd.set("type", type);
+    fd.set("visit_id", visit.id); fd.set("path", photo.path); fd.set("type", type);
     startTransition(async () => {
       const result = await deleteVisitPhotoAction(fd);
       if (result?.error) { toast.error(result.error); setBeforePhotos(prevB); setAfterPhotos(prevA); }
@@ -181,25 +156,25 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
     });
   }
 
-  function toggleBaMode(on: boolean) {
-    setBaMode(on);
-    if (on && totalPhotos === 1) setAssignStep("ask");
-    else setAssignStep(null);
-  }
+  // hidden file input
+  const hiddenInput = <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />;
 
   // === 0장: 안내 화면 ===
   if (!hasPhotos) {
     return (
       <div>
+        {hiddenInput}
         <h1 className="text-xl font-bold text-ink">완료 카드</h1>
-        <div className="mt-6 rounded-lg bg-white p-6 text-center">
-          <p className="text-4xl">📷</p>
-          <p className="mt-3 text-sm font-medium text-ink-secondary">시술 사진을 등록해주세요</p>
-          <p className="mt-1 text-xs text-ink-caption">사진을 등록하면 완료 카드를 만들 수 있어요</p>
-          <label className="mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-white cursor-pointer hover:bg-primary-hover">
+        <div className="mt-6 rounded-lg border border-border bg-white p-6 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-border-light">
+            <svg className="h-6 w-6 text-ink-disabled" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
+          </div>
+          <p className="mt-3 text-[14px] font-medium text-ink-caption">시술 사진을 등록해주세요</p>
+          <p className="mt-1 text-[12px] text-ink-disabled">사진을 등록하면 완료 카드를 만들 수 있어요</p>
+          <button onClick={() => triggerUpload("single")} disabled={isPending}
+            className="mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50">
             {isPending && <Spinner />} 사진 추가
-            <input type="file" accept="image/*" onChange={handleFirstUpload} className="hidden" />
-          </label>
+          </button>
         </div>
       </div>
     );
@@ -233,18 +208,23 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   // === 1장 이상: 카드 편집 ===
   return (
     <div>
+      {hiddenInput}
       <h1 className="text-xl font-bold text-ink">완료 카드</h1>
 
       <div className="mt-4 grid gap-6 lg:grid-cols-[380px_1fr]">
-        {/* ── 좌측: 컨트롤 패널 (모바일에서는 프리뷰 아래) ── */}
+        {/* ── 좌측: 컨트롤 패널 ── */}
         <div className="order-2 flex flex-col gap-4 lg:order-1">
           {/* 템플릿 */}
           <div className="rounded-lg border border-border bg-white p-4">
             <p className="text-[13px] font-semibold text-ink-caption">템플릿</p>
             <div className="mt-2 flex flex-wrap gap-2 items-center">
               <div className="flex rounded-lg bg-border-light p-0.5">
-                <button onClick={() => setTemplate("minimal")} className={`rounded-md px-3 py-1.5 text-xs font-medium ${template === "minimal" ? "bg-white text-ink shadow-sm" : "text-ink-caption"}`}>미니멀</button>
-                <button onClick={() => setTemplate("photo")} className={`rounded-md px-3 py-1.5 text-xs font-medium ${template === "photo" ? "bg-white text-ink shadow-sm" : "text-ink-caption"}`}>포토</button>
+                {(["minimal", "photo", "ba"] as const).map((t) => (
+                  <button key={t} onClick={() => setTemplate(t)}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium ${template === t ? "bg-white text-ink shadow-sm" : "text-ink-caption"}`}>
+                    {t === "minimal" ? "미니멀" : t === "photo" ? "포토" : "비포·애프터"}
+                  </button>
+                ))}
               </div>
               <div className="flex rounded-lg bg-border-light p-0.5">
                 <button onClick={() => setRatio("4:5")} className={`rounded-md px-3 py-1.5 text-xs font-medium ${ratio === "4:5" ? "bg-white text-ink shadow-sm" : "text-ink-caption"}`}>4:5</button>
@@ -253,71 +233,20 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
             </div>
           </div>
 
-          {/* 사진 */}
+          {/* 사진 — 슬롯 기반 */}
           <div className="rounded-lg border border-border bg-white p-4">
             <p className="text-[13px] font-semibold text-ink-caption">사진</p>
-            {totalPhotos > 0 && (
-              <div className="mt-2 flex gap-1.5">
-                {[...afterPhotos.map((p) => ({ ...p, t: "after" as const })), ...beforePhotos.map((p) => ({ ...p, t: "before" as const }))].map((photo) => (
-                  <div key={photo.path} className="relative h-14 w-14 shrink-0">
-                    <div className="h-full w-full overflow-hidden rounded-lg border-2 border-primary">
-                      <img src={photo.url} alt="" className="h-full w-full object-cover" />
-                    </div>
-                    {baMode && (
-                      <span className={`absolute bottom-0 left-0 right-0 rounded-b-lg text-center text-[8px] font-bold text-white leading-tight pointer-events-none ${photo.t === "before" ? "bg-black/50" : "bg-primary/50"}`}>
-                        {photo.t === "before" ? "전" : "후"}
-                      </span>
-                    )}
-                    <button type="button" onClick={() => setConfirmDelete({ path: photo.path, type: photo.t })}
-                      className="absolute -right-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow">×</button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {confirmDelete && (
-              <div className="mt-2 flex items-center gap-2 rounded-md bg-danger-light px-3 py-2">
-                <p className="flex-1 text-xs text-danger">이 사진을 삭제할까요?</p>
-                <button onClick={() => setConfirmDelete(null)} className="text-xs text-ink-caption">취소</button>
-                <button onClick={handleDelete} disabled={isPending}
-                  className="flex items-center gap-1 rounded-md bg-red-500 px-2.5 py-1 text-xs font-medium text-white disabled:opacity-50">
-                  {isPending && <Spinner className="h-3 w-3" />}삭제</button>
-              </div>
-            )}
-            <div className="mt-2 flex flex-col gap-2">
-              {!baMode && totalPhotos < 2 && (
-                <label className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-[12px] font-medium text-ink-secondary cursor-pointer hover:bg-bg">
-                  {isPending && <Spinner className="h-3 w-3" />}+ 사진 추가
-                  <input type="file" accept="image/*" onChange={handleFirstUpload} className="hidden" />
-                </label>
-              )}
-              {totalPhotos === 1 && !hasBothPhotos && (
-                <button onClick={() => toggleBaMode(!baMode)}
-                  className={`self-start rounded-md px-3 py-1.5 text-[12px] font-medium transition ${baMode ? "bg-primary text-white" : "border border-border text-ink-secondary hover:bg-bg"}`}>
-                  {baMode ? "비포/애프터 모드 ON" : "비포/애프터 카드 만들기"}
-                </button>
-              )}
-              {baMode && assignStep === "ask" && (
-                <div className="rounded-md bg-primary-light p-3">
-                  <p className="text-xs font-medium text-primary">지금 있는 사진은?</p>
-                  <div className="mt-2 flex gap-2">
-                    <button onClick={() => handleAssignType("before")} disabled={isPending}
-                      className="flex-1 rounded-md border border-primary/30 py-1.5 text-xs font-medium text-primary hover:bg-primary-light disabled:opacity-50">시술 전</button>
-                    <button onClick={() => handleAssignType("after")} disabled={isPending}
-                      className="flex-1 rounded-md border border-primary/30 py-1.5 text-xs font-medium text-primary hover:bg-primary-light disabled:opacity-50">시술 후</button>
-                  </div>
-                </div>
-              )}
-              {baMode && assignStep === "upload" && (
-                <div className="rounded-md bg-primary-light p-3">
-                  <p className="text-xs font-medium text-primary">
-                    {afterPhotos.length === 0 ? "시술 후 사진을 추가해주세요" : "시술 전 사진을 추가해주세요"}
-                  </p>
-                  <label className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white cursor-pointer hover:bg-primary-hover">
-                    {isPending && <Spinner className="h-3 w-3" />}
-                    {afterPhotos.length === 0 ? "시술 후 사진 추가" : "시술 전 사진 추가"}
-                    <input type="file" accept="image/*" onChange={handleSecondUpload} className="hidden" />
-                  </label>
-                </div>
+            <div className="mt-2 flex gap-3">
+              {isBA ? (
+                <>
+                  <PhotoSlot label="비포" photo={beforePhotos[0]} isPending={isPending}
+                    onUpload={() => triggerUpload("before")} onDelete={() => handleDeleteSlot("before")} />
+                  <PhotoSlot label="애프터" photo={afterPhotos[0]} isPending={isPending}
+                    onUpload={() => triggerUpload("after")} onDelete={() => handleDeleteSlot("after")} />
+                </>
+              ) : (
+                <PhotoSlot photo={afterPhotos[0] ?? beforePhotos[0]} isPending={isPending}
+                  onUpload={() => triggerUpload("single")} onDelete={() => handleDeleteSlot(afterPhotos.length > 0 ? "after" : "before")} />
               )}
             </div>
           </div>
@@ -341,7 +270,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
           <div className="mx-auto w-full overflow-hidden rounded-lg" style={{ maxWidth: 400, aspectRatio: `${size.w} / ${size.h}` }}>
             <div ref={renderRef} className="relative h-full w-full origin-top-left"
               style={{ width: size.w, height: size.h, transform: `scale(var(--card-scale))`, "--card-scale": "1" } as React.CSSProperties}>
-              {template === "minimal" ? <MinimalCard {...cardProps} w={size.w} h={size.h} /> : <PhotoCard {...cardProps} w={size.w} h={size.h} />}
+              {(template === "minimal" || template === "ba") ? <MinimalCard {...cardProps} w={size.w} h={size.h} /> : <PhotoCard {...cardProps} w={size.w} h={size.h} />}
             </div>
             <ScaleInjector targetW={size.w} />
           </div>
@@ -366,6 +295,39 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// === PhotoSlot ===
+function PhotoSlot({ label, photo, isPending, onUpload, onDelete }: {
+  label?: string; photo?: PhotoItem; isPending: boolean;
+  onUpload: () => void; onDelete: () => void;
+}) {
+  const [hover, setHover] = useState(false);
+  if (!photo) {
+    return (
+      <button onClick={onUpload} disabled={isPending}
+        className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border text-ink-caption transition-colors hover:border-primary hover:text-primary disabled:opacity-50">
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+        {label && <span className="text-[10px] font-medium">{label}</span>}
+      </button>
+    );
+  }
+  return (
+    <div className="relative h-20 w-20" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <div className="h-full w-full overflow-hidden rounded-lg">
+        <img src={photo.url} alt="" className="h-full w-full object-cover" />
+      </div>
+      {label && (
+        <span className="absolute bottom-0 left-0 right-0 rounded-b-lg bg-black/50 text-center text-[9px] font-bold text-white leading-relaxed pointer-events-none">{label}</span>
+      )}
+      {hover && (
+        <div className="absolute inset-0 flex items-center justify-center gap-1 rounded-lg bg-black/40">
+          <button onClick={onUpload} className="rounded-md bg-white/90 px-2 py-1 text-[10px] font-medium text-ink">교체</button>
+          <button onClick={onDelete} disabled={isPending} className="rounded-md bg-white/90 px-2 py-1 text-[10px] font-medium text-danger disabled:opacity-50">삭제</button>
+        </div>
+      )}
     </div>
   );
 }
