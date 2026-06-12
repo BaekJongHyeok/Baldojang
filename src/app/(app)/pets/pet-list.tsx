@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
 import { sizeLabel, formatPhone } from "@/lib/utils";
 
@@ -27,12 +28,6 @@ type Customer = {
   passBalance: { amount: number; count: number } | null;
 };
 
-function getCustomer(pet: Pet) {
-  if (!pet.customers) return null;
-  if (Array.isArray(pet.customers)) return pet.customers[0] ?? null;
-  return pet.customers;
-}
-
 type TodayPet = {
   petId: string;
   name: string;
@@ -40,12 +35,26 @@ type TodayPet = {
   time: string;
 };
 
+function getCustomer(pet: Pet) {
+  if (!pet.customers) return null;
+  if (Array.isArray(pet.customers)) return pet.customers[0] ?? null;
+  return pet.customers;
+}
+
 function formatPassBalance(b: { amount: number; count: number } | null) {
   if (!b) return null;
   const parts: string[] = [];
   if (b.amount > 0) parts.push(`₩${b.amount.toLocaleString()}`);
   if (b.count > 0) parts.push(`${b.count}회`);
   return parts.length > 0 ? parts.join(" + ") : null;
+}
+
+function CautionIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className ?? "h-3 w-3"} fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+    </svg>
+  );
 }
 
 export function PetListClient({ pets, customers, todayPets }: { pets: Pet[]; customers: Customer[]; todayPets: TodayPet[] }) {
@@ -157,8 +166,10 @@ export function PetListClient({ pets, customers, todayPets }: { pets: Pet[]; cus
   );
 }
 
-/* ── 펫 탭 (기존) ── */
+/* ── 펫 탭 ── */
 function PetTab({ pets, search }: { pets: Pet[]; search: string }) {
+  const router = useRouter();
+
   return (
     <div className="mt-3 overflow-hidden rounded-lg border border-border bg-white">
       {pets.length === 0 ? (
@@ -172,12 +183,14 @@ function PetTab({ pets, search }: { pets: Pet[]; search: string }) {
             <table className="w-full text-left text-[14px]">
               <thead>
                 <tr className="border-b border-border bg-border-light text-[12px] font-medium text-ink-caption">
-                  <th className="px-4 py-2.5">펫</th>
-                  <th className="px-4 py-2.5">견종</th>
-                  <th className="px-4 py-2.5">보호자</th>
-                  <th className="px-4 py-2.5">연락처</th>
-                  <th className="px-4 py-2.5">마지막 방문</th>
-                  <th className="px-4 py-2.5 w-8">주의</th>
+                  <th className="w-[30%] px-4 py-2.5">펫</th>
+                  <th className="w-[18%] px-4 py-2.5">견종</th>
+                  <th className="w-[14%] px-4 py-2.5">보호자</th>
+                  <th className="w-[16%] px-4 py-2.5">연락처</th>
+                  <th className="w-[14%] px-4 py-2.5 whitespace-nowrap">마지막 방문</th>
+                  <th className="w-[8%] px-4 py-2.5 text-center whitespace-nowrap">
+                    <CautionIcon className="mx-auto h-3.5 w-3.5 text-ink-disabled" />
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -185,14 +198,18 @@ function PetTab({ pets, search }: { pets: Pet[]; search: string }) {
                   const customer = getCustomer(pet);
                   const hasCaution = pet.caution_tags.length > 0;
                   return (
-                    <tr key={pet.id} className={`border-b border-border-light last:border-b-0 hover:bg-bg transition-colors ${!pet.is_active ? "opacity-50" : ""}`}>
+                    <tr
+                      key={pet.id}
+                      onClick={() => router.push(`/pets/${pet.id}`)}
+                      className={`cursor-pointer border-b border-border-light last:border-b-0 hover:bg-bg transition-colors ${!pet.is_active ? "opacity-50" : ""}`}
+                    >
                       <td className="px-4 py-2.5">
-                        <Link href={`/pets/${pet.id}`} className="flex items-center gap-2.5 hover:text-primary">
+                        <div className="flex items-center gap-2.5">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-border-light text-[12px] font-bold text-ink-caption overflow-hidden">
-                            {pet.photoSignedUrl ? <img src={pet.photoSignedUrl} alt="" className="h-full w-full object-cover" /> : (pet.breed ?? pet.name).charAt(0)}
+                            {pet.photoSignedUrl ? <img src={pet.photoSignedUrl} alt="" className="h-full w-full object-cover" /> : pet.name.charAt(0)}
                           </div>
                           <span className="font-medium text-ink">{pet.name}</span>
-                        </Link>
+                        </div>
                       </td>
                       <td className="px-4 py-2.5 text-ink-secondary">{[pet.breed, sizeLabel(pet.size)].filter(Boolean).join(" · ") || "—"}</td>
                       <td className="px-4 py-2.5 text-ink-secondary">{customer?.name ?? "—"}</td>
@@ -201,7 +218,7 @@ function PetTab({ pets, search }: { pets: Pet[]; search: string }) {
                       <td className="px-4 py-2.5 text-center">
                         {hasCaution && (
                           <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-danger-light">
-                            <svg className="h-3 w-3 text-danger" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                            <CautionIcon className="h-3 w-3 text-danger" />
                           </span>
                         )}
                       </td>
@@ -223,14 +240,14 @@ function PetTab({ pets, search }: { pets: Pet[]; search: string }) {
                   className={`flex items-center gap-3 border-b border-border-light px-4 py-3 last:border-b-0 transition-colors active:bg-bg ${!pet.is_active ? "opacity-50" : ""}`}
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-border-light text-[14px] font-bold text-ink-caption overflow-hidden">
-                    {pet.photoSignedUrl ? <img src={pet.photoSignedUrl} alt="" className="h-full w-full object-cover" /> : (pet.breed ?? pet.name).charAt(0)}
+                    {pet.photoSignedUrl ? <img src={pet.photoSignedUrl} alt="" className="h-full w-full object-cover" /> : pet.name.charAt(0)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className="truncate text-[14px] font-semibold text-ink">{pet.name}</span>
                       {hasCaution && (
                         <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-danger-light">
-                          <svg className="h-2.5 w-2.5 text-danger" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                          <CautionIcon className="h-2.5 w-2.5 text-danger" />
                         </span>
                       )}
                     </div>
@@ -251,6 +268,8 @@ function PetTab({ pets, search }: { pets: Pet[]; search: string }) {
 
 /* ── 보호자 탭 ── */
 function CustomerTab({ customers, search }: { customers: Customer[]; search: string }) {
+  const router = useRouter();
+
   return (
     <div className="mt-3 overflow-hidden rounded-lg border border-border bg-white">
       {customers.length === 0 ? (
@@ -264,21 +283,23 @@ function CustomerTab({ customers, search }: { customers: Customer[]; search: str
             <table className="w-full text-left text-[14px]">
               <thead>
                 <tr className="border-b border-border bg-border-light text-[12px] font-medium text-ink-caption">
-                  <th className="px-4 py-2.5">이름</th>
-                  <th className="px-4 py-2.5">연락처</th>
-                  <th className="px-4 py-2.5">반려견</th>
-                  <th className="px-4 py-2.5">선불권 잔액</th>
-                  <th className="px-4 py-2.5">등록일</th>
+                  <th className="w-[20%] px-4 py-2.5">이름</th>
+                  <th className="w-[18%] px-4 py-2.5">연락처</th>
+                  <th className="w-[25%] px-4 py-2.5">반려견</th>
+                  <th className="w-[20%] px-4 py-2.5">선불권 잔액</th>
+                  <th className="w-[17%] px-4 py-2.5">등록일</th>
                 </tr>
               </thead>
               <tbody>
                 {customers.map((c) => {
                   const bal = formatPassBalance(c.passBalance);
                   return (
-                    <tr key={c.id} className="border-b border-border-light last:border-b-0 hover:bg-bg transition-colors">
-                      <td className="px-4 py-2.5">
-                        <Link href={`/customers/${c.id}`} className="font-medium text-ink hover:text-primary">{c.name}</Link>
-                      </td>
+                    <tr
+                      key={c.id}
+                      onClick={() => router.push(`/customers/${c.id}`)}
+                      className="cursor-pointer border-b border-border-light last:border-b-0 hover:bg-bg transition-colors"
+                    >
+                      <td className="px-4 py-2.5 font-medium text-ink">{c.name}</td>
                       <td className="px-4 py-2.5 text-ink-secondary tabular-nums">{formatPhone(c.phone)}</td>
                       <td className="px-4 py-2.5 text-ink-secondary">{c.petNames.length > 0 ? c.petNames.join(", ") : "—"}</td>
                       <td className="px-4 py-2.5">

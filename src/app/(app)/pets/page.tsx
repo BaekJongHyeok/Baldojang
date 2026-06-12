@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { PetListClient } from "./pet-list";
 import { getPetPhotoUrls } from "@/lib/storage";
 import { getPassStatus } from "@/lib/utils";
+import { todayKST, kstHourMin } from "@/lib/calendar-utils";
 
 export default async function PetsPage() {
   const supabase = await createClient();
@@ -92,21 +93,23 @@ export default async function PetsPage() {
     passBalance: customerPassMap[c.id] ?? null,
   }));
 
-  // 오늘 예약 펫 (confirmed, 시간순)
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+  // 오늘 예약 펫 (confirmed, 현재 시각 이후만, KST 기준)
+  const now = new Date().toISOString();
+  const todayStr = todayKST();
+  const todayEndIso = new Date(todayStr + "T23:59:59+09:00").toISOString();
   const { data: todayRes } = await supabase
     .from("reservations")
     .select("id, starts_at, pet_id, pets(id, name, photo_url)")
     .eq("shop_id", staff.shop_id)
     .eq("status", "confirmed")
-    .gte("starts_at", todayStart.toISOString())
-    .lte("starts_at", todayEnd.toISOString())
+    .gte("starts_at", now)
+    .lte("starts_at", todayEndIso)
     .order("starts_at", { ascending: true });
 
   const todayPets = (todayRes ?? []).map((r) => {
     const pet = Array.isArray(r.pets) ? r.pets[0] : r.pets;
-    const time = new Date(r.starts_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+    const { hours, minutes } = kstHourMin(r.starts_at);
+    const time = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
     return {
       petId: pet?.id ?? r.pet_id,
       name: pet?.name ?? "",
