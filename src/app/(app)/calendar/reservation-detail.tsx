@@ -110,10 +110,10 @@ export function ReservationDetail({
             {r.status === "confirmed" && !confirm && (
               <>
                 <button onClick={onComplete} className="w-full rounded-md bg-primary py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-primary-hover">완료</button>
-                <div className="flex justify-center gap-6">
+                <div className="flex justify-around">
                   <CircleAction icon={<PencilIcon />} label="수정" onClick={onEdit} />
-                  <CircleAction icon={<BanIcon />} label="노쇼" danger onClick={() => setConfirm("no_show")} />
-                  <CircleAction icon={<XCircleIcon />} label="취소" danger onClick={() => setConfirm("cancelled")} />
+                  <CircleAction icon={<UserXIcon />} label="노쇼" danger onClick={() => setConfirm("no_show")} />
+                  <CircleAction icon={<CalendarXIcon />} label="취소" onClick={() => setConfirm("cancelled")} />
                 </div>
               </>
             )}
@@ -123,7 +123,7 @@ export function ReservationDetail({
               <>
                 <p className="text-center text-[13px] text-success">시술이 완료됐어요</p>
                 <Link href={`/pets/${r.pet.id}`} className="block rounded-md bg-primary py-2.5 text-center text-[14px] font-medium text-white transition-colors hover:bg-primary-hover">펫 차트</Link>
-                <div className="flex justify-center gap-6">
+                <div className="flex justify-around">
                   <CircleAction icon={<UndoIcon />} label="되돌리기" onClick={() => setConfirm("revert_complete")} />
                 </div>
               </>
@@ -133,7 +133,7 @@ export function ReservationDetail({
             {r.status === "no_show" && !confirm && (
               <>
                 <p className="text-center text-[13px] text-danger">노쇼로 처리된 예약이에요</p>
-                <div className="flex justify-center gap-6">
+                <div className="flex justify-around">
                   <CircleAction icon={<ChartIcon />} label="펫 차트" href={`/pets/${r.pet.id}`} />
                   <CircleAction icon={<UndoIcon />} label="되돌리기" onClick={() => onStatusChange(r.id, "confirmed")} />
                   <CircleAction icon={<TrashIcon />} label="삭제" danger onClick={() => setConfirm("delete")} />
@@ -145,7 +145,7 @@ export function ReservationDetail({
             {r.status === "cancelled" && !confirm && (
               <>
                 <p className="text-center text-[13px] text-ink-caption">취소된 예약이에요</p>
-                <div className="flex justify-center gap-6">
+                <div className="flex justify-around">
                   <CircleAction icon={<ChartIcon />} label="펫 차트" href={`/pets/${r.pet.id}`} />
                   <CircleAction icon={<UndoIcon />} label="되돌리기" onClick={() => onStatusChange(r.id, "confirmed")} />
                   <CircleAction icon={<TrashIcon />} label="삭제" danger onClick={() => setConfirm("delete")} />
@@ -223,11 +223,11 @@ function CircleAction({ icon, label, danger, onClick, href }: {
 function PencilIcon() {
   return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>;
 }
-function BanIcon() {
-  return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>;
+function UserXIcon() {
+  return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M22 10.5h-6m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" /></svg>;
 }
-function XCircleIcon() {
-  return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+function CalendarXIcon() {
+  return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-3.75l2.25-2.25M12 12.75l-2.25-2.25M12 12.75l2.25 2.25M12 12.75l-2.25 2.25" /></svg>;
 }
 function UndoIcon() {
   return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>;
