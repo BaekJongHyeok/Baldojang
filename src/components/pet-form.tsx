@@ -327,7 +327,7 @@ export function PetForm({
               </button>
             ))}
           </div>
-          <div className="mt-1 flex gap-1.5 lg:w-1/2">
+          <div className="mt-1 flex gap-1.5">
             <input type="text" value={customTag} onChange={(e) => setCustomTag(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomTag(); } }}
               className="min-w-0 flex-1 rounded-lg border border-border px-3 py-1.5 text-xs outline-none focus:border-primary"
