@@ -141,32 +141,32 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
             </div>
           )}
 
-          {/* 기한 */}
-          <div className="mt-3">
-            <p className="text-[11px] font-medium text-ink-caption mb-1.5">유효기간</p>
-            <div className="flex flex-wrap gap-1.5">
-              {(["6", "12", "0", "custom"] as const).map((v) => (
-                <button key={v} type="button" onClick={() => setValidityMode(v)}
-                  className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors ${validityMode === v ? "bg-primary text-white" : "border border-border bg-white text-ink-secondary hover:bg-bg"}`}>
-                  {v === "6" ? "6개월" : v === "12" ? "1년" : v === "0" ? "무제한" : "직접 입력"}
-                </button>
-              ))}
+          {/* 기한 + 결제 수단 */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] font-medium text-ink-caption">유효기간</span>
+              <select value={validityMode} onChange={(e) => setValidityMode(e.target.value as "6" | "12" | "0" | "custom")}
+                className="min-w-0 rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary">
+                <option value="6">6개월</option>
+                <option value="12">1년</option>
+                <option value="0">무제한</option>
+                <option value="custom">직접 입력</option>
+              </select>
             </div>
-            {validityMode === "custom" && (
-              <input type="date" value={customDate} onChange={(e) => setCustomDate(e.target.value)} min={todayStr}
-                className="mt-2 w-full rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary" />
-            )}
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] font-medium text-ink-caption">결제 수단</span>
+              <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)}
+                className="min-w-0 rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary">
+                <option value="card">카드</option>
+                <option value="cash">현금</option>
+                <option value="transfer">이체</option>
+              </select>
+            </div>
           </div>
-
-          {/* 결제 수단 */}
-          <div className="mt-3 flex gap-1.5">
-            {[{ v: "card", l: "카드" }, { v: "cash", l: "현금" }, { v: "transfer", l: "이체" }].map(({ v, l }) => (
-              <button key={v} type="button" onClick={() => setPayMethod(v)}
-                className={`flex-1 rounded-md py-1.5 text-[12px] font-medium transition-colors ${payMethod === v ? "bg-primary text-white" : "border border-border bg-white text-ink-secondary hover:bg-bg"}`}>
-                {l}
-              </button>
-            ))}
-          </div>
+          {validityMode === "custom" && (
+            <input type="date" value={customDate} onChange={(e) => setCustomDate(e.target.value)} min={todayStr}
+              className="mt-2 w-full rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary" />
+          )}
 
           {error && <p className="mt-2 text-center text-xs text-danger">{error}</p>}
           <button onClick={handleSubmit} disabled={isPending}
