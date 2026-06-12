@@ -74,9 +74,11 @@ export default async function PetsPage() {
     customerPetsMap[p.customer_id].push(p.name);
   }
 
-  // 보호자별 active 선불권 잔액 합산
+  // 보호자별 선불권: "패스 보유 여부" + "active 잔액 합산" 분리
+  const customersWithPasses = new Set<string>();
   const customerPassMap: Record<string, { amount: number; count: number }> = {};
   for (const p of passes ?? []) {
+    customersWithPasses.add(p.customer_id);
     const status = getPassStatus(p);
     if (status !== "active") continue;
     if (!customerPassMap[p.customer_id]) customerPassMap[p.customer_id] = { amount: 0, count: 0 };
@@ -90,7 +92,10 @@ export default async function PetsPage() {
     phone: c.phone,
     createdAt: c.created_at,
     petNames: customerPetsMap[c.id] ?? [],
-    passBalance: customerPassMap[c.id] ?? null,
+    // null = 패스 없음, { amount: 0, count: 0 } = 패스 있으나 잔액 0
+    passBalance: customersWithPasses.has(c.id)
+      ? (customerPassMap[c.id] ?? { amount: 0, count: 0 })
+      : null,
   }));
 
   // 오늘 예약 펫 (confirmed, 현재 시각 이후만, KST 기준)

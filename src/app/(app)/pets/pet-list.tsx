@@ -42,11 +42,18 @@ function getCustomer(pet: Pet) {
 }
 
 function formatPassBalance(b: { amount: number; count: number } | null) {
-  if (!b) return null;
+  if (!b) return null; // 패스 없음
   const parts: string[] = [];
   if (b.amount > 0) parts.push(`₩${b.amount.toLocaleString()}`);
   if (b.count > 0) parts.push(`${b.count}회`);
-  return parts.length > 0 ? parts.join(" + ") : null;
+  if (parts.length === 0) return "0원"; // 패스 있으나 잔액 0
+  return parts.join(" + ");
+}
+
+function formatPetNames(names: string[]) {
+  if (names.length === 0) return "—";
+  if (names.length <= 2) return names.join(", ");
+  return `${names.slice(0, 2).join(", ")} 외 ${names.length - 2}`;
 }
 
 function CautionIcon({ className }: { className?: string }) {
@@ -78,12 +85,14 @@ export function PetListClient({ pets, customers, todayPets }: { pets: Pet[]; cus
 
   const filteredCustomers = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return customers;
-    return customers.filter((c) =>
-      c.name.toLowerCase().includes(q) ||
-      c.phone.includes(q) ||
-      c.petNames.some((n) => n.toLowerCase().includes(q))
-    );
+    const list = q
+      ? customers.filter((c) =>
+          c.name.toLowerCase().includes(q) ||
+          c.phone.includes(q) ||
+          c.petNames.some((n) => n.toLowerCase().includes(q))
+        )
+      : [...customers];
+    return list.sort((a, b) => a.name.localeCompare(b.name, "ko"));
   }, [customers, search]);
 
   return (
@@ -283,11 +292,11 @@ function CustomerTab({ customers, search }: { customers: Customer[]; search: str
             <table className="w-full text-left text-[14px]">
               <thead>
                 <tr className="border-b border-border bg-border-light text-[12px] font-medium text-ink-caption">
-                  <th className="w-[20%] px-4 py-2.5">이름</th>
+                  <th className="w-[24%] px-4 py-2.5">이름</th>
                   <th className="w-[18%] px-4 py-2.5">연락처</th>
-                  <th className="w-[25%] px-4 py-2.5">반려견</th>
-                  <th className="w-[20%] px-4 py-2.5">선불권 잔액</th>
-                  <th className="w-[17%] px-4 py-2.5">등록일</th>
+                  <th className="w-[24%] px-4 py-2.5">반려견</th>
+                  <th className="w-[18%] px-4 py-2.5 text-right">선불권 잔액</th>
+                  <th className="w-[16%] px-4 py-2.5">등록일</th>
                 </tr>
               </thead>
               <tbody>
@@ -299,12 +308,21 @@ function CustomerTab({ customers, search }: { customers: Customer[]; search: str
                       onClick={() => router.push(`/customers/${c.id}`)}
                       className="cursor-pointer border-b border-border-light last:border-b-0 hover:bg-bg transition-colors"
                     >
-                      <td className="px-4 py-2.5 font-medium text-ink">{c.name}</td>
-                      <td className="px-4 py-2.5 text-ink-secondary tabular-nums">{formatPhone(c.phone)}</td>
-                      <td className="px-4 py-2.5 text-ink-secondary">{c.petNames.length > 0 ? c.petNames.join(", ") : "—"}</td>
                       <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-border-light text-[12px] font-bold text-ink-caption">
+                            {c.name.charAt(0)}
+                          </div>
+                          <span className="font-medium text-ink">{c.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 text-ink-secondary tabular-nums">{formatPhone(c.phone)}</td>
+                      <td className="px-4 py-2.5 text-ink-secondary">{formatPetNames(c.petNames)}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">
                         {bal ? (
-                          <span className="rounded-sm bg-primary-light px-2 py-0.5 text-[12px] font-medium text-primary">{bal}</span>
+                          bal === "0원"
+                            ? <span className="text-ink-disabled">0원</span>
+                            : <span className="rounded-sm bg-primary-light px-2 py-0.5 text-[12px] font-medium text-primary">{bal}</span>
                         ) : (
                           <span className="text-ink-disabled">—</span>
                         )}
@@ -324,8 +342,11 @@ function CustomerTab({ customers, search }: { customers: Customer[]; search: str
                 <Link
                   key={c.id}
                   href={`/customers/${c.id}`}
-                  className="flex items-center justify-between border-b border-border-light px-4 py-3 last:border-b-0 transition-colors active:bg-bg"
+                  className="flex items-center gap-3 border-b border-border-light px-4 py-3 last:border-b-0 transition-colors active:bg-bg"
                 >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-border-light text-[14px] font-bold text-ink-caption">
+                    {c.name.charAt(0)}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-[14px] font-semibold text-ink">{c.name}</span>
@@ -333,7 +354,7 @@ function CustomerTab({ customers, search }: { customers: Customer[]; search: str
                     </div>
                     <p className="mt-0.5 truncate text-[12px] text-ink-caption">
                       {[
-                        c.petNames.length > 0 ? c.petNames.join(", ") : null,
+                        formatPetNames(c.petNames) !== "—" ? formatPetNames(c.petNames) : null,
                         bal,
                       ].filter(Boolean).join(" · ") || "—"}
                     </p>
