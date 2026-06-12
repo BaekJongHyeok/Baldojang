@@ -3,7 +3,7 @@ import { signOutAction } from "@/lib/auth-actions";
 import pkg from "../../../../package.json";
 
 /** 이메일 주소를 채워주세요 */
-const SUPPORT_EMAIL = "";
+const SUPPORT_EMAIL = "contact.baldojang@gmail.com";
 
 export default function SettingsPage() {
   return (
