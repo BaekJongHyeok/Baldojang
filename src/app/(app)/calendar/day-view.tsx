@@ -80,12 +80,15 @@ export function DayView({
   const nowMin = nowKSTMinutes();
   const nowTop = isToday && nowMin >= gridStartMin && nowMin <= gridEndMin ? (nowMin - gridStartMin) * pxPerMin : null;
 
-  // Auto-scroll to now or open time
+  // Auto-scroll to now or open time (1회, 날짜 변경 시만)
   useEffect(() => {
     if (!containerRef.current) return;
-    if (nowTop !== null) containerRef.current.scrollTop = Math.max(0, nowTop - 120);
+    const now = nowKSTMinutes();
+    const nowPx = isToday && now >= gridStartMin && now <= gridEndMin ? (now - gridStartMin) * pxPerMin : null;
+    if (nowPx !== null) containerRef.current.scrollTop = Math.max(0, nowPx - 120);
     else containerRef.current.scrollTop = Math.max(0, (openMin - gridStartMin) * pxPerMin - 20);
-  }, [isToday, nowTop, openMin, gridStartMin, pxPerMin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isToday, openMin]);
 
   // DEV overlap check
   useEffect(() => {

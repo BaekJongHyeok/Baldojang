@@ -63,25 +63,28 @@ export function WeekView({
     rows.push({ min: h * 60 + 30, isHour: false, label: "" });
   }
 
-  // 현재 시각 라인
+  // 현재 시각 라인 (렌더 시 1회 캡처, deps에 넣지 않음)
   const isThisWeek = weekDays.some((d) => d.date === today);
   const nowMin = nowKSTMinutes();
   const nowTop = isThisWeek && nowMin >= gridStartMin && nowMin <= gridEndMin ? (nowMin - gridStartMin) * pxPerMin : null;
 
-  // 진입 시 스크롤: 오늘 포함 주면 현재-1시간, 아니면 영업 시작
+  // 진입 시 스크롤: 주 시작일 문자열이 바뀔 때만 1회 실행
+  const weekStartDate = weekDays[0]?.date ?? "";
   useEffect(() => {
     if (!containerRef.current) return;
-    if (nowTop !== null) {
-      containerRef.current.scrollTop = Math.max(0, nowTop - 60 * pxPerMin);
+    const now = nowKSTMinutes();
+    const hasToday = weekDays.some((d) => d.date === today);
+    if (hasToday && now >= gridStartMin && now <= gridEndMin) {
+      containerRef.current.scrollTop = Math.max(0, (now - gridStartMin) * pxPerMin - 60 * pxPerMin);
     } else {
-      // 첫 영업일의 open 시각으로
       const firstOpen = weekDays.find((d) => d.hours);
       if (firstOpen?.hours) {
         const openPx = (timeToMin(firstOpen.hours.open) - gridStartMin) * pxPerMin;
         containerRef.current.scrollTop = Math.max(0, openPx - 20);
       }
     }
-  }, [isThisWeek, nowTop, pxPerMin, weekDays, gridStartMin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekStartDate]);
 
   const byDate = useMemo(() => {
     const map: Record<string, CalendarReservation[]> = {};
