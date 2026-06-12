@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import type { CalendarReservation, DayHours } from "@/lib/calendar-data";
-import { kstHourMin, kstDateStr } from "@/lib/calendar-utils";
+import { kstHourMin, kstDateStr, nowKSTMinutes } from "@/lib/calendar-utils";
 
 const ROW_HEIGHT = 36; // px per 30min
 const TIME_COL = 48;
@@ -36,6 +36,8 @@ export function WeekView({
   today: string;
   onSelect: (id: string) => void;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const { gridStartHour, gridEndHour } = useMemo(() => {
     let minOpen = 24, maxClose = 0;
     for (const d of weekDays) {
@@ -61,6 +63,26 @@ export function WeekView({
     rows.push({ min: h * 60 + 30, isHour: false, label: "" });
   }
 
+  // 현재 시각 라인
+  const isThisWeek = weekDays.some((d) => d.date === today);
+  const nowMin = nowKSTMinutes();
+  const nowTop = isThisWeek && nowMin >= gridStartMin && nowMin <= gridEndMin ? (nowMin - gridStartMin) * pxPerMin : null;
+
+  // 진입 시 스크롤: 오늘 포함 주면 현재-1시간, 아니면 영업 시작
+  useEffect(() => {
+    if (!containerRef.current) return;
+    if (nowTop !== null) {
+      containerRef.current.scrollTop = Math.max(0, nowTop - 60 * pxPerMin);
+    } else {
+      // 첫 영업일의 open 시각으로
+      const firstOpen = weekDays.find((d) => d.hours);
+      if (firstOpen?.hours) {
+        const openPx = (timeToMin(firstOpen.hours.open) - gridStartMin) * pxPerMin;
+        containerRef.current.scrollTop = Math.max(0, openPx - 20);
+      }
+    }
+  }, [isThisWeek, nowTop, pxPerMin, weekDays, gridStartMin]);
+
   const byDate = useMemo(() => {
     const map: Record<string, CalendarReservation[]> = {};
     for (const r of reservations) { const ds = kstDateStr(r.starts_at); if (!map[ds]) map[ds] = []; map[ds].push(r); }
@@ -68,7 +90,7 @@ export function WeekView({
   }, [reservations]);
 
   return (
-    <div className="overflow-auto bg-white" style={{ maxHeight: "calc(100dvh - 100px)" }}>
+    <div ref={containerRef} className="overflow-auto bg-white" style={{ maxHeight: "calc(100dvh - 100px)" }}>
       <div style={{ minWidth: 700 }}>
         {/* ── 요일 헤더 ── */}
         <div className="sticky top-0 z-10 flex border-b border-border bg-white">
@@ -98,7 +120,7 @@ export function WeekView({
           {/* 시간 컬럼 */}
           <div className="relative shrink-0" style={{ width: TIME_COL }}>
             {rows.map((row, i) => row.isHour && (
-              <span key={i} className="absolute right-3 text-[11px] text-ink-disabled tabular-nums" style={{ top: (row.min - gridStartMin) * pxPerMin - 7 }}>
+              <span key={i} className="absolute right-3 text-[11px] text-ink-disabled tabular-nums leading-none" style={{ top: (row.min - gridStartMin) * pxPerMin, transform: "translateY(-50%)" }}>
                 {row.label}
               </span>
             ))}
@@ -124,16 +146,21 @@ export function WeekView({
 
                 {/* 영업 외 해칭 */}
                 {!isClosed && gridStartMin < openMin && (
-                  <div className="absolute left-0 right-0 bg-border-light/50 z-[1]" style={{ top: 0, height: (openMin - gridStartMin) * pxPerMin }} />
+                  <div className="absolute left-0 right-0 z-[1] bg-border-light/60" style={{ top: 0, height: (openMin - gridStartMin) * pxPerMin }}>
+                    <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "repeating-linear-gradient(135deg, transparent, transparent 4px, #D1D5DB 4px, #D1D5DB 5px)" }} />
+                  </div>
                 )}
                 {!isClosed && closeMin < gridEndMin && (
-                  <div className="absolute left-0 right-0 bg-border-light/50 z-[1]" style={{ top: (closeMin - gridStartMin) * pxPerMin, bottom: 0 }} />
+                  <div className="absolute left-0 right-0 z-[1] bg-border-light/60" style={{ top: (closeMin - gridStartMin) * pxPerMin, bottom: 0 }}>
+                    <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "repeating-linear-gradient(135deg, transparent, transparent 4px, #D1D5DB 4px, #D1D5DB 5px)" }} />
+                  </div>
                 )}
 
                 {/* 휴무 */}
                 {isClosed && (
                   <div className="absolute inset-0 z-[1] flex items-center justify-center bg-border-light/60">
-                    <span className="text-[11px] font-medium text-ink-disabled">휴무</span>
+                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "repeating-linear-gradient(135deg, transparent, transparent 4px, #D1D5DB 4px, #D1D5DB 5px)" }} />
+                    <span className="relative z-[2] rounded-sm bg-white/80 px-2 py-0.5 text-[11px] font-medium text-ink-disabled">휴무</span>
                   </div>
                 )}
 
@@ -146,6 +173,7 @@ export function WeekView({
                   const top = (rStartMin - gridStartMin) * pxPerMin + 1;
                   const height = Math.max(18, (rEndMin - rStartMin) * pxPerMin - 2);
                   const isCancelled = r.status === "cancelled";
+                  const durationMin = rEndMin - rStartMin;
 
                   return (
                     <button
@@ -158,8 +186,28 @@ export function WeekView({
                     >
                       <div className={`w-[2px] shrink-0 ${statusBar(r.status)}`} />
                       <div className="min-w-0 flex-1 px-1 py-px">
-                        <p className={`truncate text-[10px] font-semibold leading-tight ${isCancelled ? "line-through text-ink-disabled" : "text-ink"}`}>{r.pet.name}</p>
-                        {height > 26 && <p className="truncate text-[9px] leading-tight text-ink-caption">{r.service.name}</p>}
+                        {/* 60분+: 시간/이름/시술 3줄 */}
+                        {durationMin >= 60 && (
+                          <>
+                            <p className="truncate text-[9px] leading-tight text-ink-caption tabular-nums">{minToLabel(rStartMin)}–{minToLabel(rEndMin)}</p>
+                            <p className={`truncate text-[10px] font-semibold leading-tight ${isCancelled ? "line-through text-ink-disabled" : "text-ink"}`}>{r.pet.name}</p>
+                            <p className="truncate text-[9px] leading-tight text-ink-caption">{r.service.name}</p>
+                          </>
+                        )}
+                        {/* 30-59분: 시간+이름 / 시술 2줄 */}
+                        {durationMin >= 30 && durationMin < 60 && (
+                          <>
+                            <div className="flex items-center gap-0.5">
+                              <span className="text-[9px] text-ink-caption tabular-nums">{minToLabel(rStartMin)}</span>
+                              <p className={`truncate text-[10px] font-semibold leading-tight ${isCancelled ? "line-through text-ink-disabled" : "text-ink"}`}>{r.pet.name}</p>
+                            </div>
+                            {height > 26 && <p className="truncate text-[9px] leading-tight text-ink-caption">{r.service.name}</p>}
+                          </>
+                        )}
+                        {/* <30분: 이름만 */}
+                        {durationMin < 30 && (
+                          <p className={`truncate text-[10px] font-semibold leading-tight ${isCancelled ? "line-through text-ink-disabled" : "text-ink"}`}>{r.pet.name}</p>
+                        )}
                       </div>
                     </button>
                   );
@@ -167,6 +215,18 @@ export function WeekView({
               </div>
             );
           })}
+
+          {/* ── 현재 시각 라인 ── */}
+          {nowTop !== null && (
+            <div className="pointer-events-none absolute left-0 right-0 z-[8]" style={{ top: nowTop }}>
+              <div className="flex items-center">
+                <span className="inline-flex h-[18px] items-center justify-center rounded-sm bg-primary text-[10px] font-bold text-white tabular-nums" style={{ width: TIME_COL }}>
+                  {minToLabel(nowMin)}
+                </span>
+                <div className="flex-1 border-t-2 border-primary" />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
