@@ -82,23 +82,29 @@ export default async function PetChartPage({
       <div className="mt-3 grid gap-5 lg:grid-cols-[320px_1fr]">
         {/* ── 좌측: 정보 패널 ── */}
         <div className="flex flex-col gap-4">
-          {/* 프로필 + 히어로 액션 */}
+          {/* 프로필 */}
           <div className="rounded-lg border border-border bg-white p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-border-light text-[20px] font-bold text-ink-caption overflow-hidden">
-                {photoSignedUrl ? (
-                  <img src={photoSignedUrl} alt={pet.name} className="h-full w-full object-cover" />
-                ) : (
-                  pet.name.charAt(0)
-                )}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-border-light text-[18px] font-bold text-ink-caption overflow-hidden">
+                  {photoSignedUrl ? (
+                    <img src={photoSignedUrl} alt={pet.name} className="h-full w-full object-cover" />
+                  ) : (
+                    pet.name.charAt(0)
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-[20px] font-bold text-ink">{pet.name}</h1>
+                  <p className="text-[13px] text-ink-caption">{[details, age, weight].filter(Boolean).join(" · ")}</p>
+                  {!pet.is_active && (
+                    <span className="mt-1 inline-block rounded-sm bg-border-light px-1.5 py-0.5 text-[11px] font-medium text-ink-caption">비활성</span>
+                  )}
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-[20px] font-bold text-ink">{pet.name}</h1>
-                <p className="text-[13px] text-ink-caption">{[details, age, weight].filter(Boolean).join(" · ")}</p>
-                {!pet.is_active && (
-                  <span className="mt-1 inline-block rounded-sm bg-border-light px-1.5 py-0.5 text-[11px] font-medium text-ink-caption">비활성</span>
-                )}
-              </div>
+              <Link href={`/pets/${petId}/edit`} aria-label="펫 정보 수정"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-caption transition-colors hover:bg-border-light hover:text-ink">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
+              </Link>
             </div>
 
             {/* 보호자 */}
@@ -106,36 +112,40 @@ export default async function PetChartPage({
               <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] text-ink-caption">보호자</p>
-                  <Link href={`/customers/${customer.id}`} className="text-[14px] font-medium text-ink hover:text-primary">{customer.name}</Link>
+                  <div className="flex items-center gap-1">
+                    <Link href={`/customers/${customer.id}`} className="text-[14px] font-medium text-ink hover:text-primary">{customer.name}</Link>
+                    <svg className="h-3.5 w-3.5 text-ink-disabled" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                    <span className="text-[13px] text-ink-caption tabular-nums">{formatPhone(customer.phone)}</span>
+                  </div>
                 </div>
-                <PhoneButton phone={customer.phone} className="flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-[12px] font-medium text-ink-secondary hover:bg-bg tabular-nums">
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
-                  {formatPhone(customer.phone)}
-                </PhoneButton>
                 {passBadge && (
-                  <span className="rounded-sm bg-primary-light px-2 py-0.5 text-[11px] font-medium text-primary">{passBadge.label} {passBadge.balance}</span>
+                  <Link href={`/customers/${customer.id}`} className="rounded-sm bg-primary-light px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary-light/80">
+                    {passBadge.label} {passBadge.balance}
+                  </Link>
                 )}
               </div>
             )}
+          </div>
 
-            {/* 히어로 액션 */}
-            <div className="mt-3 flex gap-2 border-t border-border pt-3">
-              {pet.is_active ? (
-                <Link
-                  href={`/calendar?book=${petId}`}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-primary py-2 text-[13px] font-medium text-white transition-colors hover:bg-primary-hover"
-                >
-                  예약 잡기
-                </Link>
-              ) : (
-                <span className="flex flex-1 items-center justify-center rounded-md bg-border-light py-2 text-[13px] font-medium text-ink-disabled">예약 잡기</span>
-              )}
-              <Link href={`/pets/${petId}/edit`} className="flex flex-1 items-center justify-center rounded-md border border-border py-2 text-[13px] font-medium text-ink transition-colors hover:bg-bg">
-                수정
+          {/* 빠른 액션 */}
+          <div className="flex gap-2">
+            {customer && (
+              <PhoneButton phone={customer.phone}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border py-2.5 text-[13px] font-medium text-ink-secondary transition-colors hover:bg-bg">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
+                전화
+              </PhoneButton>
+            )}
+            {pet.is_active ? (
+              <Link href={`/calendar?book=${petId}`}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-primary py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-primary-hover">
+                예약 잡기
               </Link>
-            </div>
-            {!pet.is_active && (
-              <p className="mt-1 text-center text-[11px] text-ink-disabled">비활성 펫은 예약할 수 없어요</p>
+            ) : (
+              <div className="flex flex-1 flex-col items-center">
+                <span className="flex w-full items-center justify-center rounded-md bg-border-light py-2.5 text-[13px] font-medium text-ink-disabled">예약 잡기</span>
+                <span className="mt-1 text-[11px] text-ink-disabled">비활성 펫은 예약할 수 없어요</span>
+              </div>
             )}
           </div>
 
