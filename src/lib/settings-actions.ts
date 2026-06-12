@@ -4,6 +4,27 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Json } from "@/types/database";
 
+export async function updateStaffNameAction(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const name = String(formData.get("name")).trim();
+  if (!name) return { error: "이름을 입력해주세요." };
+
+  const { error } = await supabase
+    .from("staff")
+    .update({ name })
+    .eq("id", user.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/account");
+  return { success: true };
+}
+
 export async function updateShopAction(formData: FormData) {
   const supabase = await createClient();
   const {

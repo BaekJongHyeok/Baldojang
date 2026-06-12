@@ -48,3 +48,17 @@ export async function signOutAction() {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+export async function updatePasswordAction(formData: FormData) {
+  const password = String(formData.get("password"));
+  const confirmPassword = String(formData.get("confirm_password"));
+
+  if (password.length < 6) return { error: "비밀번호는 6자 이상이어야 합니다." };
+  if (password !== confirmPassword) return { error: "비밀번호가 일치하지 않습니다." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: error.message };
+
+  return { success: true };
+}
