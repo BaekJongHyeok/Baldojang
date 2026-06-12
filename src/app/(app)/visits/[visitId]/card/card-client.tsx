@@ -398,12 +398,35 @@ function MinimalCard({ photo, beforePhoto, petName, breed, serviceName, date, me
   const p = Math.round(w * 0.055);
   const isBA = beforePhoto !== null;
   const photoH = Math.round(h * (isBA ? 0.42 : 0.50));
-  const emptySlot = (label: string, slot: "before" | "after") => (
-    <div onClick={() => onSlotClick?.(slot)} style={{ flex: 1, borderRadius: w * 0.022, background: "#F2F0ED", border: `${w * 0.003}px dashed #D6D3CE`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: h * 0.008, cursor: onSlotClick ? "pointer" : "default" }}>
-      <svg width={w * 0.04} height={w * 0.04} viewBox="0 0 24 24" fill="none" stroke="#a8a29e" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-      <span style={{ fontSize: w * 0.018, color: "#a8a29e", fontWeight: 500 }}>{label}</span>
-    </div>
-  );
+  const gap = Math.round(w * 0.015);
+  const cellW = isBA ? Math.round((w - p * 2 - gap) / 2) : w - p * 2;
+  const radius = Math.round(w * 0.022);
+  const labelStyle = (bg: string) => ({ position: "absolute" as const, top: w * 0.015, left: w * 0.015, background: bg, color: "white", padding: `${w * 0.006}px ${w * 0.015}px`, borderRadius: w * 0.007, fontSize: w * 0.02, fontWeight: 600 });
+
+  function photoCell(src: string, label: string, bg: string) {
+    return (
+      <div style={{ width: cellW, height: photoH, borderRadius: radius, overflow: "hidden", position: "relative", flexShrink: 0 }}>
+        <img src={src} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        {isBA && <span style={labelStyle(bg)}>{label}</span>}
+      </div>
+    );
+  }
+
+  function emptyCell(label: string, chipLabel: string, bg: string, slot: "before" | "after") {
+    return (
+      <div onClick={() => onSlotClick?.(slot)} style={{
+        width: cellW, height: photoH, borderRadius: radius, flexShrink: 0,
+        background: "#F2F0ED", border: `${Math.round(w * 0.003)}px dashed #D6D3CE`,
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        gap: h * 0.008, cursor: onSlotClick ? "pointer" : "default", position: "relative",
+      }}>
+        <span style={labelStyle(bg)}>{chipLabel}</span>
+        <svg width={w * 0.05} height={w * 0.05} viewBox="0 0 24 24" fill="none" stroke="#a8a29e" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+        <span style={{ fontSize: w * 0.02, color: "#a8a29e", fontWeight: 500, textAlign: "center", padding: `0 ${w * 0.02}px` }}>{label}</span>
+      </div>
+    );
+  }
+
   return (
     <div style={{ width: w, height: h, background: "#FFFBF5", display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", overflow: "hidden" }}>
       <style>{CARD_FONT_IMPORT}</style>
@@ -411,23 +434,16 @@ function MinimalCard({ photo, beforePhoto, petName, breed, serviceName, date, me
         <span style={{ fontSize: w * 0.038, fontWeight: 700, color: brandColor }}>{shopName}</span>
         <span style={{ fontSize: w * 0.022, color: "#a8a29e" }}>{date}</span>
       </div>
-      <div style={{ height: photoH, padding: `0 ${p}px`, display: "flex", gap: w * 0.015, flexShrink: 0 }}>
+      <div style={{ padding: `0 ${p}px`, display: "flex", gap, flexShrink: 0 }}>
         {isBA && (
-          beforePhoto ? (
-            <div style={{ flex: 1, borderRadius: w * 0.022, overflow: "hidden", position: "relative" }}>
-              <img src={beforePhoto} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-              <span style={{ position: "absolute", top: w * 0.015, left: w * 0.015, background: "rgba(0,0,0,0.5)", color: "white", padding: `${w * 0.006}px ${w * 0.015}px`, borderRadius: w * 0.007, fontSize: w * 0.02, fontWeight: 600 }}>Before</span>
-            </div>
-          ) : emptySlot("비포 사진 추가", "before")
+          beforePhoto
+            ? photoCell(beforePhoto, "Before", "rgba(0,0,0,0.5)")
+            : emptyCell("비포 사진을 추가해주세요", "Before", "rgba(0,0,0,0.35)", "before")
         )}
-        <div style={{ flex: 1, borderRadius: w * 0.022, overflow: "hidden", position: "relative" }}>
-          {photo ? (
-            <>
-              <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-              {isBA && <span style={{ position: "absolute", top: w * 0.015, left: w * 0.015, background: brandColor, color: "white", padding: `${w * 0.006}px ${w * 0.015}px`, borderRadius: w * 0.007, fontSize: w * 0.02, fontWeight: 600 }}>After</span>}
-            </>
-          ) : isBA ? emptySlot("애프터 사진 추가", "after") : null}
-        </div>
+        {photo
+          ? photoCell(photo, "After", brandColor)
+          : isBA ? emptyCell("애프터 사진을 추가해주세요", "After", brandColor, "after") : null
+        }
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: `${p * 0.5}px ${p}px ${p * 0.8}px`, textAlign: "center", overflow: "hidden" }}>
         <p style={{ fontFamily: DISPLAY_FONT, fontSize: w * 0.088, fontWeight: 400, color: "#1c1917", letterSpacing: -1, lineHeight: 1.15 }}>{petName}</p>
