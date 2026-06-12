@@ -91,7 +91,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
       link.download = `${pet.name}_${formatTimestampKST(visit.visitedAt, "yyyyMMdd")}.png`;
       link.href = dataUrl;
       link.click();
-    } catch { toast.error("이미지 생성에 실패했습니다."); }
+    } catch { toast.error("이미지 생성에 실패했어요."); }
     finally { setDownloading(false); }
   }, [size, pet.name, visit.visitedAt]);
 
@@ -116,7 +116,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
     if (!file) return;
     startTransition(async () => {
       const photo = await uploadPhoto(file, "after");
-      if (photo) { setAfterPhotos([photo]); toast.success("사진이 등록되었습니다."); router.refresh(); }
+      if (photo) { setAfterPhotos([photo]); toast.success("사진이 등록됐어요."); router.refresh(); }
     });
   }
 
@@ -157,7 +157,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
         if (type === "before") setBeforePhotos([photo]);
         else setAfterPhotos([photo]);
         setAssignStep(null);
-        toast.success("비포/애프터 카드가 준비되었습니다!");
+        toast.success("비포/애프터 카드가 준비됐어요!");
         router.refresh();
       }
     });

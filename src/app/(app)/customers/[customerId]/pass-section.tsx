@@ -90,7 +90,7 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
     startTransition(async () => {
       const result = await createPassAction(fd);
       if (result?.error) { setError(result.error); toast.error(result.error); }
-      else { toast.success("선불권이 판매되었습니다."); setShowForm(false); setName(""); setChargeAmount(0); setBonusAmount(0); }
+      else { toast.success("선불권이 판매됐어요."); setShowForm(false); setName(""); setChargeAmount(0); setBonusAmount(0); }
     });
   }
 
@@ -223,7 +223,7 @@ function PassCard({ pass: p, inactive }: { pass: Pass; inactive?: boolean }) {
     startTransition(async () => {
       const result = await togglePassDisableAction(fd);
       if (result?.error) toast.error(result.error);
-      else toast.success(disable ? "선불권이 사용 중지되었습니다." : "선불권이 다시 활성화되었습니다.");
+      else toast.success(disable ? "선불권이 사용 중지됐어요." : "선불권이 다시 활성화됐어요.");
       setConfirm(null);
       setMenuOpen(false);
     });

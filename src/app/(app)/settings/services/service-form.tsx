@@ -65,7 +65,7 @@ export function ServiceFormDialog({
         setError(result.error);
         toast.error(result.error);
       } else {
-        toast.success(service ? "시술이 수정되었습니다." : "시술이 추가되었습니다.");
+        toast.success(service ? "시술이 수정됐어요." : "시술이 추가됐어요.");
         onClose();
         router.refresh();
       }

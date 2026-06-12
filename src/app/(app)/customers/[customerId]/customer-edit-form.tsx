@@ -48,7 +48,7 @@ export function CustomerEditForm({
     startTransition(async () => {
       const result = await updateCustomerAction(fd);
       if (result?.error) { toast.error(result.error); return; }
-      toast.success("보호자 정보가 수정되었습니다.");
+      toast.success("보호자 정보가 수정됐어요.");
       const cleanPhone = phone.replace(/[^0-9]/g, "");
       setDisplayName(name.trim());
       setDisplayPhone(cleanPhone);

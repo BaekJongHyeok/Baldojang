@@ -62,7 +62,7 @@ export function QuickPetForm() {
     startTransition(async () => {
       const res = await quickCreatePetAction(fd);
       if (res?.error) { toast.error(res.error); return; }
-      if (res?.petId) { toast.success("펫이 등록되었습니다."); setResult({ petId: res.petId }); }
+      if (res?.petId) { toast.success("펫이 등록됐어요."); setResult({ petId: res.petId }); }
     });
   }
 

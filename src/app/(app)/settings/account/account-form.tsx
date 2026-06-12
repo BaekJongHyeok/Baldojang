@@ -21,12 +21,12 @@ export function AccountForm({ email, staffName }: { email: string; staffName: st
     startNameTransition(async () => {
       const result = await updateStaffNameAction(fd);
       if (result?.error) toast.error(result.error);
-      else toast.success("이름이 변경되었습니다.");
+      else toast.success("이름이 변경됐어요.");
     });
   }
 
   function handlePasswordSubmit() {
-    if (pw.length < 6) { toast.error("비밀번호는 6자 이상이어야 합니다."); return; }
+    if (pw.length < 6) { toast.error("비밀번호는 6자 이상이어야 해요."); return; }
     if (pw !== pwConfirm) { toast.error("비밀번호가 일치하지 않습니다."); return; }
     const fd = new FormData();
     fd.set("password", pw);
@@ -34,7 +34,7 @@ export function AccountForm({ email, staffName }: { email: string; staffName: st
     startPwTransition(async () => {
       const result = await updatePasswordAction(fd);
       if (result?.error) toast.error(result.error);
-      else { toast.success("비밀번호가 변경되었습니다."); setPw(""); setPwConfirm(""); }
+      else { toast.success("비밀번호가 변경됐어요."); setPw(""); setPwConfirm(""); }
     });
   }
 

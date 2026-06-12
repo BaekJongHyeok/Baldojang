@@ -68,11 +68,11 @@ export function ShopSettingsForm({
     startTransition(async () => {
       const result = await updateShopAction(formData);
       if (result?.error) toast.error(result.error);
-      else { toast.success("샵 정보가 저장되었습니다."); setDirty(false); router.refresh(); }
+      else { toast.success("샵 정보가 저장됐어요."); setDirty(false); router.refresh(); }
     });
   }
 
-  const SEL = "min-w-0 flex-1 rounded-md border border-border px-2 py-1 text-xs outline-none focus:border-primary";
+  const SEL = "min-w-[90px] flex-1 rounded-md border border-border px-2 py-1.5 text-xs outline-none focus:border-primary";
   const INPUT = "rounded-md border border-border px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
 
   return (

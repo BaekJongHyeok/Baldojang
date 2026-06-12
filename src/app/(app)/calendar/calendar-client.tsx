@@ -219,7 +219,7 @@ export function CalendarClient({
       const usedPass = passes.find((p) => p.id === passId);
       if (usedPass) {
         const newBalance = passType === "amount" ? (usedPass.balance ?? 0) - passAmount : (usedPass.remaining ?? 0) - 1;
-        if (newBalance <= 0) toast.info("선불권이 모두 소진되었습니다. 재충전을 권유해보세요.");
+        if (newBalance <= 0) toast.info("선불권이 모두 소진됐어요. 재충전을 권유해보세요.");
       }
     }
     if (result.visitId) toast("완료 카드를 만들어보세요", { action: { label: "카드 만들기", onClick: () => router.push(`/visits/${result.visitId}/card`) } });

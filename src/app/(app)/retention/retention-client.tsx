@@ -33,7 +33,7 @@ export function RetentionClient({ items, defaultCycleWeeks }: { items: Item[]; d
     startTransition(async () => {
       const result = await markContactedAction(fd);
       if (result?.error) toast.error(result.error);
-      else toast.success("연락 완료로 처리했습니다.");
+      else toast.success("연락 완료로 처리했어요.");
     });
   }
 

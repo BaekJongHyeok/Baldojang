@@ -51,7 +51,7 @@ export function ReactivateButton({ petId }: { petId: string }) {
     startTransition(async () => {
       const result = await reactivatePetAction(fd);
       if (result?.error) toast.error(result.error);
-      else { toast.success("다시 활성화되었습니다."); setConfirm(false); }
+      else { toast.success("다시 활성화됐어요."); setConfirm(false); }
     });
   }
 

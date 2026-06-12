@@ -29,7 +29,7 @@ export function InlineCycleEdit({
     startTransition(async () => {
       const result = await updatePetCycleAction(fd);
       if (result?.error) toast.error(result.error);
-      else { setCurrent(num); setEditing(false); toast.success("재방문 주기가 변경되었습니다."); }
+      else { setCurrent(num); setEditing(false); toast.success("재방문 주기가 변경됐어요."); }
     });
   }
 

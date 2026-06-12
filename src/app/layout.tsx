@@ -16,7 +16,7 @@ export default function RootLayout({
     <html lang="ko" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         {children}
-        <Toaster position="top-center" richColors closeButton duration={3000} />
+        <Toaster position="top-center" richColors closeButton duration={3000} offset={16} />
       </body>
     </html>
   );

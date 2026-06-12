@@ -55,7 +55,7 @@ export function InlineCautionEdit({
       setDisplayTags(tags);
       setDisplayMemo(memo.trim() || null);
       setEditing(false);
-      toast.success("주의사항이 수정되었습니다.");
+      toast.success("주의사항이 수정됐어요.");
     });
   }
 
