@@ -5,11 +5,10 @@ import { kstHourMin, formatTimestampKST } from "@/lib/calendar-utils";
 import { Spinner } from "@/components/spinner";
 import { getPassStatus } from "@/lib/utils";
 
-const METHODS = [
+const PAY_METHODS = [
   { value: "card", label: "카드" },
   { value: "cash", label: "현금" },
   { value: "transfer", label: "이체" },
-  { value: "later", label: "나중에" },
 ] as const;
 
 export type PassOption = {
@@ -35,32 +34,14 @@ function buildEndSlots(startsAt: string, endsAt: string): string[] {
   return slots;
 }
 
-function formatComma(n: number): string {
-  return n ? n.toLocaleString() : "";
-}
-
-function parseComma(s: string): number {
-  return Number(s.replace(/[^0-9]/g, "")) || 0;
-}
+function formatComma(n: number): string { return n ? n.toLocaleString() : ""; }
+function parseComma(s: string): number { return Number(s.replace(/[^0-9]/g, "")) || 0; }
 
 export function CompleteDialog({
-  reservationId,
-  petName,
-  startsAt,
-  endsAt,
-  slotMinutes,
-  priceQuoted,
-  passes,
-  onClose,
-  onSubmit,
+  reservationId, petName, startsAt, endsAt, slotMinutes, priceQuoted, passes, onClose, onSubmit,
 }: {
-  reservationId: string;
-  petName: string;
-  startsAt: string;
-  endsAt: string;
-  slotMinutes: number;
-  priceQuoted: number | null;
-  passes: PassOption[];
+  reservationId: string; petName: string; startsAt: string; endsAt: string;
+  slotMinutes: number; priceQuoted: number | null; passes: PassOption[];
   onClose: () => void;
   onSubmit: (fd: FormData) => Promise<{ error?: string; success?: boolean; visitId?: string }>;
 }) {
@@ -70,6 +51,7 @@ export function CompleteDialog({
   const [behaviorMemo, setBehaviorMemo] = useState("");
   const [memoOpen, setMemoOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [visitId, setVisitId] = useState<string | null>(null);
 
   // 종료 시각
   const endSlots = useMemo(() => buildEndSlots(startsAt, endsAt), [startsAt, endsAt]);
@@ -93,41 +75,26 @@ export function CompleteDialog({
   const [customTimeMode, setCustomTimeMode] = useState(false);
   const [customTime, setCustomTime] = useState(defaultEnd);
   const [timeError, setTimeError] = useState<string | null>(null);
-
   const startTimeMin = useMemo(() => { const s = kstHourMin(startsAt); return s.hours * 60 + s.minutes; }, [startsAt]);
 
   function handleCustomTimeChange(val: string) {
     setCustomTime(val);
     const [h, m] = val.split(":").map(Number);
-    const mins = h * 60 + m;
-    if (mins <= startTimeMin) {
-      setTimeError("시작 시각 이후여야 해요");
-    } else {
-      setTimeError(null);
-      setActualEnd(val);
-    }
+    if (h * 60 + m <= startTimeMin) setTimeError("시작 시각 이후여야 해요");
+    else { setTimeError(null); setActualEnd(val); }
   }
 
   // 결제
   const activePasses = useMemo(() => passes.filter((p) => getPassStatus(p) === "active"), [passes]);
+  const hasActivePasses = activePasses.length > 0;
   const defaultAmount = priceQuoted ?? 0;
+
+  type PayMode = "card" | "cash" | "transfer" | "pass";
+  const [payMode, setPayMode] = useState<PayMode>("card");
   const [amount, setAmount] = useState(defaultAmount);
   const [amountDisplay, setAmountDisplay] = useState(formatComma(defaultAmount));
-  const [method, setMethod] = useState<string>("card");
-  const [usePass, setUsePass] = useState(false);
   const [selectedPassId, setSelectedPassId] = useState("");
   const [extraMethod, setExtraMethod] = useState("card");
-
-  const isLater = method === "later";
-
-  // 선불권 체크 시 금액이 0이면 시술가로 복원
-  function toggleUsePass(checked: boolean) {
-    setUsePass(checked);
-    if (checked && amount === 0 && defaultAmount > 0) {
-      setAmount(defaultAmount);
-      setAmountDisplay(formatComma(defaultAmount));
-    }
-  }
 
   const selectedPass = activePasses.find((p) => p.id === selectedPassId);
   const passBalance = selectedPass?.type === "amount" ? (selectedPass.balance ?? 0) : 0;
@@ -135,7 +102,6 @@ export function CompleteDialog({
   const extraAmount = selectedPass?.type === "amount" ? Math.max(0, amount - passBalance) : 0;
 
   const dateStr = formatTimestampKST(startsAt, "yyyy-MM-dd");
-  const [visitId, setVisitId] = useState<string | null>(null);
 
   function handleAmountChange(val: string) {
     const num = parseComma(val);
@@ -143,10 +109,20 @@ export function CompleteDialog({
     setAmountDisplay(num ? num.toLocaleString() : "");
   }
 
+  function switchPayMode(mode: PayMode) {
+    setPayMode(mode);
+    if (mode === "pass" && amount === 0 && defaultAmount > 0) {
+      setAmount(defaultAmount);
+      setAmountDisplay(formatComma(defaultAmount));
+    }
+    setError(null);
+  }
+
   function doComplete() {
     if (timeError) return;
-    if (usePass && !selectedPassId) { setError("선불권을 선택해주세요."); return; }
-    if (!isLater && !usePass && amount <= 0) { setError("금액을 입력해주세요."); return; }
+    if (payMode === "pass" && !selectedPassId) { setError("선불권을 선택해주세요."); return; }
+    if (payMode !== "pass" && amount <= 0) { setError("금액을 입력해주세요."); return; }
+
     const actualEndsAt = `${dateStr}T${actualEnd}:00+09:00`;
     const fd = new FormData();
     fd.set("reservation_id", reservationId);
@@ -154,9 +130,7 @@ export function CompleteDialog({
     if (styleMemo) fd.set("style_memo", styleMemo);
     if (behaviorMemo) fd.set("behavior_memo", behaviorMemo);
 
-    if (isLater) {
-      fd.set("skip_payment", "true");
-    } else if (usePass && selectedPass) {
+    if (payMode === "pass" && selectedPass) {
       fd.set("pass_id", selectedPass.id);
       fd.set("pass_type", selectedPass.type);
       fd.set("payment_amount", String(amount));
@@ -169,7 +143,7 @@ export function CompleteDialog({
       }
     } else {
       fd.set("payment_amount", String(amount));
-      fd.set("payment_method", method);
+      fd.set("payment_method", payMode);
     }
 
     setError(null);
@@ -206,9 +180,7 @@ export function CompleteDialog({
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/40 lg:items-center lg:px-4" onClick={onClose}>
       <div className={`flex w-full max-w-md flex-col border-t border-border bg-white shadow-modal lg:rounded-lg lg:border ${isPending ? "pointer-events-none" : ""}`} onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-center pt-3 pb-1 lg:hidden">
-          <div className="h-1 w-8 rounded-full bg-border" />
-        </div>
+        <div className="flex justify-center pt-3 pb-1 lg:hidden"><div className="h-1 w-8 rounded-full bg-border" /></div>
 
         <div className="max-h-[80vh] overflow-y-auto px-5 pt-3 pb-2">
           <h3 className="text-[18px] font-bold text-ink">시술 완료 — {petName}</h3>
@@ -219,26 +191,19 @@ export function CompleteDialog({
               <p className="text-[12px] font-medium text-ink-secondary">실제 종료 시각</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {endSlots.map((s) => (
-                  <button key={s} type="button"
-                    onClick={() => { setActualEnd(s); setCustomTimeMode(false); setTimeError(null); }}
-                    className={`rounded-md px-3 py-1.5 text-[13px] font-medium tabular-nums transition-all duration-150 ${
-                      actualEnd === s && !customTimeMode ? "bg-primary text-white" : "border border-border bg-white text-ink-secondary hover:bg-bg"
-                    }`}>
+                  <button key={s} type="button" onClick={() => { setActualEnd(s); setCustomTimeMode(false); setTimeError(null); }}
+                    className={`rounded-md px-3 py-1.5 text-[13px] font-medium tabular-nums transition-all ${actualEnd === s && !customTimeMode ? "bg-primary text-white" : "border border-border bg-white text-ink-secondary hover:bg-bg"}`}>
                     {s}
                   </button>
                 ))}
-                <button type="button"
-                  onClick={() => { setCustomTimeMode(true); setCustomTime(actualEnd); }}
-                  className={`rounded-md px-3 py-1.5 text-[13px] font-medium transition-all duration-150 ${
-                    customTimeMode ? "bg-primary text-white" : "border border-border bg-white text-ink-secondary hover:bg-bg"
-                  }`}>
+                <button type="button" onClick={() => { setCustomTimeMode(true); setCustomTime(actualEnd); }}
+                  className={`rounded-md px-3 py-1.5 text-[13px] font-medium transition-all ${customTimeMode ? "bg-primary text-white" : "border border-border bg-white text-ink-secondary hover:bg-bg"}`}>
                   직접 입력
                 </button>
               </div>
               {customTimeMode && (
                 <div className="mt-2">
-                  <input type="time" value={customTime} onChange={(e) => handleCustomTimeChange(e.target.value)}
-                    step={300}
+                  <input type="time" value={customTime} onChange={(e) => handleCustomTimeChange(e.target.value)} step={300}
                     className="rounded-md border border-border px-3 py-2 text-[14px] tabular-nums text-ink outline-none focus:border-primary focus:ring-1 focus:ring-primary/20" />
                   {timeError && <p className="mt-1 text-[12px] text-danger">{timeError}</p>}
                 </div>
@@ -249,90 +214,84 @@ export function CompleteDialog({
             <div className="rounded-md border border-border p-4">
               <p className="text-[13px] font-bold text-ink-secondary">결제</p>
 
-              {/* 결제 수단 칩 (나중에 포함) */}
+              {/* 수단 칩: 카드/현금/이체/선불권 */}
               <div className="mt-3 flex gap-1.5">
-                {METHODS.map((m) => (
-                  <button key={m.value} type="button"
-                    onClick={() => { setMethod(m.value); if (m.value === "later") setUsePass(false); }}
-                    className={`flex-1 rounded-md py-2 text-[13px] font-medium transition-all duration-150 ${
-                      method === m.value
-                        ? "bg-primary text-white"
-                        : "border border-border bg-white text-ink-secondary hover:bg-bg"
-                    }`}>
+                {PAY_METHODS.map((m) => (
+                  <button key={m.value} type="button" onClick={() => switchPayMode(m.value as PayMode)}
+                    className={`flex-1 rounded-md py-2 text-[13px] font-medium transition-all ${payMode === m.value ? "bg-primary text-white" : "border border-border bg-white text-ink-secondary hover:bg-bg"}`}>
                     {m.label}
                   </button>
                 ))}
+                <button type="button" onClick={() => switchPayMode("pass")}
+                  disabled={!hasActivePasses}
+                  className={`flex-1 rounded-md py-2 text-[13px] font-medium transition-all ${payMode === "pass" ? "bg-primary text-white" : hasActivePasses ? "border border-border bg-white text-ink-secondary hover:bg-bg" : "border border-border bg-border-light text-ink-disabled cursor-not-allowed"}`}>
+                  선불권
+                </button>
               </div>
 
-              {!isLater && (
+              {/* 카드/현금/이체: 금액 입력 */}
+              {payMode !== "pass" && (
+                <div className="mt-3">
+                  <p className="mb-1 text-[11px] text-ink-caption">결제 금액</p>
+                  <div className="flex items-center gap-2">
+                    <input type="text" inputMode="numeric" value={amountDisplay} onChange={(e) => handleAmountChange(e.target.value)}
+                      className="min-w-0 flex-1 rounded-md border border-border px-3 py-2 text-[14px] text-ink tabular-nums outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/20" placeholder="0" />
+                    <span className="text-[14px] text-ink-caption">원</span>
+                  </div>
+                </div>
+              )}
+
+              {/* 선불권: 패스 선택 + 차감 미리보기 */}
+              {payMode === "pass" && (
                 <div className="mt-3 flex flex-col gap-3">
-                  {/* 금액 (콤마 포맷) */}
                   <div>
-                    <p className="mb-1 text-[11px] text-ink-caption">{usePass ? "시술 금액" : "결제 금액"}</p>
+                    <p className="mb-1 text-[11px] text-ink-caption">시술 금액</p>
                     <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={amountDisplay}
-                        onChange={(e) => handleAmountChange(e.target.value)}
-                        className="min-w-0 flex-1 rounded-md border border-border px-3 py-2 text-[14px] text-ink tabular-nums outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/20"
-                        placeholder="0"
-                      />
+                      <input type="text" inputMode="numeric" value={amountDisplay} onChange={(e) => handleAmountChange(e.target.value)}
+                        className="min-w-0 flex-1 rounded-md border border-border px-3 py-2 text-[14px] text-ink tabular-nums outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/20" placeholder="0" />
                       <span className="text-[14px] text-ink-caption">원</span>
                     </div>
                   </div>
 
-                  {/* 선불권 */}
-                  {activePasses.length > 0 ? (
-                    <label className="flex items-center gap-1.5 text-[13px] text-ink-secondary">
-                      <input type="checkbox" checked={usePass} onChange={(e) => toggleUsePass(e.target.checked)} className="rounded" />
-                      선불권 사용
-                    </label>
-                  ) : passes.length > 0 ? (
-                    <p className="text-[11px] text-ink-disabled">사용 가능한 선불권 없음</p>
-                  ) : null}
+                  <select value={selectedPassId} onChange={(e) => setSelectedPassId(e.target.value)}
+                    className="min-w-0 rounded-md border border-border px-3 py-2 text-[13px] text-ink outline-none transition-colors focus:border-primary">
+                    <option value="">선불권 선택</option>
+                    {activePasses.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} — {p.type === "amount" ? `₩${(p.balance ?? 0).toLocaleString()}` : `${p.remaining ?? 0}회`}
+                      </option>
+                    ))}
+                  </select>
 
-                  {usePass && activePasses.length > 0 ? (
-                    <div className="flex flex-col gap-2">
-                      <select value={selectedPassId} onChange={(e) => setSelectedPassId(e.target.value)}
-                        className="min-w-0 rounded-md border border-border px-3 py-2 text-[13px] text-ink outline-none transition-colors focus:border-primary">
-                        <option value="">선불권 선택</option>
-                        {activePasses.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} — {p.type === "amount" ? `₩${(p.balance ?? 0).toLocaleString()}` : `${p.remaining ?? 0}회`}
-                          </option>
-                        ))}
-                      </select>
-                      {selectedPass && selectedPass.type === "amount" && (
-                        <div className="rounded-md bg-bg px-3 py-2 text-[13px]">
-                          <div className="flex items-center justify-between">
-                            <span className="text-ink-caption">선불권 차감</span>
-                            <span className="font-medium text-ink tabular-nums">₩{passDeductAmount.toLocaleString()}</span>
+                  {selectedPass && selectedPass.type === "amount" && (
+                    <div className="rounded-md bg-bg px-3 py-2 text-[13px]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-ink-caption">선불권 차감</span>
+                        <span className="font-medium text-ink tabular-nums">₩{passDeductAmount.toLocaleString()}</span>
+                      </div>
+                      {extraAmount > 0 && (
+                        <div className="mt-1.5 flex items-center justify-between border-t border-border-light pt-1.5">
+                          <span className="text-ink-caption">부족분</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-ink tabular-nums">₩{extraAmount.toLocaleString()}</span>
+                            <select value={extraMethod} onChange={(e) => setExtraMethod(e.target.value)}
+                              className="rounded-sm border border-border px-1.5 py-0.5 text-[11px]">
+                              {PAY_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                            </select>
                           </div>
-                          {extraAmount > 0 && (
-                            <div className="mt-1.5 flex items-center justify-between border-t border-border-light pt-1.5">
-                              <span className="text-ink-caption">부족분</span>
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-medium text-ink tabular-nums">₩{extraAmount.toLocaleString()}</span>
-                                <select value={extraMethod} onChange={(e) => setExtraMethod(e.target.value)}
-                                  className="rounded-sm border border-border px-1.5 py-0.5 text-[11px]">
-                                  {METHODS.filter((m) => m.value !== "later").map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                                </select>
-                              </div>
-                            </div>
-                          )}
-                          {extraAmount === 0 && amount > 0 && (
-                            <p className="mt-1 text-[11px] text-success">전액 선불권 결제</p>
-                          )}
                         </div>
                       )}
-                      {selectedPass && selectedPass.type === "count" && (
-                        <p className="text-[13px] text-ink-secondary">
-                          1회 차감 (잔여 <span className="font-medium tabular-nums">{(selectedPass.remaining ?? 0) - 1}회</span>)
-                        </p>
+                      {extraAmount === 0 && amount > 0 && (
+                        <p className="mt-1 text-[11px] text-success">전액 선불권 결제</p>
                       )}
                     </div>
-                  ) : null}
+                  )}
+
+                  {selectedPass && selectedPass.type === "count" && (
+                    <p className="text-[13px] text-ink-secondary">
+                      1회 차감 (잔여 <span className="font-medium tabular-nums">{(selectedPass.remaining ?? 0) - 1}회</span>)
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -341,7 +300,7 @@ export function CompleteDialog({
             <button type="button" onClick={() => setMemoOpen(!memoOpen)}
               className="flex items-center justify-between rounded-md border border-border px-4 py-3 text-[13px] font-medium text-ink-secondary transition-colors hover:bg-bg">
               <span>메모 {(styleMemo || behaviorMemo) && "·"} {styleMemo && "스타일"} {behaviorMemo && "행동"}</span>
-              <svg className={`h-4 w-4 text-ink-disabled transition-transform duration-150 ${memoOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <svg className={`h-4 w-4 text-ink-disabled transition-transform ${memoOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
               </svg>
             </button>
@@ -366,10 +325,9 @@ export function CompleteDialog({
           </div>
         </div>
 
-        {/* 하단 버튼 */}
         <div className="border-t border-border px-5 py-4">
           <button type="button" onClick={doComplete} disabled={isPending || !!timeError}
-            className="flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 text-[14px] font-medium text-white transition-all duration-150 hover:bg-primary-hover disabled:opacity-50">
+            className="flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 text-[14px] font-medium text-white transition-all hover:bg-primary-hover disabled:opacity-50">
             {isPending && <Spinner />}시술 완료
           </button>
           <button type="button" onClick={onClose} disabled={isPending}

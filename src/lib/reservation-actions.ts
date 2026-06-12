@@ -190,7 +190,7 @@ export async function completeWithVisitAction(formData: FormData) {
   const paymentMethod = formData.get("payment_method")
     ? String(formData.get("payment_method"))
     : null;
-  const skipPayment = formData.get("skip_payment") === "true";
+  // skip_payment 경로 제거됨 — 완료 시 항상 결제 기록 동반
 
   // 예약 정보 조회
   const { data: reservation, error: fetchErr } = await supabase
@@ -226,7 +226,7 @@ export async function completeWithVisitAction(formData: FormData) {
   }
 
   // 결제 기록 생성
-  if (!skipPayment) {
+  {
     const passId = String(formData.get("pass_id") ?? "");
     const passType = String(formData.get("pass_type") ?? "");
     const passAmount = Number(formData.get("pass_amount") ?? 0);
