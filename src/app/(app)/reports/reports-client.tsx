@@ -105,7 +105,8 @@ export function ReportsClient({
     const map: Record<string, number> = {};
     for (const r of servicePayments) { const d = kstDateStr(r.paid_at); map[d] = (map[d] ?? 0) + r.amount; }
     const data = days.map((d) => { const key = format(d, "yyyy-MM-dd"); return { date: key, label: format(d, "M/d"), amount: map[key] ?? 0 }; });
-    return { dailyData: data, maxDaily: Math.max(1, ...data.map((d) => d.amount)) };
+    const raw = Math.max(1, ...data.map((d) => d.amount));
+    return { dailyData: data, maxDaily: Math.ceil(raw * 1.2) };
   }, [servicePayments, from, to]);
 
   // === 월 마감 ===
@@ -221,6 +222,7 @@ export function ReportsClient({
             <Section title="선불권">
               {prepaidSales.length > 0 && <Row label={`선불권 판매 (${prepaidSales.length}건)`} value={`₩${prepaidTotal.toLocaleString()}`} />}
               {passUsageCount > 0 && <Row label="횟수권 사용" value={`${passUsageCount}건`} />}
+              <p className="text-[11px] text-ink-disabled">시술 매출과 별도로 집계돼요 (선수금)</p>
             </Section>
           )}
 
@@ -229,7 +231,7 @@ export function ReportsClient({
               <p className="text-xs font-bold text-ink-caption">일별 매출</p>
               <div className="mt-3 flex items-end gap-px overflow-x-auto" style={{ height: 120 }}>
                 {dailyData.map((d) => (
-                  <div key={d.date} className="flex min-w-[12px] flex-1 flex-col items-center gap-1">
+                  <div key={d.date} className="flex min-w-[12px] flex-1 max-w-[60%] flex-col items-center gap-1 mx-auto">
                     <div className="w-full rounded-t bg-primary" style={{ height: `${(d.amount / maxDaily) * 100}px`, minHeight: d.amount > 0 ? 4 : 0 }} />
                     {dailyData.length <= 14 && <span className="text-[9px] text-ink-caption">{d.label}</span>}
                   </div>
