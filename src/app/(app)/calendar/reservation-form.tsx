@@ -127,6 +127,14 @@ export function ReservationForm({
     }
   }
 
+  const [pastConfirmed, setPastConfirmed] = useState(false);
+
+  const isPastTime = useMemo(() => {
+    if (!startTime || !selectedDate) return false;
+    const sISO = `${selectedDate}T${startTime}:00+09:00`;
+    return new Date(sISO) < new Date();
+  }, [startTime, selectedDate]);
+
   const hasConflict = useMemo(() => {
     if (!startTime || !endTime) return false;
     const sISO = `${selectedDate}T${startTime}:00+09:00`;
@@ -147,6 +155,12 @@ export function ReservationForm({
       setError("필수 항목을 모두 입력해주세요.");
       return;
     }
+    // 과거 시간 확인
+    if (isPastTime && !pastConfirmed) {
+      setPastConfirmed(true);
+      return;
+    }
+    setPastConfirmed(false);
     const startsAt = `${selectedDate}T${startTime}:00+09:00`;
     const endsAt = `${selectedDate}T${endTime}:00+09:00`;
 
@@ -276,6 +290,10 @@ export function ReservationForm({
             </label>
           </div>
 
+          {isPastTime && !pastConfirmed && (
+            <p className="text-[12px] text-warning">지난 시간이에요</p>
+          )}
+
           {hasConflict && (
             <p className="rounded-md bg-danger-light px-3 py-2 text-[13px] font-medium text-danger">
               이 시간에 이미 예약이 있습니다.
@@ -292,17 +310,32 @@ export function ReservationForm({
 
           {error && <p className="text-center text-[13px] text-danger">{error}</p>}
 
-          <div className="flex gap-2">
-            <button type="button" onClick={onClose}
-              className="w-1/3 rounded-md border border-border py-2.5 text-[13px] font-medium text-ink-caption transition-colors hover:bg-bg">
-              취소
-            </button>
-            <button type="button" onClick={handleSubmit} disabled={isPending || hasConflict}
-              className="flex w-2/3 items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-[14px] font-medium text-white transition-all hover:bg-primary-hover disabled:opacity-50">
-              {isPending && <Spinner />}
-              {isEdit ? "수정 저장" : "예약"}
-            </button>
-          </div>
+          {pastConfirmed && (
+            <div className="rounded-md bg-warning-light px-3 py-2">
+              <p className="text-[13px] font-medium text-warning">지난 시간이에요. 이대로 등록할까요?</p>
+              <div className="mt-2 flex gap-2">
+                <button type="button" onClick={() => setPastConfirmed(false)} className="flex-1 rounded-md border border-border py-1.5 text-[12px] font-medium text-ink-secondary">돌아가기</button>
+                <button type="button" onClick={handleSubmit} disabled={isPending}
+                  className="flex-1 rounded-md bg-primary py-1.5 text-[12px] font-medium text-white disabled:opacity-50">
+                  {isPending ? "저장 중..." : "등록"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!pastConfirmed && (
+            <div className="flex gap-2">
+              <button type="button" onClick={onClose}
+                className="w-1/3 rounded-md border border-border py-2.5 text-[13px] font-medium text-ink-caption transition-colors hover:bg-bg">
+                취소
+              </button>
+              <button type="button" onClick={handleSubmit} disabled={isPending || hasConflict}
+                className="flex w-2/3 items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-[14px] font-medium text-white transition-all hover:bg-primary-hover disabled:opacity-50">
+                {isPending && <Spinner />}
+                {isEdit ? "수정 저장" : "예약"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

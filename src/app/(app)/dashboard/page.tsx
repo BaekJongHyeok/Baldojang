@@ -1,23 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { todayKST, formatTimestampKST } from "@/lib/calendar-utils";
+import { todayKST } from "@/lib/calendar-utils";
 import { getAuthContext } from "@/lib/auth-cache";
-import { PhoneButton } from "@/components/phone-button";
+import { TodayTable } from "./today-table";
 import { startOfWeek, startOfMonth, format } from "date-fns";
-
-function statusLabel(s: string) {
-  switch (s) { case "confirmed": return "확정"; case "completed": return "완료"; case "no_show": return "노쇼"; case "cancelled": return "취소"; default: return s; }
-}
-function statusClass(s: string) {
-  switch (s) {
-    case "confirmed": return "bg-primary-light text-primary";
-    case "completed": return "bg-success-light text-success";
-    case "no_show": return "bg-danger-light text-danger";
-    case "cancelled": return "bg-border-light text-ink-disabled line-through";
-    default: return "bg-border-light text-ink-caption";
-  }
-}
 
 export default async function DashboardPage() {
   const ctx = await getAuthContext();
@@ -44,7 +31,7 @@ export default async function DashboardPage() {
   const [todayResResult, todayPayResult, weekPayResult, monthPayResult, oldVisitsResult, futureResResult, weekResResult] = await Promise.all([
     supabase
       .from("reservations")
-      .select("id, starts_at, ends_at, status, pets(name, photo_url, customers(phone)), services(name)")
+      .select("id, starts_at, ends_at, status, price_quoted, pet_id, pets(name, photo_url, customer_id, customers(id, phone)), services(name, duration_minutes)")
       .eq("shop_id", shopId)
       .gte("starts_at", todayStart)
       .lte("starts_at", todayEnd)
@@ -95,6 +82,48 @@ export default async function DashboardPage() {
     }
   }
 
+  // 완료 다이얼로그용: confirmed 예약의 보호자별 선불권
+  const confirmedCustomerIds = [...new Set(
+    active.filter((r) => r.status === "confirmed").map((r) => {
+      const pet = Array.isArray(r.pets) ? r.pets[0] : r.pets;
+      const c = pet?.customers ? (Array.isArray(pet.customers) ? pet.customers[0] : pet.customers) : null;
+      return c?.id;
+    }).filter(Boolean) as string[]
+  )];
+  let passesMap: Record<string, { id: string; type: string; name: string; balance: number | null; remaining: number | null; expires_at: string | null; disabled_at: string | null }[]> = {};
+  if (confirmedCustomerIds.length > 0) {
+    const { data: allPasses } = await supabase
+      .from("passes")
+      .select("id, type, name, balance, remaining, expires_at, disabled_at, customer_id")
+      .in("customer_id", confirmedCustomerIds);
+    for (const p of allPasses ?? []) {
+      if (!passesMap[p.customer_id]) passesMap[p.customer_id] = [];
+      passesMap[p.customer_id].push(p);
+    }
+  }
+
+  // 오늘 예약 데이터를 클라이언트 컴포넌트용으로 직렬화
+  const todayItems = active.map((r) => {
+    const pet = Array.isArray(r.pets) ? r.pets[0] : r.pets;
+    const svc = Array.isArray(r.services) ? r.services[0] : r.services;
+    const customer = pet?.customers ? (Array.isArray(pet.customers) ? pet.customers[0] : pet.customers) : null;
+    return {
+      id: r.id,
+      startsAt: r.starts_at,
+      endsAt: r.ends_at,
+      status: r.status as string,
+      priceQuoted: r.price_quoted as number | null,
+      petName: pet?.name ?? "?",
+      serviceName: svc?.name ?? "",
+      serviceDuration: svc?.duration_minutes ?? 60,
+      customerPhone: customer?.phone ?? null,
+      customerId: customer?.id ?? null,
+      visitId: visitMap[r.id] ?? null,
+      passes: customer?.id ? (passesMap[customer.id] ?? []) : [],
+    };
+  });
+
+  const slotMinutes = ctx.shop?.slotMinutes ?? 30;
   const dateLabel = new Date(today + "T00:00:00Z").toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
 
   return (
@@ -126,122 +155,7 @@ export default async function DashboardPage() {
             <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
           </Link>
         </div>
-
-        {active.length === 0 ? (
-          <div className="px-4 py-10 text-center">
-            <p className="text-[14px] text-ink-caption">오늘 예약이 없습니다</p>
-            <Link href="/calendar?new=1" className="mt-2 inline-block text-[13px] font-medium text-primary hover:underline">예약 등록하기</Link>
-          </div>
-        ) : (
-          <>
-            {/* 데스크톱 테이블 */}
-            <div className="hidden lg:block">
-              <table className="w-full text-left text-[14px]">
-                <thead>
-                  <tr className="border-b border-border-light bg-border-light text-[12px] font-medium text-ink-caption">
-                    <th className="px-4 py-2">시간</th>
-                    <th className="px-4 py-2">펫</th>
-                    <th className="px-4 py-2">시술</th>
-                    <th className="px-4 py-2">상태</th>
-                    <th className="px-4 py-2 text-right">액션</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {active.map((r) => {
-                    const pet = Array.isArray(r.pets) ? r.pets[0] : r.pets;
-                    const svc = Array.isArray(r.services) ? r.services[0] : r.services;
-                    const customer = pet?.customers ? (Array.isArray(pet.customers) ? pet.customers[0] : pet.customers) : null;
-                    const vId = visitMap[r.id];
-                    return (
-                      <tr key={r.id} className="border-b border-border-light last:border-b-0 hover:bg-border-light/50 transition-colors">
-                        <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-ink-secondary">
-                          {formatTimestampKST(r.starts_at, "HH:mm")}–{formatTimestampKST(r.ends_at, "HH:mm")}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-medium text-ink">{pet?.name ?? "?"}</span>
-                            {customer?.phone && (
-                              <PhoneButton phone={customer.phone} className="flex h-6 w-6 items-center justify-center rounded-full text-ink-caption hover:bg-bg hover:text-ink">
-                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
-                              </PhoneButton>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-2.5 text-ink-secondary">{svc?.name ?? ""}</td>
-                        <td className="px-4 py-2.5">
-                          <span className={`inline-flex rounded-sm px-1.5 py-0.5 text-[11px] font-medium ${statusClass(r.status)}`}>
-                            {statusLabel(r.status)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          {r.status === "confirmed" && (
-                            <Link href={`/calendar?date=${today}`} className="rounded-md bg-primary px-2.5 py-1 text-[12px] font-medium text-white hover:bg-primary-hover">완료</Link>
-                          )}
-                          {r.status === "completed" && vId && (
-                            <Link href={`/visits/${vId}/card`} className="text-[12px] font-medium text-primary hover:underline">완료 카드</Link>
-                          )}
-                          {r.status === "completed" && !vId && (
-                            <Link href={`/calendar?date=${today}`} className="text-[12px] font-medium text-primary hover:underline">완료 카드 만들기</Link>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            {/* 모바일 리스트 */}
-            <div className="lg:hidden">
-              {active.map((r) => {
-                const pet = Array.isArray(r.pets) ? r.pets[0] : r.pets;
-                const svc = Array.isArray(r.services) ? r.services[0] : r.services;
-                const customer = pet?.customers ? (Array.isArray(pet.customers) ? pet.customers[0] : pet.customers) : null;
-                const vId = visitMap[r.id];
-                return (
-                  <div key={r.id} className="border-b border-border-light last:border-b-0">
-                    <Link
-                      href={`/calendar?date=${today}`}
-                      className="flex items-center justify-between px-4 py-3 transition-colors active:bg-border-light/50"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[13px] tabular-nums text-ink-caption">{formatTimestampKST(r.starts_at, "HH:mm")}</span>
-                          <span className="truncate text-[14px] font-semibold text-ink">{pet?.name ?? "?"}</span>
-                        </div>
-                        <p className="mt-0.5 text-[12px] text-ink-caption">{svc?.name ?? ""}</p>
-                      </div>
-                      <div className="ml-2 flex shrink-0 items-center gap-2">
-                        <span className={`rounded-sm px-1.5 py-0.5 text-[11px] font-medium ${statusClass(r.status)}`}>
-                          {statusLabel(r.status)}
-                        </span>
-                      </div>
-                    </Link>
-                    {/* 모바일 액션 행 */}
-                    {(r.status === "confirmed" || (r.status === "completed")) && (
-                      <div className="flex items-center gap-2 px-4 pb-2.5">
-                        {customer?.phone && (
-                          <PhoneButton phone={customer.phone} className="flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[12px] font-medium text-ink-caption hover:bg-bg">
-                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
-                            전화
-                          </PhoneButton>
-                        )}
-                        {r.status === "confirmed" && (
-                          <Link href={`/calendar?date=${today}`} className="rounded-md bg-primary px-2.5 py-1 text-[12px] font-medium text-white hover:bg-primary-hover">완료</Link>
-                        )}
-                        {r.status === "completed" && vId && (
-                          <Link href={`/visits/${vId}/card`} className="text-[12px] font-medium text-primary hover:underline">완료 카드</Link>
-                        )}
-                        {r.status === "completed" && !vId && (
-                          <Link href={`/calendar?date=${today}`} className="text-[12px] font-medium text-primary hover:underline">완료 카드 만들기</Link>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
+        <TodayTable items={todayItems} slotMinutes={slotMinutes} today={today} />
       </div>
 
       {/* 하단 보조 패널 */}
