@@ -43,7 +43,7 @@ export function CalendarClient({
   today: string;
   pets: FormPet[];
   services: FormService[];
-  passes: { id: string; type: string; name: string; balance: number | null; remaining: number | null; expires_at: string | null; customerId: string }[];
+  passes: { id: string; type: string; name: string; balance: number | null; remaining: number | null; expires_at: string | null; disabled_at?: string | null; customerId: string }[];
   bookPetId?: string;
 }) {
   const router = useRouter();

@@ -37,7 +37,7 @@ export default async function PetChartPage({
       .eq("pet_id", petId)
       .order("visited_at", { ascending: false }),
     customer
-      ? supabase.from("passes").select("type, name, balance, remaining, expires_at").eq("customer_id", customer.id)
+      ? supabase.from("passes").select("type, name, balance, remaining, expires_at, disabled_at").eq("customer_id", customer.id)
       : Promise.resolve({ data: null }),
   ]);
 
@@ -46,6 +46,7 @@ export default async function PetChartPage({
   let passBadge: { label: string; balance: string } | null = null;
   if (customer) {
     const active = (passesResult.data ?? []).filter((p) => {
+      if (p.disabled_at) return false;
       if (p.expires_at && new Date(p.expires_at) < new Date()) return false;
       if (p.type === "amount") return (p.balance ?? 0) > 0;
       return (p.remaining ?? 0) > 0;

@@ -170,6 +170,7 @@ export type Database = {
           balance: number | null
           created_at: string
           customer_id: string
+          disabled_at: string | null
           expires_at: string | null
           id: string
           name: string
@@ -183,6 +184,7 @@ export type Database = {
           balance?: number | null
           created_at?: string
           customer_id: string
+          disabled_at?: string | null
           expires_at?: string | null
           id?: string
           name: string
@@ -196,6 +198,7 @@ export type Database = {
           balance?: number | null
           created_at?: string
           customer_id?: string
+          disabled_at?: string | null
           expires_at?: string | null
           id?: string
           name?: string

@@ -88,8 +88,24 @@ export async function getCustomerPasses(customerId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("passes")
-    .select("id, type, name, total_amount, balance, total_count, remaining, expires_at, created_at")
+    .select("id, type, name, total_amount, balance, total_count, remaining, expires_at, disabled_at, created_at")
     .eq("customer_id", customerId)
     .order("created_at", { ascending: false });
   return data ?? [];
+}
+
+export async function togglePassDisableAction(formData: FormData) {
+  const supabase = await createClient();
+  const passId = String(formData.get("pass_id"));
+  const disable = formData.get("disable") === "true";
+
+  const { error } = await supabase
+    .from("passes")
+    .update({ disabled_at: disable ? new Date().toISOString() : null })
+    .eq("id", passId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/customers");
+  return { success: true };
 }

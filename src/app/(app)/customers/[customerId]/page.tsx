@@ -37,7 +37,7 @@ export default async function CustomerDetailPage({
       .order("created_at", { ascending: false }),
     supabase
       .from("passes")
-      .select("id, type, name, total_amount, balance, total_count, remaining, expires_at, created_at")
+      .select("id, type, name, total_amount, balance, total_count, remaining, expires_at, disabled_at, created_at")
       .eq("customer_id", customerId)
       .order("created_at", { ascending: false }),
   ]);

@@ -32,7 +32,7 @@ export default async function PetsPage({ searchParams }: { searchParams: Promise
       .order("created_at", { ascending: false }),
     supabase
       .from("passes")
-      .select("customer_id, type, balance, remaining, expires_at")
+      .select("customer_id, type, balance, remaining, expires_at, disabled_at")
       .eq("shop_id", shopId),
     supabase
       .from("reservations")

@@ -3,8 +3,8 @@
 import { useTransition, useState, useMemo } from "react";
 import { toast } from "sonner";
 import { Spinner } from "@/components/spinner";
-import { createPassAction } from "@/lib/pass-actions";
-import { getPassStatus } from "@/lib/utils";
+import { createPassAction, togglePassDisableAction } from "@/lib/pass-actions";
+import { getPassStatus, type PassStatus } from "@/lib/utils";
 
 type Pass = {
   id: string;
@@ -15,6 +15,7 @@ type Pass = {
   total_count: number | null;
   remaining: number | null;
   expires_at: string | null;
+  disabled_at?: string | null;
 };
 
 function isExpiringSoon(expiresAt: string | null): boolean {
@@ -23,11 +24,11 @@ function isExpiringSoon(expiresAt: string | null): boolean {
   return diff > 0 && diff < 30 * 24 * 60 * 60 * 1000;
 }
 
-function statusBadge(p: Pass) {
-  const status = getPassStatus(p);
+function statusBadge(status: PassStatus, expiresAt: string | null) {
+  if (status === "disabled") return { label: "중지됨", cls: "bg-border-light text-ink-caption" };
   if (status === "expired") return { label: "만료", cls: "bg-danger-light text-danger" };
   if (status === "depleted") return { label: "소진", cls: "bg-border-light text-ink-caption" };
-  if (isExpiringSoon(p.expires_at)) return { label: "만료 임박", cls: "bg-warning-light text-warning" };
+  if (isExpiringSoon(expiresAt)) return { label: "만료 임박", cls: "bg-warning-light text-warning" };
   return { label: "사용중", cls: "bg-success-light text-success" };
 }
 
@@ -75,14 +76,8 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
     fd.set("type", type);
     fd.set("name", name || (type === "amount" ? `${(chargeAmount / 10000).toFixed(0)}만원권` : `${totalCount}회권`));
     fd.set("payment_method", payMethod);
-
-    if (validityMode === "custom") {
-      fd.set("validity_months", "0");
-      fd.set("expires_at", customDate);
-    } else {
-      fd.set("validity_months", validityMode);
-    }
-
+    if (validityMode === "custom") { fd.set("validity_months", "0"); fd.set("expires_at", customDate); }
+    else fd.set("validity_months", validityMode);
     if (type === "amount") {
       fd.set("charge_amount", String(chargeAmount));
       fd.set("bonus_amount", String(bonusAmount));
@@ -91,7 +86,6 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
       fd.set("total_count", String(totalCount));
       fd.set("payment_amount", "0");
     }
-
     setError(null);
     startTransition(async () => {
       const result = await createPassAction(fd);
@@ -118,34 +112,31 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
             <button type="button" onClick={() => setType("count")}
               className={`flex-1 rounded-md py-1.5 text-xs font-medium ${type === "count" ? "bg-primary text-white" : "bg-border-light text-ink-secondary"}`}>횟수권</button>
           </div>
-
           {type === "amount" ? (
             <div className="flex flex-col gap-2">
               <div className="flex gap-2 items-center">
-                <input type="number" value={chargeAmount || ""} onChange={(e) => setChargeAmount(Number(e.target.value))}
-                  min={0} step={10000} placeholder="충전액" className="min-w-0 flex-1 rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary" />
+                <input type="number" value={chargeAmount || ""} onChange={(e) => setChargeAmount(Number(e.target.value))} min={0} step={10000} placeholder="충전액"
+                  className="min-w-0 flex-1 rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary" />
                 <span className="text-xs text-ink-caption">원</span>
               </div>
               <div className="flex gap-2 items-center">
-                <input type="number" value={bonusAmount || ""} onChange={(e) => setBonusAmount(Number(e.target.value))}
-                  min={0} step={10000} placeholder="보너스" className="min-w-0 flex-1 rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary" />
+                <input type="number" value={bonusAmount || ""} onChange={(e) => setBonusAmount(Number(e.target.value))} min={0} step={10000} placeholder="보너스"
+                  className="min-w-0 flex-1 rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary" />
                 <span className="text-xs text-ink-caption">보너스</span>
               </div>
               {chargeAmount > 0 && <p className="text-xs text-ink-caption">사용 가능 잔액: ₩{(chargeAmount + bonusAmount).toLocaleString()}</p>}
             </div>
           ) : (
             <div className="flex gap-2 items-center">
-              <input type="number" value={totalCount || ""} onChange={(e) => setTotalCount(Number(e.target.value))}
-                min={1} placeholder="횟수" className="min-w-0 flex-1 rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary" />
+              <input type="number" value={totalCount || ""} onChange={(e) => setTotalCount(Number(e.target.value))} min={1} placeholder="횟수"
+                className="min-w-0 flex-1 rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary" />
               <span className="text-xs text-ink-caption">회</span>
             </div>
           )}
-
-          {/* 기한 + 결제 수단 */}
           <div className="mt-3 grid grid-cols-2 gap-2">
             <div className="flex flex-col gap-1">
               <span className="text-[11px] font-medium text-ink-caption">유효기간</span>
-              <select value={validityMode} onChange={(e) => setValidityMode(e.target.value as "6" | "12" | "0" | "custom")}
+              <select value={validityMode} onChange={(e) => setValidityMode(e.target.value as typeof validityMode)}
                 className="min-w-0 rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary">
                 <option value="6">6개월</option>
                 <option value="12">1년</option>
@@ -167,7 +158,6 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
             <input type="date" value={customDate} onChange={(e) => setCustomDate(e.target.value)} min={todayStr}
               className="mt-2 w-full rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary" />
           )}
-
           {error && <p className="mt-2 text-center text-xs text-danger">{error}</p>}
           <button onClick={handleSubmit} disabled={isPending}
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-primary py-2 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50">
@@ -176,7 +166,7 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
         </div>
       )}
 
-      {/* 활성 패스 카드 */}
+      {/* 활성 패스 */}
       <div className="mt-3 flex flex-col gap-2">
         {active.length === 0 && !showForm && (
           <div className="flex flex-col items-center py-6">
@@ -190,7 +180,7 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
         {active.map((p) => <PassCard key={p.id} pass={p} />)}
       </div>
 
-      {/* 소진/만료 */}
+      {/* 소진/만료/중지 */}
       {inactive.length > 0 && (
         <div className="mt-3">
           <button onClick={() => setShowInactive(!showInactive)}
@@ -212,21 +202,60 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
 }
 
 function PassCard({ pass: p, inactive }: { pass: Pass; inactive?: boolean }) {
-  const badge = statusBadge(p);
+  const [isPending, startTransition] = useTransition();
+  const [confirm, setConfirm] = useState<"disable" | "enable" | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const status = getPassStatus(p);
+  const badge = statusBadge(status, p.expires_at);
   const isAmount = p.type === "amount";
   const total = isAmount ? (p.total_amount ?? 0) : (p.total_count ?? 0);
   const current = isAmount ? (p.balance ?? 0) : (p.remaining ?? 0);
   const ratio = total > 0 ? current / total : 0;
   const expiringSoon = isExpiringSoon(p.expires_at);
+  const isDisabled = status === "disabled";
+  const canToggle = status === "active" || status === "disabled";
+
+  function handleToggle(disable: boolean) {
+    const fd = new FormData();
+    fd.set("pass_id", p.id);
+    fd.set("disable", String(disable));
+    startTransition(async () => {
+      const result = await togglePassDisableAction(fd);
+      if (result?.error) toast.error(result.error);
+      else toast.success(disable ? "선불권이 사용 중지되었습니다." : "선불권이 다시 활성화되었습니다.");
+      setConfirm(null);
+      setMenuOpen(false);
+    });
+  }
 
   return (
-    <div className={`rounded-lg border border-border bg-white p-4 ${inactive ? "opacity-60" : ""}`}>
-      {/* 1행: 이름 + 배지 */}
+    <div className={`rounded-lg border border-border bg-white p-4 ${inactive && !isDisabled ? "opacity-60" : ""} ${isDisabled ? "opacity-70 bg-bg" : ""}`}>
+      {/* 1행 */}
       <div className="flex items-center justify-between">
         <span className="text-[13px] font-medium text-ink">{p.name}</span>
-        <span className={`rounded-sm px-1.5 py-0.5 text-[10px] font-medium ${badge.cls}`}>{badge.label}</span>
+        <div className="flex items-center gap-1.5">
+          <span className={`rounded-sm px-1.5 py-0.5 text-[10px] font-medium ${badge.cls}`}>{badge.label}</span>
+          {canToggle && (
+            <div className="relative">
+              <button onClick={() => setMenuOpen(!menuOpen)} className="flex h-6 w-6 items-center justify-center rounded text-ink-caption hover:bg-bg">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 top-7 z-10 min-w-[120px] rounded-md border border-border bg-white py-1 shadow-lg">
+                  <button
+                    onClick={() => { setMenuOpen(false); setConfirm(isDisabled ? "enable" : "disable"); }}
+                    className={`w-full px-3 py-1.5 text-left text-[13px] transition-colors hover:bg-bg ${isDisabled ? "text-primary" : "text-danger"}`}
+                  >
+                    {isDisabled ? "다시 활성화" : "사용 중지"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-      {/* 2행: 잔액 주인공 */}
+      {/* 2행 */}
       <div className="mt-2 flex items-baseline gap-1.5">
         <span className="text-[22px] font-bold text-ink tabular-nums">
           {isAmount ? `₩${current.toLocaleString()}` : `${current}회 남음`}
@@ -237,12 +266,34 @@ function PassCard({ pass: p, inactive }: { pass: Pass; inactive?: boolean }) {
       </div>
       {/* 프로그레스 바 */}
       <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-border-light">
-        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.max(0, Math.min(100, ratio * 100))}%` }} />
+        <div className={`h-full rounded-full transition-all ${isDisabled ? "bg-ink-disabled" : "bg-primary"}`} style={{ width: `${Math.max(0, Math.min(100, ratio * 100))}%` }} />
       </div>
-      {/* 3행: 만료일 */}
+      {/* 3행 */}
       <p className={`mt-1.5 text-[11px] ${expiringSoon ? "text-warning font-medium" : "text-ink-disabled"}`}>
         {formatExpiry(p.expires_at)}
       </p>
+
+      {/* confirm 다이얼로그 */}
+      {confirm && (
+        <div className={`mt-3 rounded-md p-3 ${confirm === "disable" ? "bg-danger-light" : "bg-primary-light"}`}>
+          <p className={`text-[13px] font-medium ${confirm === "disable" ? "text-danger" : "text-primary"}`}>
+            {confirm === "disable" ? "이 선불권을 사용 중지할까요?" : "이 선불권을 다시 활성화할까요?"}
+          </p>
+          {confirm === "disable" && (
+            <p className="mt-0.5 text-[11px] text-danger/70">잔액 차감이 불가해지고, 판매 기록은 유지돼요.</p>
+          )}
+          {confirm === "enable" && (
+            <p className="mt-0.5 text-[11px] text-primary/70">다시 잔액 차감이 가능해져요.</p>
+          )}
+          <div className="mt-2 flex gap-2">
+            <button onClick={() => setConfirm(null)} className="flex-1 rounded-md border border-border bg-white py-1.5 text-[12px] font-medium text-ink-secondary">돌아가기</button>
+            <button onClick={() => handleToggle(confirm === "disable")} disabled={isPending}
+              className={`flex-1 rounded-md py-1.5 text-[12px] font-medium text-white disabled:opacity-50 ${confirm === "disable" ? "bg-danger" : "bg-primary"}`}>
+              {isPending ? "처리 중..." : confirm === "disable" ? "사용 중지" : "활성화"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
