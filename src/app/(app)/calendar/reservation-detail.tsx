@@ -62,7 +62,10 @@ export function ReservationDetail({
           {r.customer && (
             <div className="flex justify-between">
               <span className="text-ink-caption">보호자</span>
-              <a href={`tel:${r.customer.phone}`} className="text-ink hover:underline">{r.customer.name} · {formatPhone(r.customer.phone)}</a>
+              <span className="flex items-center gap-2">
+                <Link href={`/customers/${r.customer.id}`} className="font-medium text-ink hover:text-primary">{r.customer.name}</Link>
+                <a href={`tel:${r.customer.phone}`} className="text-ink-caption hover:text-ink tabular-nums">{formatPhone(r.customer.phone)}</a>
+              </span>
             </div>
           )}
           {r.memo && (

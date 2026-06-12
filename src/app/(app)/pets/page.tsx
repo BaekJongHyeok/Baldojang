@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PetListClient } from "./pet-list";
 import { getPetPhotoUrls } from "@/lib/storage";
+import { getPassStatus } from "@/lib/utils";
 
 export default async function PetsPage() {
   const supabase = await createClient();
@@ -52,5 +53,44 @@ export default async function PetsPage() {
     lastVisit: lastVisitMap[p.id] ?? null,
   }));
 
-  return <PetListClient pets={allPets} />;
+  // 보호자 목록 (중복 제거 + 펫 이름/선불권 합산)
+  const { data: customers } = await supabase
+    .from("customers")
+    .select("id, name, phone, created_at")
+    .eq("shop_id", staff.shop_id)
+    .order("created_at", { ascending: false });
+
+  const { data: passes } = await supabase
+    .from("passes")
+    .select("customer_id, type, balance, remaining, expires_at")
+    .eq("shop_id", staff.shop_id);
+
+  // 보호자별 펫 이름 목록
+  const customerPetsMap: Record<string, string[]> = {};
+  for (const p of pets ?? []) {
+    if (!p.is_active) continue;
+    if (!customerPetsMap[p.customer_id]) customerPetsMap[p.customer_id] = [];
+    customerPetsMap[p.customer_id].push(p.name);
+  }
+
+  // 보호자별 active 선불권 잔액 합산
+  const customerPassMap: Record<string, { amount: number; count: number }> = {};
+  for (const p of passes ?? []) {
+    const status = getPassStatus(p);
+    if (status !== "active") continue;
+    if (!customerPassMap[p.customer_id]) customerPassMap[p.customer_id] = { amount: 0, count: 0 };
+    if (p.type === "amount") customerPassMap[p.customer_id].amount += p.balance ?? 0;
+    else customerPassMap[p.customer_id].count += p.remaining ?? 0;
+  }
+
+  const allCustomers = (customers ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    phone: c.phone,
+    createdAt: c.created_at,
+    petNames: customerPetsMap[c.id] ?? [],
+    passBalance: customerPassMap[c.id] ?? null,
+  }));
+
+  return <PetListClient pets={allPets} customers={allCustomers} />;
 }
