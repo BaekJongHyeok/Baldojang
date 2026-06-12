@@ -32,33 +32,22 @@ type PhotoItem = { path: string; url: string };
 
 type Props = {
   visit: { id: string; visitedAt: string; styleMemo: string | null; beforePhotos: PhotoItem[]; afterPhotos: PhotoItem[] };
-  pet: { id: string; name: string; breed: string; cycleWeeks: number | null };
+  pet: { id: string; name: string; breed: string };
   serviceName: string;
-  serviceDuration: number | null;
-  serviceCycleWeeks: number | null;
   shop: { name: string; phone: string; logoUrl: string | null; brandColor: string | null };
   shopId: string;
 };
 
 const CARD_SIZE = { w: 1080, h: 1350 }; // 4:5 고정
 
-export function CardClient({ visit, pet, serviceName, serviceDuration, serviceCycleWeeks, shop, shopId }: Props) {
+export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   const router = useRouter();
   const renderRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  type Template = "minimal" | "photo" | "ba" | "polaroid" | "report";
+  type Template = "photo" | "sticker" | "ba" | "polaroid" | "minimal";
   const [template, setTemplate] = useState<Template>(
-    visit.beforePhotos.length > 0 && visit.afterPhotos.length > 0 ? "ba" : "minimal"
+    visit.beforePhotos.length > 0 && visit.afterPhotos.length > 0 ? "ba" : "photo"
   );
-
-  // 리포트 템플릿용: 다음 미용 권장일
-  const cycleWeeks = pet.cycleWeeks ?? serviceCycleWeeks ?? 6;
-  const defaultNextDate = (() => {
-    const d = new Date(visit.visitedAt);
-    d.setDate(d.getDate() + cycleWeeks * 7);
-    return d.toISOString().slice(0, 10);
-  })();
-  const [nextVisitDate, setNextVisitDate] = useState(defaultNextDate);
 
   const [beforePhotos, setBeforePhotos] = useState(visit.beforePhotos);
   const [afterPhotos, setAfterPhotos] = useState(visit.afterPhotos);
@@ -246,11 +235,11 @@ export function CardClient({ visit, pet, serviceName, serviceDuration, serviceCy
             <p className="text-[13px] font-semibold text-ink-caption">템플릿</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {([
-                { key: "minimal", label: "미니멀" },
                 { key: "photo", label: "포토" },
+                { key: "sticker", label: "스티커" },
                 { key: "ba", label: "비포·애프터" },
                 { key: "polaroid", label: "폴라로이드" },
-                { key: "report", label: "리포트" },
+                { key: "minimal", label: "미니멀" },
               ] as { key: Template; label: string }[]).map(({ key, label }) => (
                 <button key={key} onClick={() => setTemplate(key)}
                   className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${template === key ? "bg-primary text-white" : "bg-border-light text-ink-caption hover:text-ink-secondary"}`}>
@@ -291,14 +280,6 @@ export function CardClient({ visit, pet, serviceName, serviceDuration, serviceCy
               placeholder="직접 입력" className="mt-2 w-full rounded-md border border-border px-3 py-2 text-[13px] outline-none focus:border-primary" />
           </div>
 
-          {/* 다음 미용 권장일 — 리포트 전용 */}
-          {template === "report" && (
-            <div className="rounded-lg border border-border bg-white p-4">
-              <p className="text-[13px] font-semibold text-ink-caption">다음 미용 권장일</p>
-              <input type="date" value={nextVisitDate} onChange={(e) => setNextVisitDate(e.target.value)}
-                className="mt-2 w-full rounded-md border border-border px-3 py-2 text-[13px] outline-none focus:border-primary" />
-            </div>
-          )}
         </div>
 
         {/* ── 우측: 카드 프리뷰 (모바일에서는 상단) ── */}
@@ -308,8 +289,8 @@ export function CardClient({ visit, pet, serviceName, serviceDuration, serviceCy
               style={{ width: size.w, height: size.h, transform: `scale(var(--card-scale))`, "--card-scale": "1" } as React.CSSProperties}>
               {(template === "minimal" || template === "ba") && <MinimalCard {...cardProps} w={size.w} h={size.h} />}
               {template === "photo" && <PhotoCard {...cardProps} w={size.w} h={size.h} />}
+              {template === "sticker" && <StickerCard {...cardProps} w={size.w} h={size.h} />}
               {template === "polaroid" && <PolaroidCard {...cardProps} w={size.w} h={size.h} />}
-              {template === "report" && <ReportCard {...cardProps} w={size.w} h={size.h} duration={serviceDuration} nextDate={nextVisitDate} styleMemo={visit.styleMemo} />}
             </div>
             <ScaleInjector targetW={size.w} />
           </div>
@@ -520,62 +501,68 @@ function PolaroidCard({ photo, petName, date, message, shopName, shopPhone, bran
 }
 
 /**
- * 리포트 — 시술 내역 + 원장 한마디 + 다음 미용 권장일
+ * 스티커 — 다이어리 꾸미기 톤, 인라인 SVG 장식
  */
-function ReportCard({ photo, petName, breed, serviceName, date, message, shopName, shopPhone, brandColor, w, h, duration, nextDate, styleMemo }: CardTemplateProps & { duration: number | null; nextDate: string; styleMemo: string | null }) {
-  const p = w * 0.055;
-  const photoSize = w * 0.18;
-  const nextDateFormatted = (() => {
-    try { const d = new Date(nextDate + "T00:00:00"); return `${d.getMonth() + 1}월 ${d.getDate()}일`; }
-    catch { return nextDate; }
-  })();
+function StickerCard({ photo, petName, date, message, shopName, shopPhone, brandColor, w, h }: CardTemplateProps) {
+  const photoSize = w * 0.58;
+  const photoTop = h * 0.08;
+  const accent = brandColor === "#292524" ? "#3182F6" : brandColor;
+  const pink = "#F9A8D4";
+  const yellow = "#FDE68A";
   return (
-    <div style={{ width: w, height: h, background: "#FFFBF5", display: "flex", flexDirection: "column", fontFamily: "system-ui, sans-serif", overflow: "hidden" }}>
+    <div style={{ width: w, height: h, background: "#FFF8F0", position: "relative", overflow: "hidden", fontFamily: "system-ui, sans-serif" }}>
       <style>{CARD_FONT_IMPORT}</style>
-      {/* 헤더 */}
-      <div style={{ padding: `${p}px ${p}px ${p * 0.5}px`, display: "flex", alignItems: "center", gap: w * 0.03, flexShrink: 0 }}>
-        <div style={{ width: photoSize, height: photoSize, borderRadius: w * 0.02, overflow: "hidden", background: "#e7e5e4", flexShrink: 0 }}>
-          {photo && <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
-        </div>
-        <div>
-          <p style={{ fontFamily: DISPLAY_FONT, fontSize: w * 0.065, fontWeight: 400, color: "#1c1917", letterSpacing: -0.5, lineHeight: 1.15 }}>{petName}</p>
-          {breed && <p style={{ fontSize: w * 0.028, color: "#78716c", marginTop: h * 0.003 }}>{breed}</p>}
-          <p style={{ fontSize: w * 0.022, color: "#a8a29e", marginTop: h * 0.004 }}>{date}</p>
-        </div>
+
+      {/* 사진 — 라운드 크게 */}
+      <div style={{ position: "absolute", left: (w - photoSize) / 2, top: photoTop, width: photoSize, height: photoSize, borderRadius: w * 0.06, overflow: "hidden", border: `${w * 0.006}px solid white`, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
+        {photo && <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
       </div>
 
-      <div style={{ margin: `0 ${p}px`, borderTop: "2px solid #e7e5e4" }} />
+      {/* 장식 스티커 SVG — 고정 위치 */}
+      {/* 발자국 좌상 */}
+      <svg style={{ position: "absolute", top: h * 0.03, left: w * 0.06, width: w * 0.09, height: w * 0.09, opacity: 0.7 }} viewBox="0 0 48 48" fill={accent}>
+        <ellipse cx="14" cy="14" rx="5" ry="7" /><ellipse cx="26" cy="11" rx="5" ry="7" />
+        <ellipse cx="34" cy="18" rx="4" ry="6" /><ellipse cx="6" cy="20" rx="4" ry="6" />
+        <ellipse cx="20" cy="30" rx="10" ry="12" />
+      </svg>
+      {/* 별 우상 */}
+      <svg style={{ position: "absolute", top: h * 0.02, right: w * 0.08, width: w * 0.08, height: w * 0.08, opacity: 0.6 }} viewBox="0 0 24 24" fill={yellow}>
+        <path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.8 5.6 21.2 8 14 2 9.2h7.6z" />
+      </svg>
+      {/* 하트 좌하 */}
+      <svg style={{ position: "absolute", bottom: h * 0.22, left: w * 0.05, width: w * 0.07, height: w * 0.07, opacity: 0.5, transform: "rotate(-15deg)" }} viewBox="0 0 24 24" fill={pink}>
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+      </svg>
+      {/* 리본 우하 */}
+      <svg style={{ position: "absolute", bottom: h * 0.24, right: w * 0.06, width: w * 0.1, height: w * 0.06, opacity: 0.6, transform: "rotate(8deg)" }} viewBox="0 0 48 24" fill={accent}>
+        <path d="M24 12C20 4 10 0 4 6s4 14 20 6c16 8 26 0 20-6s-16-2-20 6z" />
+      </svg>
+      {/* 작은 별 사진 우측 */}
+      <svg style={{ position: "absolute", top: h * 0.35, right: w * 0.08, width: w * 0.05, height: w * 0.05, opacity: 0.5 }} viewBox="0 0 24 24" fill={yellow}>
+        <path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.8 5.6 21.2 8 14 2 9.2h7.6z" />
+      </svg>
 
-      {/* 시술 내역 */}
-      <div style={{ padding: `${p * 0.6}px ${p}px`, flexShrink: 0 }}>
-        <p style={{ fontSize: w * 0.022, fontWeight: 700, color: "#78716c", letterSpacing: 1, textTransform: "uppercase" }}>시술 내역</p>
-        <div style={{ marginTop: h * 0.01, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <p style={{ fontSize: w * 0.038, fontWeight: 700, color: "#1c1917" }}>{serviceName}</p>
-          {duration && <p style={{ fontSize: w * 0.028, color: "#78716c" }}>{duration}분</p>}
-        </div>
-        {styleMemo && <p style={{ fontSize: w * 0.026, color: "#78716c", marginTop: h * 0.006, lineHeight: 1.4 }}>{styleMemo}</p>}
+      {/* 문구 — 컬러 라벨 띠 (살짝 회전) */}
+      <div style={{
+        position: "absolute", left: w * 0.08, right: w * 0.08,
+        top: photoTop + photoSize + h * 0.035,
+        background: accent, borderRadius: w * 0.015, padding: `${h * 0.012}px ${w * 0.04}px`,
+        transform: "rotate(-2deg)", textAlign: "center",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+      }}>
+        <p style={{ fontFamily: DISPLAY_FONT, fontSize: w * 0.042, fontWeight: 400, color: "white", lineHeight: 1.3, wordBreak: "keep-all" }}>{message}</p>
       </div>
 
-      <div style={{ margin: `0 ${p}px`, borderTop: "1px solid #e7e5e4" }} />
-
-      {/* 원장 한마디 */}
-      <div style={{ padding: `${p * 0.6}px ${p}px`, flexShrink: 0 }}>
-        <p style={{ fontSize: w * 0.022, fontWeight: 700, color: "#78716c", letterSpacing: 1 }}>원장 한마디</p>
-        <p style={{ fontSize: w * 0.035, color: brandColor, fontWeight: 600, marginTop: h * 0.01, lineHeight: 1.5, wordBreak: "keep-all" }}>{message}</p>
+      {/* 펫 이름 */}
+      <div style={{ position: "absolute", bottom: h * 0.08, left: 0, right: 0, textAlign: "center" }}>
+        <p style={{ fontFamily: DISPLAY_FONT, fontSize: w * 0.088, fontWeight: 400, color: "#1c1917", lineHeight: 1.15 }}>{petName}</p>
+        <p style={{ fontSize: w * 0.022, color: "#a8a29e", marginTop: h * 0.005 }}>{date}</p>
       </div>
 
-      <div style={{ margin: `0 ${p}px`, borderTop: "1px solid #e7e5e4" }} />
-
-      {/* 다음 미용 권장 */}
-      <div style={{ padding: `${p * 0.7}px ${p}px`, background: brandColor, margin: `${p * 0.4}px ${p}px`, borderRadius: w * 0.015, flexShrink: 0 }}>
-        <p style={{ fontSize: w * 0.022, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: 1 }}>다음 미용 권장</p>
-        <p style={{ fontFamily: DISPLAY_FONT, fontSize: w * 0.055, fontWeight: 400, color: "white", marginTop: h * 0.006 }}>{nextDateFormatted}</p>
-      </div>
-
-      {/* 하단 */}
-      <div style={{ flex: 1, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: `0 ${p}px ${p * 0.6}px` }}>
-        <p style={{ fontSize: w * 0.025, color: "#a8a29e" }}>{shopName}{shopPhone ? ` · ${shopPhone}` : ""}</p>
-      </div>
+      {/* 샵 정보 */}
+      <p style={{ position: "absolute", bottom: h * 0.02, left: 0, right: 0, textAlign: "center", fontSize: w * 0.025, color: "#a8a29e" }}>
+        {shopName}{shopPhone ? ` · ${shopPhone}` : ""}
+      </p>
     </div>
   );
 }

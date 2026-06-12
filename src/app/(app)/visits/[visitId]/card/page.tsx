@@ -21,7 +21,7 @@ export default async function CardPage({
 
   const { data: visit } = await supabase
     .from("visits")
-    .select("id, visited_at, style_memo, before_photos, after_photos, pets(id, name, breed, cycle_weeks), services(name, duration_minutes, recommend_cycle_weeks)")
+    .select("id, visited_at, style_memo, before_photos, after_photos, pets(id, name, breed), services(name)")
     .eq("id", visitId)
     .single();
   if (!visit) notFound();
@@ -58,10 +58,8 @@ export default async function CardPage({
         beforePhotos: visit.before_photos.map((p) => ({ path: p, url: photoUrlMap[p] ?? "" })).filter((x) => x.url),
         afterPhotos: visit.after_photos.map((p) => ({ path: p, url: photoUrlMap[p] ?? "" })).filter((x) => x.url),
       }}
-      pet={{ id: pet?.id ?? "", name: pet?.name ?? "", breed: pet?.breed ?? "", cycleWeeks: pet?.cycle_weeks ?? null }}
+      pet={{ id: pet?.id ?? "", name: pet?.name ?? "", breed: pet?.breed ?? "" }}
       serviceName={service?.name ?? ""}
-      serviceDuration={service?.duration_minutes ?? null}
-      serviceCycleWeeks={service?.recommend_cycle_weeks ?? null}
       shop={{
         name: shop?.name ?? "",
         phone: shop?.phone ?? "",
