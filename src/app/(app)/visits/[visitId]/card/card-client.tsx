@@ -27,7 +27,7 @@ type Props = {
   shopId: string;
 };
 
-const CARD_SIZES = { "4:5": { w: 1080, h: 1350 }, "9:16": { w: 1080, h: 1920 } } as const;
+const CARD_SIZE = { w: 1080, h: 1350 }; // 4:5 고정
 
 export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   const router = useRouter();
@@ -36,7 +36,6 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   const [template, setTemplate] = useState<"minimal" | "photo" | "ba">(
     visit.beforePhotos.length > 0 && visit.afterPhotos.length > 0 ? "ba" : "minimal"
   );
-  const [ratio, setRatio] = useState<"4:5" | "9:16">("4:5");
 
   const [beforePhotos, setBeforePhotos] = useState(visit.beforePhotos);
   const [afterPhotos, setAfterPhotos] = useState(visit.afterPhotos);
@@ -55,7 +54,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
   const hasPhotos = (afterPhotos.length + beforePhotos.length) > 0;
 
   const displayMsg = customMsg || message;
-  const size = CARD_SIZES[ratio];
+  const size = CARD_SIZE;
 
   const cardProps = {
     photo: isBA && afterUrl ? afterUrl : singlePhoto,
@@ -217,19 +216,13 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
           {/* 템플릿 */}
           <div className="rounded-lg border border-border bg-white p-4">
             <p className="text-[13px] font-semibold text-ink-caption">템플릿</p>
-            <div className="mt-2 flex flex-wrap gap-2 items-center">
-              <div className="flex rounded-lg bg-border-light p-0.5">
-                {(["minimal", "photo", "ba"] as const).map((t) => (
-                  <button key={t} onClick={() => setTemplate(t)}
-                    className={`rounded-md px-3 py-1.5 text-xs font-medium ${template === t ? "bg-white text-ink shadow-sm" : "text-ink-caption"}`}>
-                    {t === "minimal" ? "미니멀" : t === "photo" ? "포토" : "비포·애프터"}
-                  </button>
-                ))}
-              </div>
-              <div className="flex rounded-lg bg-border-light p-0.5">
-                <button onClick={() => setRatio("4:5")} className={`rounded-md px-3 py-1.5 text-xs font-medium ${ratio === "4:5" ? "bg-white text-ink shadow-sm" : "text-ink-caption"}`}>4:5</button>
-                <button onClick={() => setRatio("9:16")} className={`rounded-md px-3 py-1.5 text-xs font-medium ${ratio === "9:16" ? "bg-white text-ink shadow-sm" : "text-ink-caption"}`}>9:16</button>
-              </div>
+            <div className="mt-2 flex rounded-lg bg-border-light p-0.5">
+              {(["minimal", "photo", "ba"] as const).map((t) => (
+                <button key={t} onClick={() => setTemplate(t)}
+                  className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium ${template === t ? "bg-white text-ink shadow-sm" : "text-ink-caption"}`}>
+                  {t === "minimal" ? "미니멀" : t === "photo" ? "포토" : "비포·애프터"}
+                </button>
+              ))}
             </div>
           </div>
 
