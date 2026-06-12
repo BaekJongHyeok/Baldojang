@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { formatPhone } from "@/lib/utils";
 import { updateCustomerAction } from "@/lib/customer-actions";
+import { PhoneButton } from "@/components/phone-button";
 
 export function CustomerEditForm({
   customerId,
@@ -120,7 +121,7 @@ export function CustomerEditForm({
       <div className="mt-3 flex flex-col gap-2 text-sm">
         <div className="flex justify-between">
           <span className="text-ink-caption">전화번호</span>
-          <a href={`tel:${displayPhone}`} className="font-medium text-ink hover:underline tabular-nums">{formatPhone(displayPhone)}</a>
+          <PhoneButton phone={displayPhone} className="font-medium text-ink hover:underline tabular-nums">{formatPhone(displayPhone)}</PhoneButton>
         </div>
         {source && (
           <div className="flex justify-between">

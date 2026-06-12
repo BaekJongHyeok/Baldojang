@@ -6,6 +6,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { formatPhone } from "@/lib/utils";
 import { markContactedAction } from "@/lib/retention-actions";
+import { PhoneButton } from "@/components/phone-button";
 import { Spinner } from "@/components/spinner";
 
 type Item = {
@@ -114,10 +115,10 @@ export function RetentionClient({ items, defaultCycleWeeks }: { items: Item[]; d
                         <td className="px-4 py-2.5 text-ink-secondary">{item.customerName}</td>
                         <td className="px-4 py-2.5">
                           <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                            <a href={`tel:${item.customerPhone}`}
+                            <PhoneButton phone={item.customerPhone}
                               className="rounded-md border border-border px-2.5 py-1.5 text-[12px] font-medium text-ink-secondary hover:bg-bg">
                               전화
-                            </a>
+                            </PhoneButton>
                             <Link href={`/calendar?book=${item.id}`}
                               className="rounded-md bg-primary px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-primary-hover">
                               예약
@@ -153,10 +154,10 @@ export function RetentionClient({ items, defaultCycleWeeks }: { items: Item[]; d
                       </div>
                     </Link>
                     <div className="flex gap-1.5 px-4 pb-3">
-                      <a href={`tel:${item.customerPhone}`}
+                      <PhoneButton phone={item.customerPhone}
                         className="flex-1 rounded-md border border-border py-2 text-center text-[12px] font-medium text-ink-secondary hover:bg-bg">
                         전화 {formatPhone(item.customerPhone)}
-                      </a>
+                      </PhoneButton>
                       <Link href={`/calendar?book=${item.id}`}
                         className="flex-1 rounded-md bg-primary py-2 text-center text-[12px] font-medium text-white hover:bg-primary-hover">
                         예약 잡기
