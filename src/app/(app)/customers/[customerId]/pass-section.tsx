@@ -19,9 +19,22 @@ type Pass = {
 
 function isExpiringSoon(expiresAt: string | null): boolean {
   if (!expiresAt) return false;
-  const d = new Date(expiresAt);
-  const diff = d.getTime() - Date.now();
+  const diff = new Date(expiresAt).getTime() - Date.now();
   return diff > 0 && diff < 30 * 24 * 60 * 60 * 1000;
+}
+
+function statusBadge(p: Pass) {
+  const status = getPassStatus(p);
+  if (status === "expired") return { label: "만료", cls: "bg-danger-light text-danger" };
+  if (status === "depleted") return { label: "소진", cls: "bg-border-light text-ink-caption" };
+  if (isExpiringSoon(p.expires_at)) return { label: "만료 임박", cls: "bg-warning-light text-warning" };
+  return { label: "사용중", cls: "bg-success-light text-success" };
+}
+
+function formatExpiry(expiresAt: string | null) {
+  if (!expiresAt) return "기한 없음";
+  const d = new Date(expiresAt);
+  return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.까지`;
 }
 
 export function PassSection({ customerId, passes }: { customerId: string; passes: Pass[] }) {
@@ -33,8 +46,8 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
     const a: Pass[] = [];
     const i: Pass[] = [];
     for (const p of passes) {
-      const status = getPassStatus(p);
-      if (status === "active") a.push(p);
+      const s = getPassStatus(p);
+      if (s === "active") a.push(p);
       else i.push(p);
     }
     return { active: a, inactive: i };
@@ -46,17 +59,29 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
   const [chargeAmount, setChargeAmount] = useState(0);
   const [bonusAmount, setBonusAmount] = useState(0);
   const [totalCount, setTotalCount] = useState(10);
-  const [validityMonths, setValidityMonths] = useState(12);
+  const [validityMode, setValidityMode] = useState<"6" | "12" | "0" | "custom">("12");
+  const [customDate, setCustomDate] = useState("");
   const [payMethod, setPayMethod] = useState("card");
   const [error, setError] = useState<string | null>(null);
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   function handleSubmit() {
+    if (validityMode === "custom" && (!customDate || customDate <= todayStr)) {
+      setError("만료일은 오늘 이후여야 해요."); return;
+    }
     const fd = new FormData();
     fd.set("customer_id", customerId);
     fd.set("type", type);
     fd.set("name", name || (type === "amount" ? `${(chargeAmount / 10000).toFixed(0)}만원권` : `${totalCount}회권`));
-    fd.set("validity_months", String(validityMonths));
     fd.set("payment_method", payMethod);
+
+    if (validityMode === "custom") {
+      fd.set("validity_months", "0");
+      fd.set("expires_at", customDate);
+    } else {
+      fd.set("validity_months", validityMode);
+    }
 
     if (type === "amount") {
       fd.set("charge_amount", String(chargeAmount));
@@ -70,25 +95,17 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
     setError(null);
     startTransition(async () => {
       const result = await createPassAction(fd);
-      if (result?.error) {
-        setError(result.error);
-        toast.error(result.error);
-      } else {
-        toast.success("선불권이 판매되었습니다.");
-        setShowForm(false);
-        setName("");
-        setChargeAmount(0);
-        setBonusAmount(0);
-      }
+      if (result?.error) { setError(result.error); toast.error(result.error); }
+      else { toast.success("선불권이 판매되었습니다."); setShowForm(false); setName(""); setChargeAmount(0); setBonusAmount(0); }
     });
   }
 
   return (
     <div>
       <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-ink-secondary">선불권</p>
-        <button onClick={() => setShowForm(!showForm)} className="text-xs font-medium text-ink-secondary hover:underline">
-          {showForm ? "닫기" : "+ 선불권 판매"}
+        <p className="text-[13px] font-bold text-ink-secondary">선불권</p>
+        <button onClick={() => setShowForm(!showForm)} className="text-[12px] font-medium text-primary hover:underline">
+          {showForm ? "닫기" : "+ 판매"}
         </button>
       </div>
 
@@ -114,9 +131,7 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
                   min={0} step={10000} placeholder="보너스" className="min-w-0 flex-1 rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary" />
                 <span className="text-xs text-ink-caption">보너스</span>
               </div>
-              {chargeAmount > 0 && (
-                <p className="text-xs text-ink-caption">사용 가능 잔액: ₩{(chargeAmount + bonusAmount).toLocaleString()}</p>
-              )}
+              {chargeAmount > 0 && <p className="text-xs text-ink-caption">사용 가능 잔액: ₩{(chargeAmount + bonusAmount).toLocaleString()}</p>}
             </div>
           ) : (
             <div className="flex gap-2 items-center">
@@ -126,23 +141,34 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
             </div>
           )}
 
-          <div className="mt-2 flex gap-2 items-center">
-            <select value={validityMonths} onChange={(e) => setValidityMonths(Number(e.target.value))}
-              className="min-w-0 flex-1 rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary">
-              <option value={6}>6개월</option>
-              <option value={12}>1년</option>
-              <option value={0}>무제한</option>
-            </select>
-            <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)}
-              className="min-w-0 flex-1 rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary">
-              <option value="card">카드</option>
-              <option value="cash">현금</option>
-              <option value="transfer">계좌이체</option>
-            </select>
+          {/* 기한 */}
+          <div className="mt-3">
+            <p className="text-[11px] font-medium text-ink-caption mb-1.5">유효기간</p>
+            <div className="flex flex-wrap gap-1.5">
+              {(["6", "12", "0", "custom"] as const).map((v) => (
+                <button key={v} type="button" onClick={() => setValidityMode(v)}
+                  className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors ${validityMode === v ? "bg-primary text-white" : "border border-border bg-white text-ink-secondary hover:bg-bg"}`}>
+                  {v === "6" ? "6개월" : v === "12" ? "1년" : v === "0" ? "무제한" : "직접 입력"}
+                </button>
+              ))}
+            </div>
+            {validityMode === "custom" && (
+              <input type="date" value={customDate} onChange={(e) => setCustomDate(e.target.value)} min={todayStr}
+                className="mt-2 w-full rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary" />
+            )}
+          </div>
+
+          {/* 결제 수단 */}
+          <div className="mt-3 flex gap-1.5">
+            {[{ v: "card", l: "카드" }, { v: "cash", l: "현금" }, { v: "transfer", l: "이체" }].map(({ v, l }) => (
+              <button key={v} type="button" onClick={() => setPayMethod(v)}
+                className={`flex-1 rounded-md py-1.5 text-[12px] font-medium transition-colors ${payMethod === v ? "bg-primary text-white" : "border border-border bg-white text-ink-secondary hover:bg-bg"}`}>
+                {l}
+              </button>
+            ))}
           </div>
 
           {error && <p className="mt-2 text-center text-xs text-danger">{error}</p>}
-
           <button onClick={handleSubmit} disabled={isPending}
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-primary py-2 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50">
             {isPending && <Spinner />}판매
@@ -150,7 +176,7 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
         </div>
       )}
 
-      {/* 활성 패스 */}
+      {/* 활성 패스 카드 */}
       <div className="mt-3 flex flex-col gap-2">
         {active.length === 0 && !showForm && (
           <div className="flex flex-col items-center py-6">
@@ -161,31 +187,14 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
             <p className="text-[11px] text-ink-disabled">판매하면 잔액이 여기 표시돼요</p>
           </div>
         )}
-        {active.map((p) => (
-          <div key={p.id} className="rounded-lg border border-border bg-white p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-ink">{p.name}</span>
-              {isExpiringSoon(p.expires_at) && (
-                <span className="rounded-sm bg-warning-light px-1.5 py-0.5 text-[10px] font-medium text-warning">만료 임박</span>
-              )}
-            </div>
-            <p className="mt-1 text-xs text-ink-caption">
-              {p.type === "amount"
-                ? `잔액 ₩${(p.balance ?? 0).toLocaleString()} / ₩${(p.total_amount ?? 0).toLocaleString()}`
-                : `잔여 ${p.remaining ?? 0}회 / ${p.total_count ?? 0}회`}
-              {p.expires_at && ` · ~${p.expires_at}`}
-            </p>
-          </div>
-        ))}
+        {active.map((p) => <PassCard key={p.id} pass={p} />)}
       </div>
 
-      {/* 소진/만료 패스 */}
+      {/* 소진/만료 */}
       {inactive.length > 0 && (
         <div className="mt-3">
-          <button
-            onClick={() => setShowInactive(!showInactive)}
-            className="flex items-center gap-1 text-xs text-ink-caption hover:text-ink-secondary"
-          >
+          <button onClick={() => setShowInactive(!showInactive)}
+            className="flex items-center gap-1 text-[12px] text-ink-caption hover:text-ink-secondary">
             <svg className={`h-3 w-3 transition ${showInactive ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
@@ -193,31 +202,47 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
           </button>
           {showInactive && (
             <div className="mt-2 flex flex-col gap-1.5">
-              {inactive.map((p) => {
-                const status = getPassStatus(p);
-                return (
-                  <div key={p.id} className="rounded-lg border border-border-light bg-bg p-3 opacity-60">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-ink-caption">{p.name}</span>
-                      <span className={`rounded-sm px-1.5 py-0.5 text-[10px] font-medium ${
-                        status === "expired" ? "bg-danger-light text-danger" : "bg-border-light text-ink-caption"
-                      }`}>
-                        {status === "expired" ? "만료" : "소진"}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-ink-caption">
-                      {p.type === "amount"
-                        ? `잔액 ₩${(p.balance ?? 0).toLocaleString()} / ₩${(p.total_amount ?? 0).toLocaleString()}`
-                        : `잔여 ${p.remaining ?? 0}회 / ${p.total_count ?? 0}회`}
-                      {p.expires_at && ` · ~${p.expires_at}`}
-                    </p>
-                  </div>
-                );
-              })}
+              {inactive.map((p) => <PassCard key={p.id} pass={p} inactive />)}
             </div>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function PassCard({ pass: p, inactive }: { pass: Pass; inactive?: boolean }) {
+  const badge = statusBadge(p);
+  const isAmount = p.type === "amount";
+  const total = isAmount ? (p.total_amount ?? 0) : (p.total_count ?? 0);
+  const current = isAmount ? (p.balance ?? 0) : (p.remaining ?? 0);
+  const ratio = total > 0 ? current / total : 0;
+  const expiringSoon = isExpiringSoon(p.expires_at);
+
+  return (
+    <div className={`rounded-lg border border-border bg-white p-4 ${inactive ? "opacity-60" : ""}`}>
+      {/* 1행: 이름 + 배지 */}
+      <div className="flex items-center justify-between">
+        <span className="text-[13px] font-medium text-ink">{p.name}</span>
+        <span className={`rounded-sm px-1.5 py-0.5 text-[10px] font-medium ${badge.cls}`}>{badge.label}</span>
+      </div>
+      {/* 2행: 잔액 주인공 */}
+      <div className="mt-2 flex items-baseline gap-1.5">
+        <span className="text-[22px] font-bold text-ink tabular-nums">
+          {isAmount ? `₩${current.toLocaleString()}` : `${current}회 남음`}
+        </span>
+        <span className="text-[12px] text-ink-caption">
+          / {isAmount ? `₩${total.toLocaleString()} 충전` : `${total}회`}
+        </span>
+      </div>
+      {/* 프로그레스 바 */}
+      <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-border-light">
+        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.max(0, Math.min(100, ratio * 100))}%` }} />
+      </div>
+      {/* 3행: 만료일 */}
+      <p className={`mt-1.5 text-[11px] ${expiringSoon ? "text-warning font-medium" : "text-ink-disabled"}`}>
+        {formatExpiry(p.expires_at)}
+      </p>
     </div>
   );
 }

@@ -25,10 +25,13 @@ export async function createPassAction(formData: FormData) {
   const type = String(formData.get("type")) as "amount" | "count";
   const name = String(formData.get("name"));
   const validityMonths = Number(formData.get("validity_months")) || 0;
+  const customExpiresAt = formData.get("expires_at") ? String(formData.get("expires_at")) : null;
 
-  const expiresAt = validityMonths > 0
-    ? new Date(Date.now() + validityMonths * 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-    : null;
+  const expiresAt = customExpiresAt
+    ? customExpiresAt
+    : validityMonths > 0
+      ? new Date(Date.now() + validityMonths * 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      : null;
 
   const chargeAmount = Number(formData.get("charge_amount")) || 0;
   const bonusAmount = Number(formData.get("bonus_amount")) || 0;
