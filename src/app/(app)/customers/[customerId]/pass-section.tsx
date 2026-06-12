@@ -153,7 +153,13 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
       {/* 활성 패스 */}
       <div className="mt-3 flex flex-col gap-2">
         {active.length === 0 && !showForm && (
-          <p className="py-4 text-center text-xs text-ink-caption">사용 가능한 선불권이 없습니다</p>
+          <div className="flex flex-col items-center py-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-border-light">
+              <svg className="h-5 w-5 text-ink-disabled" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" /></svg>
+            </div>
+            <p className="mt-2 text-[13px] text-ink-caption">아직 선불권이 없어요</p>
+            <p className="text-[11px] text-ink-disabled">판매하면 잔액이 여기 표시돼요</p>
+          </div>
         )}
         {active.map((p) => (
           <div key={p.id} className="rounded-lg border border-border bg-white p-3">

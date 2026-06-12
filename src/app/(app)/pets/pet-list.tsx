@@ -64,8 +64,13 @@ function CautionIcon({ className }: { className?: string }) {
   );
 }
 
-export function PetListClient({ pets, customers, todayPets }: { pets: Pet[]; customers: Customer[]; todayPets: TodayPet[] }) {
-  const [tab, setTab] = useState<"pet" | "customer">("pet");
+export function PetListClient({ pets, customers, todayPets, initialTab = "pet" }: { pets: Pet[]; customers: Customer[]; todayPets: TodayPet[]; initialTab?: "pet" | "customer" }) {
+  const [tab, setTab] = useState<"pet" | "customer">(initialTab);
+
+  function switchTab(t: "pet" | "customer") {
+    setTab(t);
+    window.history.replaceState(null, "", t === "pet" ? "/pets" : "/pets?tab=customer");
+  }
   const [search, setSearch] = useState("");
   const [showInactive, setShowInactive] = useState(false);
 
@@ -107,7 +112,7 @@ export function PetListClient({ pets, customers, todayPets }: { pets: Pet[]; cus
       {/* 세그먼트 탭 */}
       <div className="mt-4 flex rounded-md border border-border bg-border-light p-0.5">
         <button
-          onClick={() => setTab("pet")}
+          onClick={() => switchTab("pet")}
           className={`flex-1 rounded-[5px] py-1.5 text-[13px] font-medium transition-colors ${
             tab === "pet" ? "bg-white text-ink shadow-sm" : "text-ink-caption hover:text-ink-secondary"
           }`}
@@ -115,7 +120,7 @@ export function PetListClient({ pets, customers, todayPets }: { pets: Pet[]; cus
           펫
         </button>
         <button
-          onClick={() => setTab("customer")}
+          onClick={() => switchTab("customer")}
           className={`flex-1 rounded-[5px] py-1.5 text-[13px] font-medium transition-colors ${
             tab === "customer" ? "bg-white text-ink shadow-sm" : "text-ink-caption hover:text-ink-secondary"
           }`}

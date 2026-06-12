@@ -102,8 +102,13 @@ export function CustomerEditForm({
 
   return (
     <div className="rounded-lg border border-border bg-white p-5">
-      <div className="flex items-start justify-between">
-        <h1 className="text-[20px] font-bold text-ink">{displayName}</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-border-light text-[18px] font-bold text-ink-caption">
+            {displayName.charAt(0)}
+          </div>
+          <h1 className="text-[20px] font-bold text-ink">{displayName}</h1>
+        </div>
         <button
           onClick={() => setEditing(true)}
           className="shrink-0 text-[12px] font-medium text-primary hover:underline"

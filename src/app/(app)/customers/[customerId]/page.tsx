@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { formatPhone, sizeLabel } from "@/lib/utils";
 import { getPetPhotoUrls } from "@/lib/storage";
+import { PetAvatar } from "@/components/pet-avatar";
 import { PassSection } from "./pass-section";
 import { CustomerEditForm } from "./customer-edit-form";
 
@@ -43,7 +44,7 @@ export default async function CustomerDetailPage({
   const pets = petsResult.data ?? [];
   const passes = passesResult.data ?? [];
 
-  // 2차 병렬: 방문 이력 + signed URL (펫 데이터에 의존)
+  // 2차 병렬: 방문 이력 + signed URL
   const petIds = pets.map((p) => p.id);
   const photoPaths = pets.map((p) => p.photo_url).filter((u): u is string => !!u);
 
@@ -78,7 +79,7 @@ export default async function CustomerDetailPage({
 
   return (
     <div>
-      <Link href="/pets" className="text-[13px] text-ink-caption hover:text-ink-secondary">&larr; 목록</Link>
+      <Link href="/pets?tab=customer" className="text-[13px] text-ink-caption hover:text-ink-secondary">&larr; 보호자 목록</Link>
 
       <div className="mt-3 grid gap-5 lg:grid-cols-[320px_1fr]">
         {/* ── 좌측: 정보 패널 ── */}
@@ -106,53 +107,43 @@ export default async function CustomerDetailPage({
               href={bookHref}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-primary py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-primary-hover"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
               예약 잡기
             </Link>
           </div>
 
-          {/* 펫 목록 */}
+          {/* 반려견 목록 */}
           <div>
-            <p className="text-sm font-bold text-ink-secondary">
-              반려견 ({pets?.length ?? 0})
-            </p>
+            <p className="text-[13px] font-bold text-ink-secondary">반려견 ({pets.length})</p>
             <div className="mt-2 flex flex-col gap-2">
-              {(pets ?? []).map((pet) => (
+              {pets.map((pet) => (
                 <Link
                   key={pet.id}
                   href={`/pets/${pet.id}`}
-                  className={`flex items-center gap-3 rounded-lg border border-border bg-white p-3.5 transition hover:bg-bg ${
-                    !pet.is_active ? "opacity-50" : ""
-                  }`}
+                  className={`flex items-center gap-3 rounded-lg border border-border bg-white p-3.5 transition hover:bg-bg ${!pet.is_active ? "opacity-50" : ""}`}
                 >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-border-light text-sm font-bold text-ink-caption overflow-hidden">
-                    {pet.photo_url && photoUrlMap[pet.photo_url] ? (
-                      <img src={photoUrlMap[pet.photo_url]} alt={pet.name} className="h-full w-full object-cover" />
-                    ) : (
-                      (pet.breed ?? pet.name).charAt(0)
-                    )}
-                  </div>
+                  <PetAvatar name={pet.name} photoUrl={pet.photo_url && photoUrlMap[pet.photo_url] ? photoUrlMap[pet.photo_url] : null} size="lg" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <p className="truncate text-sm font-semibold text-ink">{pet.name}</p>
-                      {pet.caution_tags.length > 0 && <span className="h-2 w-2 shrink-0 rounded-full bg-danger" />}
+                      {pet.caution_tags.length > 0 && (
+                        <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-danger-light">
+                          <svg className="h-2.5 w-2.5 text-danger" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-ink-caption">{[pet.breed, sizeLabel(pet.size)].filter(Boolean).join(" · ")}</p>
                   </div>
                   <svg className="h-4 w-4 shrink-0 text-ink-disabled" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
                 </Link>
               ))}
-              {(!pets || pets.length === 0) && (
-                <p className="py-6 text-center text-sm text-ink-caption">등록된 반려견이 없습니다.</p>
+              {pets.length === 0 && (
+                <p className="py-6 text-center text-sm text-ink-caption">등록된 반려견이 없습니다</p>
               )}
             </div>
           </div>
 
           {/* 선불권 */}
-          <PassSection customerId={customerId} passes={(passes ?? []).map((p) => ({
-            ...p,
-            type: p.type as string,
-          }))} />
+          <PassSection customerId={customerId} passes={passes.map((p) => ({ ...p, type: p.type as string }))} />
         </div>
 
         {/* ── 우측: 방문 이력 통합 ── */}
@@ -161,7 +152,14 @@ export default async function CustomerDetailPage({
             <h2 className="text-[14px] font-semibold text-ink">방문 이력</h2>
           </div>
           {allVisits.length === 0 ? (
-            <p className="px-4 py-10 text-center text-[14px] text-ink-caption">방문 기록이 없습니다</p>
+            <div className="flex flex-col items-center justify-center px-4 py-16">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-border-light">
+                <svg className="h-6 w-6 text-ink-disabled" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
+                </svg>
+              </div>
+              <p className="mt-3 text-[14px] font-medium text-ink-caption">아직 방문 기록이 없어요</p>
+            </div>
           ) : (
             <>
               {/* 데스크톱 테이블 */}

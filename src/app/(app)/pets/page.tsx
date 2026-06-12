@@ -6,7 +6,8 @@ import { getPassStatus } from "@/lib/utils";
 import { todayKST, kstHourMin } from "@/lib/calendar-utils";
 import { getAuthContext } from "@/lib/auth-cache";
 
-export default async function PetsPage() {
+export default async function PetsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const sp = await searchParams;
   const ctx = await getAuthContext();
   if (!ctx) redirect("/login");
   const shopId = ctx.staff.shopId;
@@ -111,5 +112,5 @@ export default async function PetsPage() {
     };
   });
 
-  return <PetListClient pets={allPets} customers={allCustomers} todayPets={todayPets} />;
+  return <PetListClient pets={allPets} customers={allCustomers} todayPets={todayPets} initialTab={sp.tab === "customer" ? "customer" : "pet"} />;
 }
