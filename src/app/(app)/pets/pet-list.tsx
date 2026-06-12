@@ -25,7 +25,7 @@ type Customer = {
   phone: string;
   createdAt: string;
   petNames: string[];
-  passBalance: { amount: number; count: number } | null;
+  passSummary: string | null;
 };
 
 type TodayPet = {
@@ -39,15 +39,6 @@ function getCustomer(pet: Pet) {
   if (!pet.customers) return null;
   if (Array.isArray(pet.customers)) return pet.customers[0] ?? null;
   return pet.customers;
-}
-
-function formatPassBalance(b: { amount: number; count: number } | null) {
-  if (!b) return null; // 패스 없음
-  const parts: string[] = [];
-  if (b.amount > 0) parts.push(`₩${b.amount.toLocaleString()}`);
-  if (b.count > 0) parts.push(`${b.count}회`);
-  if (parts.length === 0) return "0원"; // 패스 있으나 잔액 0
-  return parts.join(" + ");
 }
 
 function formatPetNames(names: string[]) {
@@ -306,7 +297,7 @@ function CustomerTab({ customers, search }: { customers: Customer[]; search: str
               </thead>
               <tbody>
                 {customers.map((c) => {
-                  const bal = formatPassBalance(c.passBalance);
+                  const bal = c.passSummary;
                   return (
                     <tr
                       key={c.id}
@@ -342,7 +333,7 @@ function CustomerTab({ customers, search }: { customers: Customer[]; search: str
           {/* 모바일 리스트 */}
           <div className="lg:hidden">
             {customers.map((c) => {
-              const bal = formatPassBalance(c.passBalance);
+              const bal = c.passSummary;
               return (
                 <Link
                   key={c.id}

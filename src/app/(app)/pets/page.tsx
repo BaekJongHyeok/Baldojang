@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PetListClient } from "./pet-list";
 import { getPetPhotoUrls } from "@/lib/storage";
-import { getPassStatus } from "@/lib/utils";
+import { getPassStatus, formatPassSummary } from "@/lib/utils";
 import { todayKST, kstHourMin } from "@/lib/calendar-utils";
 import { getAuthContext } from "@/lib/auth-cache";
 
@@ -32,7 +32,7 @@ export default async function PetsPage({ searchParams }: { searchParams: Promise
       .order("created_at", { ascending: false }),
     supabase
       .from("passes")
-      .select("customer_id, type, balance, remaining, expires_at, disabled_at")
+      .select("customer_id, type, name, balance, remaining, expires_at, disabled_at")
       .eq("shop_id", shopId),
     supabase
       .from("reservations")
@@ -75,17 +75,16 @@ export default async function PetsPage({ searchParams }: { searchParams: Promise
     customerPetsMap[p.customer_id].push(p.name);
   }
 
-  // 보호자별 선불권
+  // 보호자별 선불권 요약
   const passes = passesResult.data ?? [];
   const customersWithPasses = new Set<string>();
-  const customerPassMap: Record<string, { amount: number; count: number }> = {};
+  const customerActivePassesMap: Record<string, typeof passes> = {};
   for (const p of passes) {
     customersWithPasses.add(p.customer_id);
     const status = getPassStatus(p);
     if (status !== "active") continue;
-    if (!customerPassMap[p.customer_id]) customerPassMap[p.customer_id] = { amount: 0, count: 0 };
-    if (p.type === "amount") customerPassMap[p.customer_id].amount += p.balance ?? 0;
-    else customerPassMap[p.customer_id].count += p.remaining ?? 0;
+    if (!customerActivePassesMap[p.customer_id]) customerActivePassesMap[p.customer_id] = [];
+    customerActivePassesMap[p.customer_id].push(p);
   }
 
   const allCustomers = (customersResult.data ?? []).map((c) => ({
@@ -94,8 +93,8 @@ export default async function PetsPage({ searchParams }: { searchParams: Promise
     phone: c.phone,
     createdAt: c.created_at,
     petNames: customerPetsMap[c.id] ?? [],
-    passBalance: customersWithPasses.has(c.id)
-      ? (customerPassMap[c.id] ?? { amount: 0, count: 0 })
+    passSummary: customersWithPasses.has(c.id)
+      ? (formatPassSummary(customerActivePassesMap[c.id] ?? []) ?? "0원")
       : null,
   }));
 

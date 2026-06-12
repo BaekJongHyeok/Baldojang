@@ -45,6 +45,36 @@ export function getPassStatus(pass: {
   return "active";
 }
 
+/**
+ * active 패스 목록 → 요약 문자열
+ * 0개: null, 1개: "이름 · 잔액", 금액 2+: "N개 · 총 ₩합계",
+ * 금액+횟수 혼합 2개: "금액명 ₩잔액 · 횟수명 N회", 3+: "선불권 N개"
+ */
+export function formatPassSummary(
+  activePasses: { type: string; name: string; balance: number | null; remaining: number | null }[],
+): string | null {
+  if (activePasses.length === 0) return null;
+  if (activePasses.length === 1) {
+    const p = activePasses[0];
+    return p.type === "amount"
+      ? `${p.name} · ₩${(p.balance ?? 0).toLocaleString()}`
+      : `${p.name} · ${p.remaining ?? 0}회`;
+  }
+  const amounts = activePasses.filter((p) => p.type === "amount");
+  const counts = activePasses.filter((p) => p.type === "count");
+  if (activePasses.length === 2 && amounts.length === 1 && counts.length === 1) {
+    return `${amounts[0].name} ₩${(amounts[0].balance ?? 0).toLocaleString()} · ${counts[0].name} ${counts[0].remaining ?? 0}회`;
+  }
+  if (activePasses.length >= 3) return `선불권 ${activePasses.length}개`;
+  // 2+ same type
+  if (amounts.length >= 2) {
+    const total = amounts.reduce((s, p) => s + (p.balance ?? 0), 0);
+    return `${amounts.length}개 · 총 ₩${total.toLocaleString()}`;
+  }
+  const totalCount = counts.reduce((s, p) => s + (p.remaining ?? 0), 0);
+  return `${counts.length}개 · 총 ${totalCount}회`;
+}
+
 /** 클라이언트 이미지 리사이즈 (max 1024px) */
 export function resizeImage(file: File, maxSize = 1024): Promise<Blob> {
   return new Promise((resolve, reject) => {

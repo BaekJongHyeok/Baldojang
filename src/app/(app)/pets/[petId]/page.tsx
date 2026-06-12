@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { calcAge, sizeLabel, formatPhone } from "@/lib/utils";
+import { calcAge, sizeLabel, formatPhone, formatPassSummary } from "@/lib/utils";
 import { DeactivateButton, ReactivateButton } from "./deactivate-button";
 import { InlineCycleEdit } from "./inline-cycle-edit";
 import { InlineCautionEdit } from "./inline-caution-edit";
@@ -43,7 +43,7 @@ export default async function PetChartPage({
 
   const visits = visitsResult.data;
 
-  let passBadge: { label: string; balance: string } | null = null;
+  let passSummary: string | null = null;
   if (customer) {
     const active = (passesResult.data ?? []).filter((p) => {
       if (p.disabled_at) return false;
@@ -51,10 +51,7 @@ export default async function PetChartPage({
       if (p.type === "amount") return (p.balance ?? 0) > 0;
       return (p.remaining ?? 0) > 0;
     });
-    if (active.length > 0) {
-      const p = active[0];
-      passBadge = { label: p.name, balance: p.type === "amount" ? `₩${(p.balance ?? 0).toLocaleString()}` : `${p.remaining ?? 0}회` };
-    }
+    passSummary = formatPassSummary(active);
   }
 
   const details = [pet.breed, sizeLabel(pet.size)].filter(Boolean).join(" · ");
@@ -121,12 +118,10 @@ export default async function PetChartPage({
                   <span className="text-ink-caption">전화번호</span>
                   <span className="text-ink tabular-nums">{formatPhone(customer.phone)}</span>
                 </div>
-                {passBadge && (
+                {passSummary && (
                   <div className="flex justify-between">
                     <span className="text-ink-caption">선불권</span>
-                    <Link href={`/customers/${customer.id}`} className="text-ink hover:text-primary">
-                      {passBadge.label} · {passBadge.balance}
-                    </Link>
+                    <span className="text-ink">{passSummary}</span>
                   </div>
                 )}
               </div>
