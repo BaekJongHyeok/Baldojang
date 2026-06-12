@@ -5,6 +5,7 @@ import { calcAge, sizeLabel, formatPhone, formatPassSummary } from "@/lib/utils"
 import { DeactivateButton, ReactivateButton } from "./deactivate-button";
 import { InlineCycleEdit } from "./inline-cycle-edit";
 import { InlineCautionEdit } from "./inline-caution-edit";
+import { EntityHeader, InfoRow, PencilIcon, EDIT_ICON_CLASS } from "@/components/entity-header";
 import { getPetPhotoUrl } from "@/lib/storage";
 import { getAuthContext } from "@/lib/auth-cache";
 import { PhoneButton } from "@/components/phone-button";
@@ -80,53 +81,25 @@ export default async function PetChartPage({
         {/* ── 좌측: 정보 패널 ── */}
         <div className="flex flex-col gap-4">
           {/* 프로필 */}
-          <div className="rounded-lg border border-border bg-white p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-border-light text-[18px] font-bold text-ink-caption overflow-hidden">
-                  {photoSignedUrl ? (
-                    <img src={photoSignedUrl} alt={pet.name} className="h-full w-full object-cover" />
-                  ) : (
-                    pet.name.charAt(0)
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <h1 className="text-[20px] font-bold text-ink">{pet.name}</h1>
-                  <p className="text-[13px] text-ink-caption">{[details, age, weight].filter(Boolean).join(" · ")}</p>
-                  {!pet.is_active && (
-                    <span className="mt-1 inline-block rounded-sm bg-border-light px-1.5 py-0.5 text-[11px] font-medium text-ink-caption">비활성</span>
-                  )}
-                </div>
-              </div>
-              <Link href={`/pets/${petId}/edit`} aria-label="펫 정보 수정"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-caption transition-colors hover:bg-border-light hover:text-ink">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
-              </Link>
-            </div>
-
-            {/* 보호자 정보 행 */}
-            {customer && (
-              <div className="mt-3 flex flex-col gap-1.5 border-t border-border pt-3 text-[14px]">
-                <div className="flex justify-between">
-                  <span className="text-ink-caption">보호자</span>
-                  <Link href={`/customers/${customer.id}`} className="flex items-center gap-0.5 font-medium text-ink hover:text-primary">
+          <EntityHeader
+            avatar={photoSignedUrl ? <img src={photoSignedUrl} alt={pet.name} className="h-full w-full object-cover" /> : pet.name.charAt(0)}
+            name={pet.name}
+            subtitle={[details, age, weight].filter(Boolean).join(" · ") || undefined}
+            badge={!pet.is_active ? <span className="mt-1 inline-block rounded-sm bg-border-light px-1.5 py-0.5 text-[11px] font-medium text-ink-caption">비활성</span> : undefined}
+            editAction={<Link href={`/pets/${petId}/edit`} aria-label="펫 정보 수정" className={EDIT_ICON_CLASS}><PencilIcon /></Link>}
+            rows={customer ? (
+              <>
+                <InfoRow label="보호자">
+                  <Link href={`/customers/${customer.id}`} className="flex items-center gap-0.5 font-medium hover:text-primary">
                     {customer.name}
                     <svg className="h-3.5 w-3.5 text-ink-disabled" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
                   </Link>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-ink-caption">전화번호</span>
-                  <span className="text-ink tabular-nums">{formatPhone(customer.phone)}</span>
-                </div>
-                {passSummary && (
-                  <div className="flex justify-between">
-                    <span className="text-ink-caption">선불권</span>
-                    <span className="text-ink">{passSummary}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                </InfoRow>
+                <InfoRow label="전화번호"><span className="tabular-nums">{formatPhone(customer.phone)}</span></InfoRow>
+                {passSummary && <InfoRow label="선불권">{passSummary}</InfoRow>}
+              </>
+            ) : undefined}
+          />
 
           {/* 빠른 액션 */}
           <div className="flex gap-2">
