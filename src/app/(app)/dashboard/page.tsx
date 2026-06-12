@@ -38,7 +38,10 @@ export default async function DashboardPage() {
   const cutoff = new Date(Date.now() - (defCycle - 1) * 7 * 86400000).toISOString();
   const nowISO = new Date().toISOString();
 
-  const [todayResResult, todayPayResult, weekPayResult, monthPayResult, oldVisitsResult, futureResResult] = await Promise.all([
+  const weekEndISO = new Date(today + "T23:59:59+09:00").toISOString();
+  const week7End = new Date(Date.now() + 7 * 86400000).toISOString();
+
+  const [todayResResult, todayPayResult, weekPayResult, monthPayResult, oldVisitsResult, futureResResult, weekResResult] = await Promise.all([
     supabase
       .from("reservations")
       .select("id, starts_at, ends_at, status, pets(name, photo_url, customers(phone)), services(name)")
@@ -46,14 +49,16 @@ export default async function DashboardPage() {
       .gte("starts_at", todayStart)
       .lte("starts_at", todayEnd)
       .order("starts_at"),
-    supabase.from("payments").select("amount").eq("shop_id", shopId)
+    supabase.from("payments").select("amount, visit_id").eq("shop_id", shopId)
       .gte("paid_at", todayStart).lte("paid_at", todayEnd),
-    supabase.from("payments").select("amount").eq("shop_id", shopId)
-      .gte("paid_at", weekStart).lte("paid_at", todayEnd),
-    supabase.from("payments").select("amount").eq("shop_id", shopId)
-      .gte("paid_at", monthStart).lte("paid_at", todayEnd),
+    supabase.from("payments").select("amount, visit_id").eq("shop_id", shopId)
+      .gte("paid_at", weekStart).lte("paid_at", weekEndISO),
+    supabase.from("payments").select("amount, visit_id").eq("shop_id", shopId)
+      .gte("paid_at", monthStart).lte("paid_at", weekEndISO),
     supabase.from("visits").select("pet_id").eq("shop_id", shopId).lte("visited_at", cutoff),
     supabase.from("reservations").select("pet_id").eq("shop_id", shopId).eq("status", "confirmed").gte("starts_at", nowISO),
+    // 이번 주 예약 (오늘~7일)
+    supabase.from("reservations").select("id", { count: "exact", head: true }).eq("shop_id", shopId).eq("status", "confirmed").gte("starts_at", nowISO).lte("starts_at", week7End),
   ]);
 
   const reservations = todayResResult.data ?? [];
@@ -61,13 +66,21 @@ export default async function DashboardPage() {
   const totalCount = active.length;
   const completedCount = active.filter((r) => r.status === "completed").length;
   const noshowCount = active.filter((r) => r.status === "no_show").length;
-  const todayRevenue = (todayPayResult.data ?? []).reduce((s, p) => s + p.amount, 0);
-  const weekRevenue = (weekPayResult.data ?? []).reduce((s, p) => s + p.amount, 0);
-  const monthRevenue = (monthPayResult.data ?? []).reduce((s, p) => s + p.amount, 0);
+
+  // 시술 매출 vs 선불권 판매 분리 (hasVisit = visit_id 존재 여부)
+  function splitRevenue(payments: { amount: number; visit_id: string | null }[]) {
+    let service = 0, pass = 0;
+    for (const p of payments) { if (p.visit_id) service += p.amount; else pass += p.amount; }
+    return { service, pass };
+  }
+  const todayRev = splitRevenue((todayPayResult.data ?? []) as { amount: number; visit_id: string | null }[]);
+  const weekRev = splitRevenue((weekPayResult.data ?? []) as { amount: number; visit_id: string | null }[]);
+  const monthRev = splitRevenue((monthPayResult.data ?? []) as { amount: number; visit_id: string | null }[]);
 
   const oldPetIds = new Set((oldVisitsResult.data ?? []).map((v) => v.pet_id));
   const futurePetIds = new Set((futureResResult.data ?? []).map((r) => r.pet_id));
   const retentionCount = [...oldPetIds].filter((id) => !futurePetIds.has(id)).length;
+  const weekBookingCount = weekResResult.count ?? 0;
 
   // 완료 예약의 visit ID (카드 링크용)
   const completedResIds = active.filter((r) => r.status === "completed").map((r) => r.id);
@@ -101,8 +114,8 @@ export default async function DashboardPage() {
       <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-4">
         <KPI label="오늘 예약" value={String(totalCount)} suffix="건" sub={noshowCount > 0 ? `노쇼 ${noshowCount}` : undefined} />
         <KPI label="완료" value={String(completedCount)} suffix="건" />
-        <KPI label="오늘 매출" value={`₩${todayRevenue.toLocaleString()}`} />
-        <KPI label="재방문 대상" value={String(retentionCount)} suffix="명" href={retentionCount > 0 ? "/retention" : undefined} highlight={retentionCount > 0} />
+        <KPI label="오늘 매출" value={`₩${todayRev.service.toLocaleString()}`} sub={todayRev.pass > 0 ? `+ 선불권 ₩${todayRev.pass.toLocaleString()}` : undefined} />
+        <KPI label="이번 주 예약" value={String(weekBookingCount)} suffix="건" href="/calendar" />
       </div>
 
       {/* 오늘 예약 테이블 */}
@@ -263,12 +276,24 @@ export default async function DashboardPage() {
             <dl className="flex flex-col gap-2 text-[14px]">
               <div className="flex justify-between">
                 <dt className="text-ink-caption">이번 주</dt>
-                <dd className="font-semibold text-ink tabular-nums">₩{weekRevenue.toLocaleString()}</dd>
+                <dd className="font-semibold text-ink tabular-nums">₩{weekRev.service.toLocaleString()}</dd>
               </div>
+              {weekRev.pass > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-ink-disabled text-[12px]">+ 선불권</dt>
+                  <dd className="text-[12px] text-ink-caption tabular-nums">₩{weekRev.pass.toLocaleString()}</dd>
+                </div>
+              )}
               <div className="flex justify-between">
                 <dt className="text-ink-caption">이번 달</dt>
-                <dd className="font-semibold text-ink tabular-nums">₩{monthRevenue.toLocaleString()}</dd>
+                <dd className="font-semibold text-ink tabular-nums">₩{monthRev.service.toLocaleString()}</dd>
               </div>
+              {monthRev.pass > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-ink-disabled text-[12px]">+ 선불권</dt>
+                  <dd className="text-[12px] text-ink-caption tabular-nums">₩{monthRev.pass.toLocaleString()}</dd>
+                </div>
+              )}
             </dl>
           </div>
         </div>
