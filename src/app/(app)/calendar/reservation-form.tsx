@@ -229,12 +229,7 @@ export function ReservationForm({
                 </div>
               )}
             </div>
-          ) : (
-            /* 수정 시 펫 읽기 전용 */
-            <div className="rounded-md bg-bg px-3 py-2">
-              <span className="text-[14px] font-medium text-ink">{editReservation.pet.name}</span>
-            </div>
-          )}
+          ) : null}
 
           {/* 시술 선택 */}
           <label className="flex flex-col gap-1.5">
