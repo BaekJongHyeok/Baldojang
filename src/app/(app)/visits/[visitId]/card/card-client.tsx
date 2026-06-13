@@ -231,7 +231,7 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
 
       <div className="mt-4 grid gap-6 lg:grid-cols-[380px_1fr]">
         {/* ── 좌측: 컨트롤 패널 ── */}
-        <div className="order-2 flex flex-col gap-4 lg:order-1">
+        <div className="order-2 min-w-0 flex flex-col gap-4 lg:order-1">
           {/* 템플릿 */}
           <div className="rounded-lg border border-border bg-white p-4">
             <p className="text-[13px] font-semibold text-ink-caption">템플릿</p>
@@ -285,8 +285,8 @@ export function CardClient({ visit, pet, serviceName, shop, shopId }: Props) {
         </div>
 
         {/* ── 우측: 카드 프리뷰 (모바일에서는 상단) ── */}
-        <div className="order-1 lg:order-2 lg:sticky lg:top-20 lg:self-start">
-          <div className="mx-auto w-full overflow-hidden rounded-lg" style={{ maxWidth: 400, aspectRatio: `${size.w} / ${size.h}` }}>
+        <div className="order-1 min-w-0 overflow-hidden lg:order-2 lg:sticky lg:top-20 lg:self-start">
+          <div className="relative mx-auto w-full overflow-hidden rounded-lg" style={{ maxWidth: 400, aspectRatio: `${size.w} / ${size.h}` }}>
             <div ref={renderRef} className="relative h-full w-full origin-top-left"
               style={{ width: size.w, height: size.h, transform: `scale(var(--card-scale))`, "--card-scale": "1" } as React.CSSProperties}>
               {(template === "minimal" || template === "ba") && <MinimalCard {...cardProps} w={size.w} h={size.h} onSlotClick={isBA ? (slot) => triggerUpload(slot) : undefined} />}

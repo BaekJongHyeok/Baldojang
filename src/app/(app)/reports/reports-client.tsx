@@ -455,7 +455,7 @@ export function ReportsClient({
           {/* 시술 매출 */}
           <div className="mt-4 rounded-lg border border-border bg-white p-5 print:border print:border-border">
             <p className="text-xs font-bold text-ink-caption">시술 매출</p>
-            <p className="mt-2 text-2xl font-bold text-ink">₩{closingRevenue.toLocaleString()}</p>
+            <p className="mt-2 text-2xl font-bold text-ink no-underline">₩{closingRevenue.toLocaleString()}</p>
             <div className="mt-3 flex flex-col gap-1.5">
               {closingMethodStats.map((m) => <Row key={m.method} label={m.label} value={`₩${m.amount.toLocaleString()}`} />)}
             </div>
@@ -510,8 +510,8 @@ function formatCompact(v: number): string {
 
 function SummaryCard({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-lg border border-border bg-white p-4 text-center print:border print:border-border">
-      <p className="text-xl font-bold text-ink">{value}</p>
+    <div className="rounded-lg border border-border bg-white p-3 text-center print:border print:border-border sm:p-4">
+      <p className="text-base font-bold text-ink no-underline sm:text-xl">{value}</p>
       <p className="text-[11px] text-ink-caption">{label}</p>
     </div>
   );
@@ -528,9 +528,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between gap-2">
       <span className="text-ink-caption">{label}</span>
-      <span className={`${bold ? "font-bold" : "font-medium"} text-ink`}>{value}</span>
+      <span className={`${bold ? "font-bold" : "font-medium"} text-ink no-underline shrink-0`}>{value}</span>
     </div>
   );
 }

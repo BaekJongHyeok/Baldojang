@@ -49,13 +49,13 @@ export function AccountForm({ email, staffName }: { email: string; staffName: st
       {/* ── 원장 이름 ── */}
       <div className="rounded-lg border border-border bg-white p-5">
         <label htmlFor="staff-name" className="block text-[12px] font-medium text-ink-caption">원장 이름</label>
-        <div className="mt-2 flex gap-2">
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
           <input
             id="staff-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="flex-1 rounded-md border border-border px-3 py-2 text-[14px] text-ink outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            className="min-w-0 flex-1 rounded-md border border-border px-3 py-2 text-[14px] text-ink outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           />
           <button
             onClick={handleNameSubmit}
