@@ -40,8 +40,8 @@ export default async function ReportsPage() {
       .lte("created_at", toISO),
     supabase
       .from("pass_logs")
-      .select("delta, created_at, passes(type)")
-      .lt("delta", 0)
+      .select("delta, created_at, passes!inner(type, shop_id)")
+      .eq("passes.shop_id", shopId)
       .gte("created_at", fromISO)
       .lte("created_at", toISO),
     supabase
@@ -91,7 +91,7 @@ export default async function ReportsPage() {
         status: r.status as string,
       }))}
       newPetsCount={(pets ?? []).length}
-      passDeductions={(passLogs ?? []).map((l) => {
+      passLogs={(passLogs ?? []).map((l) => {
         const lPass = Array.isArray(l.passes) ? l.passes[0] : l.passes;
         return {
           delta: l.delta,
