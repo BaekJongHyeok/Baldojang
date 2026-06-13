@@ -301,7 +301,7 @@ export function ReportsClient({
           )}
 
           {showChart && (
-            <div className="mt-6 rounded-lg border border-border bg-white p-4" onClick={() => setTooltip(null)}>
+            <div className="mt-6 overflow-hidden rounded-lg border border-border bg-white p-4" onClick={() => setTooltip(null)}>
               <p className="text-xs font-bold text-ink-caption">
                 {aggregation === "daily" ? "일별" : aggregation === "weekly" ? "주별" : "월별"} 매출
               </p>
@@ -316,7 +316,7 @@ export function ReportsClient({
                   <p className="text-xs text-ink-caption">이 기간에는 매출이 없어요</p>
                 </div>
               ) : (
-                <div className="relative mt-3" style={{ height: 160 }}>
+                <div className="relative mt-3" style={{ height: 180 }}>
                   {/* Y-axis grid lines */}
                   {gridLines.map((v) => (
                     <div key={v} className="absolute left-0 right-0 flex items-center" style={{ bottom: `${(v / maxAmount) * 140}px` }}>
@@ -326,7 +326,7 @@ export function ReportsClient({
                   ))}
 
                   {/* Bars */}
-                  <div className="flex h-[140px] items-end gap-[3px] overflow-x-auto pl-8">
+                  <div className="flex h-[160px] items-end gap-[3px] overflow-x-auto pl-8">
                     {chartData.map((d) => {
                       const barH = d.amount > 0 ? Math.max(4, (d.amount / maxAmount) * 130) : 2;
                       const showLabel = chartData.length <= 14;
@@ -352,14 +352,6 @@ export function ReportsClient({
                             </span>
                           )}
 
-                          {/* Tooltip */}
-                          {tooltip?.key === d.key && (
-                            <div className="absolute -top-14 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-md bg-ink px-2.5 py-1.5 text-[11px] text-white shadow-lg">
-                              <p className="font-bold">₩{d.amount.toLocaleString()}</p>
-                              <p className="text-white/70">{d.count}건</p>
-                              <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-ink" />
-                            </div>
-                          )}
                         </div>
                       );
                     })}
@@ -377,6 +369,27 @@ export function ReportsClient({
               )}
             </div>
           )}
+
+          {/* Chart tooltip — fixed so it escapes overflow-hidden */}
+          {tooltip && (() => {
+            const td = chartData.find((d) => d.key === tooltip.key);
+            if (!td) return null;
+            const flipDown = tooltip.y < 60;
+            return (
+              <div
+                className="fixed z-50 whitespace-nowrap rounded-md bg-ink px-2.5 py-1.5 text-[11px] text-white shadow-lg"
+                style={{
+                  left: tooltip.x,
+                  top: flipDown ? tooltip.y + 24 : tooltip.y - 8,
+                  transform: `translateX(-50%) ${flipDown ? "" : "translateY(-100%)"}`,
+                }}
+              >
+                <p className="font-bold">₩{td.amount.toLocaleString()}</p>
+                <p className="text-white/70">{td.count}건</p>
+                <div className={`absolute left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-ink ${flipDown ? "-top-1" : "-bottom-1"}`} />
+              </div>
+            );
+          })()}
 
           {serviceStats.length > 0 && (
             <Section title="시술별 매출">
