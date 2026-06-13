@@ -244,14 +244,13 @@ function NotificationHistory({ reservationId }: { reservationId: string }) {
 
   useEffect(() => {
     const supabase = createClient();
-    // type, payload 컬럼은 migration 0012에서 추가 — generated types 미반영
     supabase
       .from("notifications")
-      .select("status, sent_at")
+      .select("type, status, sent_at")
       .eq("reservation_id", reservationId)
       .order("created_at")
       .then(({ data }) => {
-        setItems((data ?? []).map((d) => ({ type: (d as Record<string, unknown>).type as string ?? "confirm", status: d.status, sent_at: d.sent_at })));
+        setItems((data ?? []).map((d) => ({ type: d.type, status: d.status, sent_at: d.sent_at })));
         setLoaded(true);
       });
   }, [reservationId]);

@@ -61,11 +61,11 @@ export async function createReservationAction(formData: FormData) {
   try {
     const { sendNotification, buildPayload, recordSkipped } = await import("@/lib/alimtalk");
     const [shopResult, petResult, serviceResult] = await Promise.all([
-      supabase.from("shops").select("name, notification_enabled" as string).eq("id", info.shopId).single(),
+      supabase.from("shops").select("name, notification_enabled").eq("id", info.shopId).single(),
       supabase.from("pets").select("name, customer_id, customers(phone)").eq("id", petId).single(),
       supabase.from("services").select("name").eq("id", serviceId).single(),
     ]);
-    const shopRow = shopResult.data as { name: string; notification_enabled?: boolean } | null;
+    const shopRow = shopResult.data;
     const pet = petResult.data;
     const service = serviceResult.data;
     const customer = pet?.customers

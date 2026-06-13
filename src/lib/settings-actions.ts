@@ -14,11 +14,10 @@ export async function updateNotificationSettingsAction(formData: FormData) {
   const enabled = formData.get("notification_enabled") === "true";
   const reminderHour = Math.min(22, Math.max(8, Number(formData.get("reminder_hour")) || 18));
 
-  // notification_enabled, reminder_hour는 migration 0012에서 추가 — generated types 미반영
   const { error } = await supabase.from("shops").update({
     notification_enabled: enabled,
     reminder_hour: reminderHour,
-  } as any).eq("id", staff.shop_id);
+  }).eq("id", staff.shop_id);
   if (error) return { error: error.message };
 
   revalidatePath("/settings/notifications");

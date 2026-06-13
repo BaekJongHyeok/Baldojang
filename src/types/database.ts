@@ -59,11 +59,14 @@ export type Database = {
           customer_id: string | null
           error_msg: string | null
           id: string
+          payload: Json | null
+          recipient_phone: string | null
           reservation_id: string | null
           sent_at: string | null
           shop_id: string
           status: Database["public"]["Enums"]["notification_status"]
-          template_code: string
+          template_code: string | null
+          type: string
         }
         Insert: {
           cost_krw?: number | null
@@ -71,11 +74,14 @@ export type Database = {
           customer_id?: string | null
           error_msg?: string | null
           id?: string
+          payload?: Json | null
+          recipient_phone?: string | null
           reservation_id?: string | null
           sent_at?: string | null
           shop_id: string
           status?: Database["public"]["Enums"]["notification_status"]
-          template_code: string
+          template_code?: string | null
+          type?: string
         }
         Update: {
           cost_krw?: number | null
@@ -83,11 +89,14 @@ export type Database = {
           customer_id?: string | null
           error_msg?: string | null
           id?: string
+          payload?: Json | null
+          recipient_phone?: string | null
           reservation_id?: string | null
           sent_at?: string | null
           shop_id?: string
           status?: Database["public"]["Enums"]["notification_status"]
-          template_code?: string
+          template_code?: string | null
+          type?: string
         }
         Relationships: [
           {
@@ -512,8 +521,10 @@ export type Database = {
           id: string
           logo_url: string | null
           name: string
+          notification_enabled: boolean
           open_hours: Json
           phone: string | null
+          reminder_hour: number
           slot_minutes: number
         }
         Insert: {
@@ -524,8 +535,10 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name: string
+          notification_enabled?: boolean
           open_hours?: Json
           phone?: string | null
+          reminder_hour?: number
           slot_minutes?: number
         }
         Update: {
@@ -536,8 +549,10 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name?: string
+          notification_enabled?: boolean
           open_hours?: Json
           phone?: string | null
+          reminder_hour?: number
           slot_minutes?: number
         }
         Relationships: []
@@ -661,19 +676,24 @@ export type Database = {
         Returns: string
       }
       deduct_pass_amount: {
-        Args: { p_amount: number; p_pass_id: string; p_visit_id: string }
+        Args: {
+          p_amount: number
+          p_pass_id: string
+          p_service_date?: string
+          p_visit_id: string
+        }
         Returns: undefined
       }
       deduct_pass_count: {
-        Args: { p_pass_id: string; p_visit_id: string }
-        Returns: undefined
+        Args: { p_pass_id: string; p_service_date?: string; p_visit_id: string }
+        Returns: number
       }
       my_shop_id: { Args: never; Returns: string }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
-      notification_status: "pending" | "sent" | "failed"
+      notification_status: "pending" | "sent" | "failed" | "skipped"
       pass_type: "amount" | "count"
       payment_method: "cash" | "card" | "transfer" | "pass"
       pet_size: "small" | "medium" | "large"
@@ -806,7 +826,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      notification_status: ["pending", "sent", "failed"],
+      notification_status: ["pending", "sent", "failed", "skipped"],
       pass_type: ["amount", "count"],
       payment_method: ["cash", "card", "transfer", "pass"],
       pet_size: ["small", "medium", "large"],

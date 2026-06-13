@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import type { Json } from "@/types/database";
 
 // ── 템플릿 변수 구조 ──
 // 카카오 알림톡 사전 승인 템플릿에 들어갈 변수
@@ -117,9 +118,9 @@ export async function sendNotification({
       reservation_id: reservationId,
       type,
       recipient_phone: recipientPhone,
-      payload: payload as unknown as Record<string, unknown>,
+      payload: payload as unknown as Json,
       status: "pending",
-    } as any)
+    })
     .select("id")
     .single();
 
@@ -132,10 +133,10 @@ export async function sendNotification({
   if (testMode) {
     // 테스트 모드: skipped로 기록
     await supabase.from("notifications").update({
-      status: "skipped" as string,
-      payload: { ...payload, _message: message } as unknown as Record<string, unknown>,
+      status: "skipped",
+      payload: { ...payload, _message: message } as unknown as Json,
       sent_at: new Date().toISOString(),
-    } as any).eq("id", notification!.id);
+    }).eq("id", notification!.id);
     return { sent: false, testMode: true };
   }
 
@@ -163,7 +164,7 @@ export async function recordSkipped({
     type,
     status: "skipped",
     error_msg: reason,
-  } as any).single();
+  });
 }
 
 // ── 예약 데이터로 payload 생성 ──
