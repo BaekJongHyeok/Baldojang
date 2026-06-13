@@ -2,6 +2,7 @@
 -- 기존: unit_price = total_amount / total_count (정수 나눗셈, 나머지 유실)
 --   예: 100,000 / 3 = 33,333 → 3회 사용 후 잔액 1원 유령 부채
 -- 변경: 마지막 사용(remaining=1)일 때 잔여 balance 전액 차감
+drop function if exists deduct_pass_count(uuid, uuid);
 create or replace function deduct_pass_count(
   p_pass_id uuid,
   p_visit_id uuid
