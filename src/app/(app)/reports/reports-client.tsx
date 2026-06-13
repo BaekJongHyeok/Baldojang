@@ -166,12 +166,9 @@ export function ReportsClient({
     const rawMax = Math.max(1, ...data.map((d) => d.amount));
     const max = niceMax(rawMax);
 
-    // 2~3 grid lines
-    const lines: number[] = [];
-    if (max >= 2) {
-      const step = niceStep(max);
-      for (let v = step; v < max; v += step) lines.push(v);
-    }
+    // 3 grid lines: 0, mid, max
+    const mid = Math.round(max / 2);
+    const lines = [0, mid, max];
 
     return { chartData: data, maxAmount: max, gridLines: lines, aggregation: agg };
   }, [servicePayments, from, to, today]);
@@ -316,49 +313,56 @@ export function ReportsClient({
                   <p className="text-xs text-ink-caption">이 기간에는 매출이 없어요</p>
                 </div>
               ) : (
-                <div className="relative mt-3" style={{ height: 180 }}>
-                  {/* Y-axis grid lines */}
-                  {gridLines.map((v) => (
-                    <div key={v} className="absolute left-0 right-0 flex items-center" style={{ bottom: `${(v / maxAmount) * 140}px` }}>
-                      <span className="mr-2 shrink-0 text-[9px] text-ink-disabled tabular-nums">{formatCompact(v)}</span>
-                      <div className="flex-1 border-t border-dashed border-border-light" />
-                    </div>
-                  ))}
+                <div className="mt-3">
+                  {/* Chart zone: 18px top pad for amount labels + 130px bar area */}
+                  <div className="relative" style={{ height: 148 }}>
+                    {/* Grid lines: 0, mid, max — aligned to 130px bar area */}
+                    {gridLines.map((v) => (
+                      <div key={v} className="absolute left-0 right-0 flex items-center" style={{ bottom: (v / maxAmount) * 130 }}>
+                        <span className="mr-2 w-7 shrink-0 text-right text-[9px] text-ink-disabled tabular-nums">{formatCompact(v)}</span>
+                        <div className={`flex-1 border-t ${v === 0 ? "border-border" : "border-dashed border-border-light"}`} />
+                      </div>
+                    ))}
 
-                  {/* Bars */}
-                  <div className="flex h-[160px] items-end gap-[3px] overflow-x-auto pl-8">
-                    {chartData.map((d) => {
-                      const barH = d.amount > 0 ? Math.max(4, (d.amount / maxAmount) * 130) : 2;
-                      const showLabel = chartData.length <= 14;
-                      return (
-                        <div
-                          key={d.key}
-                          className="group relative flex min-w-[14px] flex-1 flex-col items-center"
-                          onClick={(e) => { e.stopPropagation(); handleBarInteraction(d.key, e); }}
-                        >
-                          {/* Amount label on top */}
-                          {d.amount > 0 && chartData.length <= 14 && (
-                            <span className="mb-0.5 text-[9px] font-medium tabular-nums text-ink-caption">{formatCompact(d.amount)}</span>
-                          )}
-                          {/* Bar */}
+                    {/* Bars: absolute-anchored to bottom, exactly 130px */}
+                    <div className="absolute bottom-0 left-0 right-0 flex items-end gap-[3px] pl-8" style={{ height: 130 }}>
+                      {chartData.map((d) => {
+                        const barH = d.amount > 0 ? Math.max(4, (d.amount / maxAmount) * 130) : 2;
+                        return (
                           <div
-                            className={`w-full max-w-[24px] rounded-t-[3px] transition-colors ${d.isToday ? "bg-primary" : d.amount > 0 ? "bg-primary/60 group-hover:bg-primary/80" : "bg-border-light"}`}
-                            style={{ height: barH }}
-                          />
-                          {/* X-axis label */}
-                          {showLabel && (
-                            <span className={`mt-1 text-[9px] leading-none ${d.isToday ? "font-bold text-primary" : d.isWeekend ? "text-red-400" : "text-ink-caption"}`}>
-                              {d.label}
-                            </span>
-                          )}
-
-                        </div>
-                      );
-                    })}
+                            key={d.key}
+                            className="group relative flex min-w-[14px] flex-1 justify-center"
+                            onClick={(e) => { e.stopPropagation(); handleBarInteraction(d.key, e); }}
+                          >
+                            {/* Amount label — absolute above bar */}
+                            {d.amount > 0 && chartData.length <= 14 && (
+                              <span className="absolute text-[9px] font-medium tabular-nums text-ink-caption" style={{ bottom: barH + 2 }}>
+                                {formatCompact(d.amount)}
+                              </span>
+                            )}
+                            {/* Bar */}
+                            <div
+                              className={`w-full max-w-[24px] rounded-t-[3px] transition-colors ${d.isToday ? "bg-primary" : d.amount > 0 ? "bg-primary/60 group-hover:bg-primary/80" : "bg-border-light"}`}
+                              style={{ height: barH }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  {/* Compressed x-axis for many bars */}
-                  {chartData.length > 14 && (
+                  {/* X-axis labels — outside bar area, no overflow possible */}
+                  {chartData.length <= 14 ? (
+                    <div className="mt-1 flex gap-[3px] pl-8">
+                      {chartData.map((d) => (
+                        <div key={d.key} className="flex min-w-[14px] flex-1 justify-center">
+                          <span className={`text-[9px] leading-none ${d.isToday ? "font-bold text-primary" : d.isWeekend ? "text-red-400" : "text-ink-caption"}`}>
+                            {d.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
                     <div className="mt-1 flex justify-between pl-8 text-[9px] text-ink-caption">
                       <span>{chartData[0].label}</span>
                       {chartData.length > 6 && <span>{chartData[Math.floor(chartData.length / 2)].label}</span>}
@@ -462,16 +466,6 @@ function niceMax(raw: number): number {
   const normalized = raw / magnitude;
   const nice = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
   return nice * magnitude;
-}
-
-/** 그리드 간격 (2~3줄 나오도록) */
-function niceStep(max: number): number {
-  if (max <= 2) return 1;
-  const candidates = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000];
-  for (const c of candidates) {
-    if (Math.floor(max / c) >= 2 && Math.floor(max / c) <= 4) return c;
-  }
-  return Math.ceil(max / 3);
 }
 
 /** 금액 축약: 10000 → "1만", 85000 → "8.5만", 1200 → "1,200" */
