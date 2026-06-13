@@ -75,8 +75,7 @@ export function ReportsClient({
   const [tab, setTab] = useState<"revenue" | "closing">("revenue");
   const [range, setRange] = useState("week");
   const [closingMonth, setClosingMonth] = useState(() => {
-    const prev = subMonths(new Date(today + "T00:00:00Z"), 1);
-    return format(prev, "yyyy-MM");
+    return today.slice(0, 7);
   });
 
   // === 매출 탭 ===
