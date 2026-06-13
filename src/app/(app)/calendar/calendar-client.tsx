@@ -14,7 +14,6 @@ import {
   revertCompletionAction,
   completeWithVisitAction,
 } from "@/lib/reservation-actions";
-import { DayView } from "./day-view";
 import { WeekView } from "./week-view";
 import { ReservationDetail } from "./reservation-detail";
 import { ReservationForm, type FormPet, type FormService } from "./reservation-form";
@@ -153,10 +152,6 @@ export function CalendarClient({
   const selectedReservation = useMemo(() => reservations.find((r) => r.id === selectedId) ?? null, [reservations, selectedId]);
   const completeReservation = useMemo(() => reservations.find((r) => r.id === completeId) ?? null, [reservations, completeId]);
 
-  function navDay(offset: number) {
-    if (offset === 0) { navigateTo(today); return; }
-    navigateTo(format(addDays(new Date(selectedDate + "T00:00:00Z"), offset), "yyyy-MM-dd"));
-  }
   function navWeek(offset: number) {
     if (offset === 0) { navigateTo(today); return; }
     const base = new Date(selectedDate + "T00:00:00Z");
@@ -255,17 +250,9 @@ export function CalendarClient({
   }, [router, passes]);
 
   // --- 헤더 날짜 텍스트 ---
-  const dayDateDisplay = formatDateKST(selectedDate, "M월 d일 (EEE)");
   const weekDateDisplay = currentWeekDays.length >= 7
     ? `${formatDateKST(currentWeekDays[0].date, "M월 d일")} – ${formatDateKST(currentWeekDays[6].date, "M월 d일")}`
     : "";
-
-  // 미니 스트립용: 예약 있는 날짜 Set
-  const reservationDates = useMemo(() => {
-    const set = new Set<string>();
-    for (const r of filtered) set.add(kstDateStr(r.starts_at));
-    return set;
-  }, [filtered]);
 
   return (
     <div className="-mx-4 -mt-5 sm:-mx-6 lg:-mx-8 lg:-mt-6">
@@ -280,18 +267,12 @@ export function CalendarClient({
             >
               오늘
             </button>
-            {/* 모바일: 일 단위 */}
-            <div className="flex lg:hidden">
-              <button onClick={() => navDay(-1)} className="rounded-l-md border border-border p-1.5 text-ink-caption hover:bg-bg"><ChevronLeft /></button>
-              <button onClick={() => navDay(1)} className="-ml-px rounded-r-md border border-border p-1.5 text-ink-caption hover:bg-bg"><ChevronRight /></button>
-            </div>
-            {/* 데스크톱: 주 단위 */}
-            <div className="hidden lg:flex">
+            {/* 주 단위 네비게이션 (모바일/데스크톱 공통) */}
+            <div className="flex">
               <button onClick={() => navWeek(-1)} className="rounded-l-md border border-border p-1.5 text-ink-caption hover:bg-bg"><ChevronLeft /></button>
               <button onClick={() => navWeek(1)} className="-ml-px rounded-r-md border border-border p-1.5 text-ink-caption hover:bg-bg"><ChevronRight /></button>
             </div>
-            <h2 className="text-[16px] font-semibold text-ink ml-1 hidden sm:block lg:hidden">{dayDateDisplay}</h2>
-            <h2 className="text-[16px] font-semibold text-ink ml-1 hidden lg:block">{weekDateDisplay}</h2>
+            <h2 className="text-[16px] font-semibold text-ink ml-1 hidden sm:block">{weekDateDisplay}</h2>
           </div>
 
           {/* 우: 취소 필터 + 예약 버튼 */}
@@ -299,42 +280,21 @@ export function CalendarClient({
             <label className="flex items-center gap-1 text-[11px] text-ink-caption mr-1">
               <input type="checkbox" checked={showCancelled} onChange={(e) => setShowCancelled(e.target.checked)} className="rounded" />취소
             </label>
-            <button onClick={() => setFormState({ mode: "create" })} className="hidden rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-white hover:bg-primary-hover lg:block">+ 예약</button>
+            <button onClick={() => setFormState({ mode: "create" })} className="rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-white hover:bg-primary-hover">+ 예약</button>
           </div>
         </div>
         {/* 모바일 날짜 (sm 미만에서만) */}
-        <p className="px-4 pb-2 text-[14px] font-semibold text-ink sm:hidden">{dayDateDisplay}</p>
+        <p className="px-4 pb-2 text-[14px] font-semibold text-ink sm:hidden">{weekDateDisplay}</p>
       </div>
 
-      {/* ── 모바일: 미니 주간 스트립 + 일간 뷰 ── */}
-      <div className="lg:hidden">
-        <MiniWeekStrip
-          weekDays={currentWeekDays}
-          selectedDate={selectedDate}
-          today={today}
-          reservationDates={reservationDates}
-          onSelect={setSelectedDate}
-        />
-        <DayView
-          reservations={dayReservations}
-          hours={currentDayInfo?.hours ?? null}
-          slotMinutes={config.slotMinutes}
-          isToday={selectedDate === today}
-          onSelect={setSelectedId}
-          onSlotClick={(time) => setFormState({ mode: "create", time })}
-        />
-      </div>
-
-      {/* ── 데스크톱: 주간 뷰 ── */}
-      <div className="hidden lg:block">
-        <WeekView
-          reservations={weekReservations}
-          weekDays={currentWeekDays}
-          slotMinutes={config.slotMinutes}
-          today={today}
-          onSelect={setSelectedId}
-        />
-      </div>
+      {/* ── 주간 뷰 (모바일: 가로 스크롤, 데스크톱: 풀 폭) ── */}
+      <WeekView
+        reservations={weekReservations}
+        weekDays={currentWeekDays}
+        slotMinutes={config.slotMinutes}
+        today={today}
+        onSelect={setSelectedId}
+      />
 
       {/* ── 다이얼로그들 ── */}
       {selectedReservation && !formState && !completeId && (
@@ -378,49 +338,3 @@ export function CalendarClient({
 function ChevronLeft() { return (<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>); }
 function ChevronRight() { return (<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>); }
 
-const MINI_DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
-
-function MiniWeekStrip({
-  weekDays,
-  selectedDate,
-  today,
-  reservationDates,
-  onSelect,
-}: {
-  weekDays: { date: string; dayKey: string; hours: { open: string; close: string } | null }[];
-  selectedDate: string;
-  today: string;
-  reservationDates: Set<string>;
-  onSelect: (date: string) => void;
-}) {
-  return (
-    <div className="flex border-b border-border bg-white px-1 py-1.5">
-      {weekDays.map((d, i) => {
-        const isSelected = d.date === selectedDate;
-        const isToday = d.date === today;
-        const hasRes = reservationDates.has(d.date);
-        return (
-          <button
-            key={d.date}
-            onClick={() => onSelect(d.date)}
-            className="flex flex-1 flex-col items-center gap-0.5"
-          >
-            <span className={`text-[11px] font-medium ${isToday ? "text-primary" : "text-ink-caption"}`}>
-              {MINI_DAY_LABELS[i]}
-            </span>
-            <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-semibold tabular-nums transition-colors ${
-              isSelected
-                ? "bg-primary text-white"
-                : isToday
-                  ? "text-primary"
-                  : "text-ink"
-            }`}>
-              {d.date.slice(8).replace(/^0/, "")}
-            </span>
-            <span className={`h-1 w-1 rounded-full ${hasRes ? (isSelected ? "bg-white" : "bg-primary") : "bg-transparent"}`} />
-          </button>
-        );
-      })}
-    </div>
-  );
-}
