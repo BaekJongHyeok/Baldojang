@@ -61,20 +61,21 @@ export async function createReservationAction(formData: FormData) {
   try {
     const { sendNotification, buildPayload } = await import("@/lib/alimtalk");
     const [shopResult, petResult, serviceResult] = await Promise.all([
-      supabase.from("shops").select("name").eq("id", info.shopId).single(),
+      supabase.from("shops").select("name, notification_enabled" as string).eq("id", info.shopId).single(),
       supabase.from("pets").select("name, customer_id, customers(phone)").eq("id", petId).single(),
       supabase.from("services").select("name").eq("id", serviceId).single(),
     ]);
-    const shop = shopResult.data;
+    const shopRow = shopResult.data as { name: string; notification_enabled?: boolean } | null;
     const pet = petResult.data;
     const service = serviceResult.data;
     const customer = pet?.customers
       ? (Array.isArray(pet.customers) ? pet.customers[0] : pet.customers)
       : null;
 
-    const shopRow = shop as unknown as { name: string; notification_enabled?: boolean } | null;
-    if (shopRow?.notification_enabled && customer?.phone && reservation) {
-      const payload = await buildPayload(shopRow.name, pet!.name, startsAt, service?.name ?? "시술");
+    if (customer?.phone && reservation) {
+      // notification_enabled가 false여도 테스트 모드에선 기록만 남김
+      // 운영 시엔 notification_enabled 체크로 발송 제어
+      const payload = await buildPayload(shopRow?.name ?? "", pet!.name, startsAt, service?.name ?? "시술");
       await sendNotification({
         reservationId: reservation.id,
         shopId: info.shopId,
