@@ -40,7 +40,7 @@ export async function createReservationAction(formData: FormData) {
     ? Number(formData.get("price_quoted"))
     : null;
 
-  const { error } = await supabase.from("reservations").insert({
+  const { data: reservation, error } = await supabase.from("reservations").insert({
     shop_id: info.shopId,
     pet_id: petId,
     service_id: serviceId,
@@ -48,13 +48,44 @@ export async function createReservationAction(formData: FormData) {
     ends_at: endsAt,
     memo,
     price_quoted: priceQuoted,
-  });
+  }).select("id").single();
 
   if (error) {
     if (error.code === "23P01") {
       return { error: "이 시간에 이미 예약이 있습니다." };
     }
     return { error: error.message };
+  }
+
+  // 알림톡: 예약 확인 (비동기, 실패해도 예약 생성에 영향 없음)
+  try {
+    const { sendNotification, buildPayload } = await import("@/lib/alimtalk");
+    const [shopResult, petResult, serviceResult] = await Promise.all([
+      supabase.from("shops").select("name").eq("id", info.shopId).single(),
+      supabase.from("pets").select("name, customer_id, customers(phone)").eq("id", petId).single(),
+      supabase.from("services").select("name").eq("id", serviceId).single(),
+    ]);
+    const shop = shopResult.data;
+    const pet = petResult.data;
+    const service = serviceResult.data;
+    const customer = pet?.customers
+      ? (Array.isArray(pet.customers) ? pet.customers[0] : pet.customers)
+      : null;
+
+    const shopRow = shop as unknown as { name: string; notification_enabled?: boolean } | null;
+    if (shopRow?.notification_enabled && customer?.phone && reservation) {
+      const payload = await buildPayload(shopRow.name, pet!.name, startsAt, service?.name ?? "시술");
+      await sendNotification({
+        reservationId: reservation.id,
+        shopId: info.shopId,
+        customerId: pet!.customer_id,
+        type: "confirm",
+        recipientPhone: customer.phone,
+        payload,
+      });
+    }
+  } catch (e) {
+    console.error("[AlimTalk] confirm notification failed:", e);
   }
 
   revalidatePath("/calendar");

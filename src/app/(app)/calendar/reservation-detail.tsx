@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { formatPhone } from "@/lib/utils";
 import { PhoneButton } from "@/components/phone-button";
 import { PetAvatar } from "@/components/pet-avatar";
 import { formatTimestampKST } from "@/lib/calendar-utils";
 import type { CalendarReservation } from "@/lib/calendar-data";
+import { createClient } from "@/lib/supabase/client";
 
 function statusLabel(s: string) {
   switch (s) { case "confirmed": return "확정"; case "completed": return "완료"; case "no_show": return "노쇼"; case "cancelled": return "취소"; default: return s; }
@@ -100,6 +101,9 @@ export function ReservationDetail({
               ))}
             </div>
           )}
+
+          {/* ── 알림 이력 ── */}
+          <NotificationHistory reservationId={r.id} />
 
           {/* ── 액션 ── */}
           <div className="mt-4 flex flex-col gap-3">
@@ -223,4 +227,48 @@ function TrashIcon() {
 }
 function ChartIcon() {
   return <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>;
+}
+
+/* ── 알림 발송 이력 ── */
+const NOTIF_TYPE_LABELS: Record<string, string> = { confirm: "예약 확인", reminder: "리마인드" };
+const NOTIF_STATUS: Record<string, { label: string; cls: string }> = {
+  sent: { label: "발송됨", cls: "text-success" },
+  skipped: { label: "테스트", cls: "text-warning" },
+  pending: { label: "대기", cls: "text-ink-caption" },
+  failed: { label: "실패", cls: "text-danger" },
+};
+
+function NotificationHistory({ reservationId }: { reservationId: string }) {
+  const [items, setItems] = useState<{ type: string; status: string; sent_at: string | null }[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    // type, payload 컬럼은 migration 0012에서 추가 — generated types 미반영
+    supabase
+      .from("notifications")
+      .select("status, sent_at")
+      .eq("reservation_id", reservationId)
+      .order("created_at")
+      .then(({ data }) => {
+        setItems((data ?? []).map((d) => ({ type: (d as Record<string, unknown>).type as string ?? "confirm", status: d.status, sent_at: d.sent_at })));
+        setLoaded(true);
+      });
+  }, [reservationId]);
+
+  if (!loaded || items.length === 0) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {items.map((n, i) => {
+        const st = NOTIF_STATUS[n.status] ?? NOTIF_STATUS.pending;
+        return (
+          <span key={i} className={`inline-flex items-center gap-1 rounded-sm bg-border-light px-2 py-0.5 text-[11px] font-medium ${st.cls}`}>
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+            {NOTIF_TYPE_LABELS[n.type] ?? n.type} · {st.label}
+          </span>
+        );
+      })}
+    </div>
+  );
 }

@@ -14,7 +14,7 @@ export default function SettingsPage() {
       <Section title="샵 운영" className="mt-6">
         <SettingsLink href="/settings/shop" icon={<ShopIcon />} label="샵 정보" desc="상호, 전화번호, 주소, 영업시간" />
         <SettingsLink href="/settings/services" icon={<ScissorsIcon />} label="시술 메뉴" desc="시술 항목, 가격, 소요시간, 재방문 주기" />
-        <SettingsRow icon={<BellIcon />} label="알림톡 설정" desc="준비 중" disabled />
+        <SettingsLink href="/settings/notifications" icon={<BellIcon />} label="알림톡 설정" desc="예약 확인·리마인드 발송" />
       </Section>
 
       {/* ── 계정 ── */}

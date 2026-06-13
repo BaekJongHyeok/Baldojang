@@ -4,6 +4,27 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Json } from "@/types/database";
 
+export async function updateNotificationSettingsAction(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "인증이 필요합니다." };
+  const { data: staff } = await supabase.from("staff").select("shop_id").eq("id", user.id).single();
+  if (!staff) return { error: "스태프 정보를 찾을 수 없습니다." };
+
+  const enabled = formData.get("notification_enabled") === "true";
+  const reminderHour = Math.min(22, Math.max(8, Number(formData.get("reminder_hour")) || 18));
+
+  // notification_enabled, reminder_hour는 migration 0012에서 추가 — generated types 미반영
+  const { error } = await supabase.from("shops").update({
+    notification_enabled: enabled,
+    reminder_hour: reminderHour,
+  } as any).eq("id", staff.shop_id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings/notifications");
+  return { success: true };
+}
+
 export async function updateDefaultCycleAction(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
