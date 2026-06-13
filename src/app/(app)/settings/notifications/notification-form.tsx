@@ -43,8 +43,8 @@ export function NotificationForm({ enabled, reminderHour }: { enabled: boolean; 
 
       {/* 리마인드 시각 */}
       <div className="rounded-lg border border-border bg-white p-5">
-        <label className="block text-[14px] font-medium text-ink">리마인드 발송 시각</label>
-        <p className="mt-0.5 text-[12px] text-ink-caption">예약 전날 이 시각에 안내 메시지를 발송합니다</p>
+        <label className="block text-[14px] font-medium text-ink">리마인드 발송 시간대</label>
+        <p className="mt-0.5 text-[12px] text-ink-caption">예약 전날 이 시간대에 안내 메시지가 발송됩니다</p>
         <select
           value={hour}
           onChange={(e) => setHour(Number(e.target.value))}

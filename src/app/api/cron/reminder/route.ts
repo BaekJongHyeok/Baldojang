@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendNotification, buildPayload } from "@/lib/alimtalk";
+import { formatInTimeZone } from "date-fns-tz";
+import { addDays } from "date-fns";
 
-// Vercel Cron: 매일 KST 기준 리마인드 시각에 실행
-// vercel.json에서 cron schedule 설정
+// Vercel Cron: 매일 09:00 UTC (= 18:00 KST) 실행
+// Hobby 플랜: 지정 시간대 내 임의 시각(±최대 59분) 실행 — 리마인드 용도엔 무방
+// Pro 전환 시 정각 보장
+
+const KST = "Asia/Seoul";
 
 export async function GET(request: Request) {
-  // Vercel Cron 인증
+  // Vercel Cron 표준 인증: Authorization: Bearer ${CRON_SECRET}
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -20,13 +25,13 @@ export async function GET(request: Request) {
   }
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  // 익일 날짜 (KST)
-  const nowKST = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  const tomorrow = new Date(nowKST);
-  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
-  const tomorrowStart = `${tomorrowStr}T00:00:00+09:00`;
-  const tomorrowEnd = `${tomorrowStr}T23:59:59+09:00`;
+  // KST 기준 익일 날짜 (date-fns-tz로 정확한 시간대 변환)
+  const now = new Date();
+  const todayKST = formatInTimeZone(now, KST, "yyyy-MM-dd");
+  const tomorrowKST = formatInTimeZone(addDays(new Date(todayKST + "T00:00:00+09:00"), 1), KST, "yyyy-MM-dd");
+  // 익일 KST 0시~24시 범위 (timestamptz로 정확한 경계)
+  const tomorrowStart = `${tomorrowKST}T00:00:00+09:00`;
+  const tomorrowEnd = `${tomorrowKST}T23:59:59+09:00`;
 
   // 알림 활성화된 샵의 익일 confirmed 예약 조회
   const { data: reservations, error } = await supabase
@@ -71,7 +76,8 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({
-    date: tomorrowStr,
+    todayKST,
+    tomorrowTarget: tomorrowKST,
     total: reservations?.length ?? 0,
     sent,
     skipped,
