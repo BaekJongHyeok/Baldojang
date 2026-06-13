@@ -47,8 +47,7 @@ export default async function ReportsPage() {
     supabase
       .from("passes")
       .select("balance, type")
-      .eq("shop_id", shopId)
-      .eq("type", "amount"),
+      .eq("shop_id", shopId),
   ]);
 
   const payments = paymentsResult.data ?? [];

@@ -59,7 +59,7 @@ export default async function CalendarPage({
       .order("sort_order"),
     supabase
       .from("passes")
-      .select("id, type, name, balance, remaining, expires_at, disabled_at, customer_id")
+      .select("id, type, name, total_amount, total_count, balance, remaining, expires_at, disabled_at, customer_id")
       .eq("shop_id", shopId)
       .or("expires_at.is.null,expires_at.gte." + new Date().toISOString().slice(0, 10)),
   ]);
@@ -97,6 +97,7 @@ export default async function CalendarPage({
       services={formServices}
       passes={(passesResult.data ?? []).map((p) => ({
         id: p.id, type: p.type as string, name: p.name,
+        total_amount: p.total_amount, total_count: p.total_count,
         balance: p.balance, remaining: p.remaining,
         expires_at: p.expires_at, disabled_at: p.disabled_at,
         customerId: p.customer_id,

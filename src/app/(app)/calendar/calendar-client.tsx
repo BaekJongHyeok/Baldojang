@@ -46,7 +46,7 @@ export function CalendarClient({
   today: string;
   pets: FormPet[];
   services: FormService[];
-  passes: { id: string; type: string; name: string; balance: number | null; remaining: number | null; expires_at: string | null; disabled_at?: string | null; customerId: string }[];
+  passes: { id: string; type: string; name: string; total_amount: number | null; total_count: number | null; balance: number | null; remaining: number | null; expires_at: string | null; disabled_at?: string | null; customerId: string }[];
   bookPetId?: string;
   openNew?: boolean;
 }) {
@@ -367,7 +367,7 @@ export function CalendarClient({
           slotMinutes={config.slotMinutes} priceQuoted={completeReservation.price_quoted}
           servicePrice={(() => { const svc = services.find((s) => s.name === completeReservation.service.name); return svc?.price ?? null; })()}
           petSize={(() => { const pet = pets.find((p) => p.id === completeReservation.pet.id); return pet?.size ?? null; })()}
-          passes={completeReservation.customer ? passes.filter((p) => p.customerId === completeReservation.customer!.id).map((p) => ({ id: p.id, type: p.type, name: p.name, balance: p.balance, remaining: p.remaining, expires_at: p.expires_at })) : []}
+          passes={completeReservation.customer ? passes.filter((p) => p.customerId === completeReservation.customer!.id).map((p) => ({ id: p.id, type: p.type, name: p.name, total_amount: p.total_amount, total_count: p.total_count, balance: p.balance, remaining: p.remaining, expires_at: p.expires_at })) : []}
           onClose={() => setCompleteId(null)} onSubmit={handleComplete}
         />
       )}

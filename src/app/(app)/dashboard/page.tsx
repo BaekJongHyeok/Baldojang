@@ -90,11 +90,11 @@ export default async function DashboardPage() {
       return c?.id;
     }).filter(Boolean) as string[]
   )];
-  let passesMap: Record<string, { id: string; type: string; name: string; balance: number | null; remaining: number | null; expires_at: string | null; disabled_at: string | null }[]> = {};
+  let passesMap: Record<string, { id: string; type: string; name: string; total_amount: number | null; total_count: number | null; balance: number | null; remaining: number | null; expires_at: string | null; disabled_at: string | null }[]> = {};
   if (confirmedCustomerIds.length > 0) {
     const { data: allPasses } = await supabase
       .from("passes")
-      .select("id, type, name, balance, remaining, expires_at, disabled_at, customer_id")
+      .select("id, type, name, total_amount, total_count, balance, remaining, expires_at, disabled_at, customer_id")
       .in("customer_id", confirmedCustomerIds);
     for (const p of allPasses ?? []) {
       if (!passesMap[p.customer_id]) passesMap[p.customer_id] = [];

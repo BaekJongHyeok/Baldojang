@@ -91,7 +91,7 @@ export function ReportsClient({
   // 매출 탭 보너스: 해당 기간 충전 총액(pass_log) - 결제 총액(payment)
   const prepaidBonusAmount = useMemo(() => {
     const totalLoaded = passLogs
-      .filter((l) => l.passType === "amount" && l.delta > 0)
+      .filter((l) => l.delta > 0)
       .filter((l) => { const d = kstDateStr(l.created_at); return d >= from && d <= to; })
       .reduce((s, l) => s + l.delta, 0);
     return totalLoaded - prepaidTotal;
@@ -203,17 +203,18 @@ export function ReportsClient({
   const closingPrepaidTotal = useMemo(() => closingPrepaid.reduce((s, r) => s + r.amount, 0), [closingPrepaid]);
   const closingDeductionData = useMemo(() => {
     const inRange = passLogs.filter((d) => d.delta < 0).filter((d) => { const dt = kstDateStr(d.created_at); return dt >= closingFrom && dt <= closingTo; });
-    const amountTotal = inRange.filter((d) => d.passType === "amount").reduce((s, d) => s + Math.abs(d.delta), 0);
-    const countTotal = inRange.filter((d) => d.passType === "count").reduce((s, d) => s + Math.abs(d.delta), 0);
-    return { amountTotal, countTotal };
+    // 금액권+횟수권 모두 원 단위 delta → 합산 (레거시 횟수권 delta=-1은 미미한 오차)
+    const deductionTotal = inRange.reduce((s, d) => s + Math.abs(d.delta), 0);
+    const countUses = inRange.filter((d) => d.passType === "count").length;
+    return { deductionTotal, countUses };
   }, [passLogs, closingFrom, closingTo]);
 
-  // 월말 시점 선불권 부채: 현재 잔액에서 월말 이후 변동분을 역산
+  // 월말 시점 선불권 부채: 현재 잔액에서 월말 이후 변동분을 역산 (금액권+횟수권 통합)
   // TODO: pass_logs 누적 시 매 조회마다 전체 합산(O(N)) — 거래량 증가 시
   // 월말 스냅샷 테이블(monthly_pass_snapshots)로 전환 검토
   const closingMonthEndBalance = useMemo(() => {
     const deltasAfter = passLogs
-      .filter((l) => l.passType === "amount" && kstDateStr(l.created_at) > closingTo)
+      .filter((l) => kstDateStr(l.created_at) > closingTo)
       .reduce((s, l) => s + l.delta, 0);
     return Math.max(0, unusedPassBalance - deltasAfter);
   }, [passLogs, closingTo, unusedPassBalance]);
@@ -221,7 +222,7 @@ export function ReportsClient({
   // 보너스 적립: 해당 월 충전 총액(pass_log) - 결제 총액(payment)
   const closingBonusAmount = useMemo(() => {
     const totalLoaded = passLogs
-      .filter((l) => l.passType === "amount" && l.delta > 0)
+      .filter((l) => l.delta > 0)
       .filter((l) => { const d = kstDateStr(l.created_at); return d >= closingFrom && d <= closingTo; })
       .reduce((s, l) => s + l.delta, 0);
     return totalLoaded - closingPrepaidTotal;
@@ -268,8 +269,8 @@ export function ReportsClient({
       "",
       "선불권 판매(선수금)," + closingPrepaidTotal,
       ...(closingBonusAmount > 0 ? ["보너스 적립," + closingBonusAmount] : []),
-      "선불권 차감(매출인식)," + closingDeductionData.amountTotal,
-      "횟수권 차감," + closingDeductionData.countTotal + "회",
+      "선불권 차감(매출인식)," + closingDeductionData.deductionTotal,
+      ...(closingDeductionData.countUses > 0 ? ["횟수권 사용," + closingDeductionData.countUses + "회"] : []),
       `미사용 잔액(${closingTo} 기준 부채),` + closingMonthEndBalance,
       "",
       "완료," + completedCount + "건",
@@ -468,9 +469,9 @@ export function ReportsClient({
             {closingBonusAmount > 0 && (
               <Row label="보너스 적립" value={`₩${closingBonusAmount.toLocaleString()}`} />
             )}
-            <Row label="차감액 (매출 인식)" value={`₩${closingDeductionData.amountTotal.toLocaleString()}`} />
-            {closingDeductionData.countTotal > 0 && (
-              <Row label="횟수권 차감" value={`${closingDeductionData.countTotal}회`} />
+            <Row label="차감액 (매출 인식)" value={`₩${closingDeductionData.deductionTotal.toLocaleString()}`} />
+            {closingDeductionData.countUses > 0 && (
+              <Row label="횟수권 사용" value={`${closingDeductionData.countUses}회`} />
             )}
             <Row label={`미사용 잔액 (${closingTo} 기준 부채)`} value={`₩${closingMonthEndBalance.toLocaleString()}`} bold />
           </Section>

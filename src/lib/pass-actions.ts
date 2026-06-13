@@ -44,8 +44,8 @@ export async function createPassAction(formData: FormData) {
       customer_id: customerId,
       type,
       name,
-      total_amount: type === "amount" ? chargeAmount : null,
-      balance: type === "amount" ? chargeAmount + bonusAmount : null,
+      total_amount: type === "amount" ? chargeAmount : chargeAmount,
+      balance: type === "amount" ? chargeAmount + bonusAmount : chargeAmount,
       total_count: type === "count" ? totalCount : null,
       remaining: type === "count" ? totalCount : null,
       expires_at: expiresAt,
@@ -55,10 +55,10 @@ export async function createPassAction(formData: FormData) {
 
   if (passErr || !pass) return { error: passErr?.message ?? "선불권 생성 실패" };
 
-  // 충전 로그
+  // 충전 로그 (금액 단위 — 횟수권도 판매가 기준)
   const delta = type === "amount"
     ? chargeAmount + bonusAmount
-    : totalCount;
+    : chargeAmount;
 
   await supabase.from("pass_logs").insert({
     pass_id: pass.id,

@@ -227,7 +227,11 @@ export async function revertCompletionAction(formData: FormData) {
         if (pass.type === "amount") {
           await supabase.from("passes").update({ balance: (pass.balance ?? 0) + restoreAmount }).eq("id", log.pass_id);
         } else {
-          await supabase.from("passes").update({ remaining: (pass.remaining ?? 0) + restoreAmount }).eq("id", log.pass_id);
+          // 횟수권: remaining +1 (회차), balance += delta 금액 (원)
+          await supabase.from("passes").update({
+            remaining: (pass.remaining ?? 0) + 1,
+            balance: (pass.balance ?? 0) + restoreAmount,
+          }).eq("id", log.pass_id);
         }
       }
     }
@@ -342,6 +346,7 @@ export async function completeWithVisitAction(formData: FormData) {
 
     if (passId && passType) {
       // 선불권 차감 (원자적 RPC)
+      let deductedAmount = passAmount;
       if (passType === "amount") {
         if (passAmount <= 0) return { error: "차감 금액이 0입니다." };
         const { error: deductErr } = await supabase.rpc("deduct_pass_amount", {
@@ -351,11 +356,12 @@ export async function completeWithVisitAction(formData: FormData) {
         });
         if (deductErr) return { error: `선불권 차감 실패: ${deductErr.message}` };
       } else if (passType === "count") {
-        const { error: deductErr } = await supabase.rpc("deduct_pass_count", {
+        const { data: unitPrice, error: deductErr } = await supabase.rpc("deduct_pass_count", {
           p_pass_id: passId,
           p_visit_id: visit.id,
         });
         if (deductErr) return { error: `횟수권 차감 실패: ${deductErr.message}` };
+        deductedAmount = unitPrice ?? 0;
       }
 
       // 선불권 결제 기록
@@ -363,7 +369,7 @@ export async function completeWithVisitAction(formData: FormData) {
         shop_id: staff.shop_id,
         visit_id: visit.id,
         method: "pass" as const,
-        amount: passType === "count" ? 0 : passAmount,
+        amount: deductedAmount,
         pass_id: passId,
       });
       if (passPayErr) return { error: `선불권 결제 기록 실패: ${passPayErr.message}` };

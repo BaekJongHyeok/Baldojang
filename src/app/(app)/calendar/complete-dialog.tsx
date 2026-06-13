@@ -15,6 +15,8 @@ export type PassOption = {
   id: string;
   type: string;
   name: string;
+  total_amount: number | null;
+  total_count: number | null;
   balance: number | null;
   remaining: number | null;
   expires_at: string | null;

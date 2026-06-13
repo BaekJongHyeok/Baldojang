@@ -71,6 +71,9 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
     if (validityMode === "custom" && (!customDate || customDate <= todayStr)) {
       setError("만료일은 오늘 이후여야 해요."); return;
     }
+    if (type === "count" && chargeAmount <= 0) {
+      setError("판매 금액을 입력해주세요."); return;
+    }
     const fd = new FormData();
     fd.set("customer_id", customerId);
     fd.set("type", type);
@@ -84,7 +87,8 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
       fd.set("payment_amount", String(chargeAmount));
     } else {
       fd.set("total_count", String(totalCount));
-      fd.set("payment_amount", "0");
+      fd.set("charge_amount", String(chargeAmount));
+      fd.set("payment_amount", String(chargeAmount));
     }
     setError(null);
     startTransition(async () => {
@@ -127,10 +131,20 @@ export function PassSection({ customerId, passes }: { customerId: string; passes
               {chargeAmount > 0 && <p className="text-xs text-ink-caption">사용 가능 잔액: ₩{(chargeAmount + bonusAmount).toLocaleString()}</p>}
             </div>
           ) : (
-            <div className="flex gap-2 items-center">
-              <input type="number" value={totalCount || ""} onChange={(e) => setTotalCount(Number(e.target.value))} min={1} placeholder="횟수"
-                className="min-w-0 flex-1 rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary" />
-              <span className="text-xs text-ink-caption">회</span>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2 items-center">
+                <input type="number" value={totalCount || ""} onChange={(e) => setTotalCount(Number(e.target.value))} min={1} placeholder="횟수"
+                  className="min-w-0 flex-1 rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary" />
+                <span className="text-xs text-ink-caption">회</span>
+              </div>
+              <div className="flex gap-2 items-center">
+                <input type="number" value={chargeAmount || ""} onChange={(e) => setChargeAmount(Number(e.target.value))} min={0} step={10000} placeholder="판매가"
+                  className="min-w-0 flex-1 rounded-md border border-border px-3 py-1.5 text-sm outline-none focus:border-primary" />
+                <span className="text-xs text-ink-caption">원</span>
+              </div>
+              {chargeAmount > 0 && totalCount > 0 && (
+                <p className="text-xs text-ink-caption">회당 단가: ₩{Math.floor(chargeAmount / totalCount).toLocaleString()}</p>
+              )}
             </div>
           )}
           <div className="mt-3 grid grid-cols-2 gap-2">
@@ -264,6 +278,11 @@ function PassCard({ pass: p, inactive }: { pass: Pass; inactive?: boolean }) {
           / {isAmount ? `₩${total.toLocaleString()} 충전` : `${total}회`}
         </span>
       </div>
+      {!isAmount && (p.total_amount ?? 0) > 0 && (
+        <p className="mt-0.5 text-[11px] text-ink-caption">
+          잔여 ₩{(p.balance ?? 0).toLocaleString()} / ₩{p.total_amount!.toLocaleString()} (회당 ₩{Math.floor(p.total_amount! / (p.total_count ?? 1)).toLocaleString()})
+        </p>
+      )}
       {/* 프로그레스 바 */}
       <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-border-light">
         <div className={`h-full rounded-full transition-all ${isDisabled ? "bg-ink-disabled" : "bg-primary"}`} style={{ width: `${Math.max(0, Math.min(100, ratio * 100))}%` }} />
