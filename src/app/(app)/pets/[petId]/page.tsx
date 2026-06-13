@@ -42,7 +42,27 @@ export default async function PetChartPage({
       : Promise.resolve({ data: null }),
   ]);
 
-  const visits = visitsResult.data;
+  const rawVisits = visitsResult.data;
+
+  // 방문 사진 signed URL 일괄 생성
+  const allPhotoPaths = (rawVisits ?? []).flatMap((v) => [...v.before_photos, ...v.after_photos]);
+  let visitPhotoMap: Record<string, string> = {};
+  if (allPhotoPaths.length > 0) {
+    const { data: signed } = await supabase.storage
+      .from("visit-photos")
+      .createSignedUrls(allPhotoPaths, 3600);
+    if (signed) {
+      for (const s of signed) {
+        if (s.signedUrl && s.path) visitPhotoMap[s.path] = s.signedUrl;
+      }
+    }
+  }
+
+  const visits = rawVisits?.map((v) => ({
+    ...v,
+    before_photo_urls: v.before_photos.map((p) => visitPhotoMap[p]).filter(Boolean),
+    after_photo_urls: v.after_photos.map((p) => visitPhotoMap[p]).filter(Boolean),
+  }));
 
   let passSummary: string | null = null;
   if (customer) {
@@ -210,7 +230,7 @@ export default async function PetChartPage({
                   <tbody>
                     {visits.map((v) => {
                       const service = Array.isArray(v.services) ? v.services[0] : v.services;
-                      const photoCount = v.before_photos.length + v.after_photos.length;
+                      const photoCount = v.before_photo_urls.length + v.after_photo_urls.length;
                       return (
                         <tr key={v.id} className="border-b border-border-light last:border-b-0 hover:bg-bg transition-colors">
                           <td className="px-4 py-2.5 tabular-nums text-ink-secondary whitespace-nowrap">{new Date(v.visited_at).toLocaleDateString("ko-KR")}</td>
@@ -218,8 +238,8 @@ export default async function PetChartPage({
                           <td className="px-4 py-2.5">
                             {photoCount > 0 ? (
                               <div className="flex gap-1">
-                                {v.before_photos.slice(0, 2).map((url, i) => <img key={`b-${i}`} src={url} alt="전" className="h-8 w-8 rounded-sm object-cover" />)}
-                                {v.after_photos.slice(0, 2).map((url, i) => <img key={`a-${i}`} src={url} alt="후" className="h-8 w-8 rounded-sm object-cover" />)}
+                                {v.before_photo_urls.slice(0, 2).map((url, i) => <img key={`b-${i}`} src={url} alt="전" className="h-8 w-8 rounded-sm object-cover" />)}
+                                {v.after_photo_urls.slice(0, 2).map((url, i) => <img key={`a-${i}`} src={url} alt="후" className="h-8 w-8 rounded-sm object-cover" />)}
                               </div>
                             ) : <span className="text-ink-disabled">—</span>}
                           </td>
@@ -235,7 +255,7 @@ export default async function PetChartPage({
               <div className="lg:hidden">
                 {visits.map((v) => {
                   const service = Array.isArray(v.services) ? v.services[0] : v.services;
-                  const photoCount = v.before_photos.length + v.after_photos.length;
+                  const photoCount = v.before_photo_urls.length + v.after_photo_urls.length;
                   return (
                     <Link
                       key={v.id}
@@ -247,8 +267,8 @@ export default async function PetChartPage({
                           <span className="text-[14px] font-semibold text-ink">{service?.name ?? "—"}</span>
                           {photoCount > 0 && (
                             <div className="flex gap-0.5">
-                              {v.before_photos.slice(0, 1).map((url, i) => <img key={`b-${i}`} src={url} alt="전" className="h-6 w-6 rounded-sm object-cover" />)}
-                              {v.after_photos.slice(0, 1).map((url, i) => <img key={`a-${i}`} src={url} alt="후" className="h-6 w-6 rounded-sm object-cover" />)}
+                              {v.before_photo_urls.slice(0, 1).map((url, i) => <img key={`b-${i}`} src={url} alt="전" className="h-6 w-6 rounded-sm object-cover" />)}
+                              {v.after_photo_urls.slice(0, 1).map((url, i) => <img key={`a-${i}`} src={url} alt="후" className="h-6 w-6 rounded-sm object-cover" />)}
                             </div>
                           )}
                         </div>

@@ -60,7 +60,7 @@ export function AccountForm({ email, staffName }: { email: string; staffName: st
           <button
             onClick={handleNameSubmit}
             disabled={namePending || name.trim() === staffName}
-            className="rounded-md bg-primary px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-primary-hover disabled:opacity-40"
+            className="shrink-0 whitespace-nowrap rounded-md bg-primary px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-primary-hover disabled:opacity-40"
           >
             {namePending ? "저장 중..." : "저장"}
           </button>
