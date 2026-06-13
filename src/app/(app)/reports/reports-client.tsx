@@ -455,7 +455,7 @@ export function ReportsClient({
           {/* 시술 매출 */}
           <div className="mt-4 rounded-lg border border-border bg-white p-5 print:border print:border-border">
             <p className="text-xs font-bold text-ink-caption">시술 매출</p>
-            <p className="mt-2 text-2xl font-bold text-ink no-underline">₩{closingRevenue.toLocaleString()}</p>
+            <p className={`mt-2 font-bold text-ink whitespace-nowrap tabular-nums ${closingRevenue >= 10000000 ? "text-lg sm:text-2xl" : "text-2xl"}`}>₩{closingRevenue.toLocaleString()}</p>
             <div className="mt-3 flex flex-col gap-1.5">
               {closingMethodStats.map((m) => <Row key={m.method} label={m.label} value={`₩${m.amount.toLocaleString()}`} />)}
             </div>
@@ -501,6 +501,10 @@ function niceMax(raw: number): number {
 
 /** 금액 축약: 10000 → "1만", 85000 → "8.5만", 1200 → "1,200" */
 function formatCompact(v: number): string {
+  if (v >= 100000000) {
+    const eok = v / 100000000;
+    return eok === Math.floor(eok) ? `${eok}억` : `${eok.toFixed(1).replace(/\.0$/, "")}억`;
+  }
   if (v >= 10000) {
     const man = v / 10000;
     return man === Math.floor(man) ? `${man}만` : `${man.toFixed(1).replace(/\.0$/, "")}만`;
@@ -508,10 +512,19 @@ function formatCompact(v: number): string {
   return v.toLocaleString();
 }
 
+/** 자릿수 기반 KPI 폰트 클래스 (모바일 / 데스크톱) */
+function kpiSizeClass(value: string): string {
+  const digits = value.replace(/[^0-9]/g, "").length;
+  if (digits >= 9) return "text-xs sm:text-sm";
+  if (digits >= 8) return "text-sm sm:text-base";
+  if (digits >= 7) return "text-sm sm:text-lg";
+  return "text-base sm:text-xl";
+}
+
 function SummaryCard({ value, label }: { value: string; label: string }) {
   return (
     <div className="rounded-lg border border-border bg-white p-3 text-center print:border print:border-border sm:p-4">
-      <p className="text-base font-bold text-ink no-underline sm:text-xl">{value}</p>
+      <p className={`${kpiSizeClass(value)} whitespace-nowrap font-bold text-ink tabular-nums`}>{value}</p>
       <p className="text-[11px] text-ink-caption">{label}</p>
     </div>
   );
@@ -529,8 +542,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-ink-caption">{label}</span>
-      <span className={`${bold ? "font-bold" : "font-medium"} text-ink no-underline shrink-0`}>{value}</span>
+      <span className="min-w-0 truncate text-ink-caption">{label}</span>
+      <span className={`${bold ? "font-bold" : "font-medium"} text-ink shrink-0 tabular-nums`}>{value}</span>
     </div>
   );
 }
