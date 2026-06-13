@@ -321,7 +321,7 @@ export function ReportsClient({
             <Section title="선불권">
               {prepaidSales.length > 0 && <Row label={`선불권 판매 (${prepaidSales.length}건)`} value={`₩${prepaidTotal.toLocaleString()}`} />}
               {prepaidBonusAmount > 0 && <Row label="보너스 적립" value={`₩${prepaidBonusAmount.toLocaleString()}`} />}
-              {passUsageCount > 0 && <Row label="횟수권 사용" value={`${passUsageCount}건`} />}
+              {passUsageCount > 0 && <Row label="선불권 사용" value={`${passUsageCount}건`} />}
               <p className="text-[11px] text-ink-disabled">시술 매출과 별도로 집계돼요 (선수금)</p>
             </Section>
           )}
