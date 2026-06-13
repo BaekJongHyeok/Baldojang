@@ -40,7 +40,7 @@ export default async function ReportsPage() {
       .lte("created_at", toISO),
     supabase
       .from("pass_logs")
-      .select("delta, created_at, passes!inner(type, shop_id)")
+      .select("delta, created_at, passes!inner(type, total_amount, shop_id)")
       .eq("passes.shop_id", shopId)
       .gte("created_at", fromISO)
       .lte("created_at", toISO),
@@ -96,6 +96,7 @@ export default async function ReportsPage() {
           delta: l.delta,
           created_at: l.created_at,
           passType: (lPass?.type as string) ?? "amount",
+          passTotalAmount: (lPass?.total_amount as number | null) ?? 0,
         };
       })}
       unusedPassBalance={unusedBalance}

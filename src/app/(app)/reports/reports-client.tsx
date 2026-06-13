@@ -18,7 +18,7 @@ type Payment = {
 };
 
 type Reservation = { starts_at: string; status: string };
-type PassLog = { delta: number; created_at: string; passType: string };
+type PassLog = { delta: number; created_at: string; passType: string; passTotalAmount: number };
 
 const RANGES = [
   { key: "today", label: "오늘" },
@@ -88,14 +88,14 @@ export function ReportsClient({
   const avgPerVisit = useMemo(() => servicePayments.length > 0 ? Math.round(totalRevenue / servicePayments.length) : 0, [totalRevenue, servicePayments]);
   const passUsageCount = useMemo(() => servicePayments.filter((r) => r.method === "pass").length, [servicePayments]);
   const prepaidTotal = useMemo(() => prepaidSales.reduce((s, r) => s + r.amount, 0), [prepaidSales]);
-  // 매출 탭 보너스: 해당 기간 충전 총액(pass_log) - 결제 총액(payment)
+  // 매출 탭 보너스: 금액권 발행 delta(판매가+보너스) - total_amount(판매가) = 보너스
+  // 횟수권은 보너스 개념 없으므로 제외
   const prepaidBonusAmount = useMemo(() => {
-    const totalLoaded = passLogs
-      .filter((l) => l.delta > 0)
+    return passLogs
+      .filter((l) => l.passType === "amount" && l.delta > 0)
       .filter((l) => { const d = kstDateStr(l.created_at); return d >= from && d <= to; })
-      .reduce((s, l) => s + l.delta, 0);
-    return totalLoaded - prepaidTotal;
-  }, [passLogs, from, to, prepaidTotal]);
+      .reduce((s, l) => s + l.delta - l.passTotalAmount, 0);
+  }, [passLogs, from, to]);
 
   const serviceStats = useMemo(() => {
     const map: Record<string, { count: number; revenue: number }> = {};
@@ -219,14 +219,13 @@ export function ReportsClient({
     return Math.max(0, unusedPassBalance - deltasAfter);
   }, [passLogs, closingTo, unusedPassBalance]);
 
-  // 보너스 적립: 해당 월 충전 총액(pass_log) - 결제 총액(payment)
+  // 보너스 적립: 금액권 발행 delta(판매가+보너스) - total_amount(판매가) = 보너스
   const closingBonusAmount = useMemo(() => {
-    const totalLoaded = passLogs
-      .filter((l) => l.delta > 0)
+    return passLogs
+      .filter((l) => l.passType === "amount" && l.delta > 0)
       .filter((l) => { const d = kstDateStr(l.created_at); return d >= closingFrom && d <= closingTo; })
-      .reduce((s, l) => s + l.delta, 0);
-    return totalLoaded - closingPrepaidTotal;
-  }, [passLogs, closingFrom, closingTo, closingPrepaidTotal]);
+      .reduce((s, l) => s + l.delta - l.passTotalAmount, 0);
+  }, [passLogs, closingFrom, closingTo]);
 
   const closingRes = useMemo(() => reservations.filter((r) => { const d = kstDateStr(r.starts_at); return d >= closingFrom && d <= closingTo; }), [reservations, closingFrom, closingTo]);
   const completedCount = closingRes.filter((r) => r.status === "completed").length;
