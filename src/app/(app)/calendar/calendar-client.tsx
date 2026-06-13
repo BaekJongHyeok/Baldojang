@@ -280,7 +280,7 @@ export function CalendarClient({
             <label className="flex items-center gap-1 text-[11px] text-ink-caption mr-1">
               <input type="checkbox" checked={showCancelled} onChange={(e) => setShowCancelled(e.target.checked)} className="rounded" />취소
             </label>
-            <button onClick={() => setFormState({ mode: "create" })} className="rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-white hover:bg-primary-hover">+ 예약</button>
+            <button onClick={() => setFormState({ mode: "create" })} className="hidden rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-white hover:bg-primary-hover lg:block">+ 예약</button>
           </div>
         </div>
         {/* 모바일 날짜 (sm 미만에서만) */}
@@ -295,6 +295,15 @@ export function CalendarClient({
         today={today}
         onSelect={setSelectedId}
       />
+
+      {/* ── 모바일 FAB ── */}
+      <button
+        onClick={() => setFormState({ mode: "create" })}
+        className="fixed bottom-20 right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg hover:bg-primary-hover lg:hidden"
+        aria-label="예약 추가"
+      >
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+      </button>
 
       {/* ── 다이얼로그들 ── */}
       {selectedReservation && !formState && !completeId && (
