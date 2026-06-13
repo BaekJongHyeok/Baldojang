@@ -59,7 +59,7 @@ export async function createReservationAction(formData: FormData) {
 
   // 알림톡: 예약 확인 (비동기, 실패해도 예약 생성에 영향 없음)
   try {
-    const { sendNotification, buildPayload } = await import("@/lib/alimtalk");
+    const { sendNotification, buildPayload, recordSkipped } = await import("@/lib/alimtalk");
     const [shopResult, petResult, serviceResult] = await Promise.all([
       supabase.from("shops").select("name, notification_enabled" as string).eq("id", info.shopId).single(),
       supabase.from("pets").select("name, customer_id, customers(phone)").eq("id", petId).single(),
@@ -72,10 +72,13 @@ export async function createReservationAction(formData: FormData) {
       ? (Array.isArray(pet.customers) ? pet.customers[0] : pet.customers)
       : null;
 
-    if (customer?.phone && reservation) {
-      // notification_enabled가 false여도 테스트 모드에선 기록만 남김
-      // 운영 시엔 notification_enabled 체크로 발송 제어
-      const payload = await buildPayload(shopRow?.name ?? "", pet!.name, startsAt, service?.name ?? "시술");
+    if (!reservation) { /* insert 실패 시 이미 위에서 반환됨 */ }
+    else if (!shopRow?.notification_enabled) {
+      await recordSkipped({ reservationId: reservation.id, shopId: info.shopId, type: "confirm", reason: "notification_disabled" });
+    } else if (!customer?.phone) {
+      await recordSkipped({ reservationId: reservation.id, shopId: info.shopId, type: "confirm", reason: "no_phone" });
+    } else {
+      const payload = await buildPayload(shopRow.name, pet!.name, startsAt, service?.name ?? "시술");
       await sendNotification({
         reservationId: reservation.id,
         shopId: info.shopId,

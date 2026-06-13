@@ -150,6 +150,22 @@ export async function sendNotification({
   return { sent: result.success, error: result.error };
 }
 
+// ── 게이트에서 걸러진 알림을 skipped로 기록 (사유 포함) ──
+export async function recordSkipped({
+  reservationId, shopId, type, reason,
+}: {
+  reservationId: string; shopId: string; type: NotificationType; reason: string;
+}) {
+  const supabase = await createClient();
+  await supabase.from("notifications").insert({
+    shop_id: shopId,
+    reservation_id: reservationId,
+    type,
+    status: "skipped",
+    error_msg: reason,
+  } as any).single();
+}
+
 // ── 예약 데이터로 payload 생성 ──
 export async function buildPayload(shopName: string, petName: string, startsAt: string, serviceName: string): Promise<AlimtalkPayload> {
   const d = new Date(startsAt);
