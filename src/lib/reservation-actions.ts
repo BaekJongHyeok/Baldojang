@@ -353,24 +353,27 @@ export async function completeWithVisitAction(formData: FormData) {
           p_pass_id: passId,
           p_amount: passAmount,
           p_visit_id: visit.id,
+          p_service_date: reservation.starts_at,
         });
         if (deductErr) return { error: `선불권 차감 실패: ${deductErr.message}` };
       } else if (passType === "count") {
         const { data: unitPrice, error: deductErr } = await supabase.rpc("deduct_pass_count", {
           p_pass_id: passId,
           p_visit_id: visit.id,
+          p_service_date: reservation.starts_at,
         });
         if (deductErr) return { error: `횟수권 차감 실패: ${deductErr.message}` };
         deductedAmount = unitPrice ?? 0;
       }
 
-      // 선불권 결제 기록
+      // 선불권 결제 기록 — paid_at을 예약일(시술 제공일)로 설정
       const { error: passPayErr } = await supabase.from("payments").insert({
         shop_id: staff.shop_id,
         visit_id: visit.id,
         method: "pass" as const,
         amount: deductedAmount,
         pass_id: passId,
+        paid_at: reservation.starts_at,
       });
       if (passPayErr) return { error: `선불권 결제 기록 실패: ${passPayErr.message}` };
 
@@ -381,6 +384,7 @@ export async function completeWithVisitAction(formData: FormData) {
           visit_id: visit.id,
           method: extraMethod as "cash" | "card" | "transfer",
           amount: extraAmount,
+          paid_at: reservation.starts_at,
         });
         if (extraPayErr) return { error: `추가 결제 기록 실패: ${extraPayErr.message}` };
       }
@@ -391,6 +395,7 @@ export async function completeWithVisitAction(formData: FormData) {
         visit_id: visit.id,
         method: paymentMethod as "cash" | "card" | "transfer",
         amount: priceFinal,
+        paid_at: reservation.starts_at,
       });
       if (payErr) return { error: `결제 기록 생성 실패: ${payErr.message}` };
     }
