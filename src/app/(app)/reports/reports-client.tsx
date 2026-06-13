@@ -88,6 +88,14 @@ export function ReportsClient({
   const avgPerVisit = useMemo(() => servicePayments.length > 0 ? Math.round(totalRevenue / servicePayments.length) : 0, [totalRevenue, servicePayments]);
   const passUsageCount = useMemo(() => servicePayments.filter((r) => r.method === "pass").length, [servicePayments]);
   const prepaidTotal = useMemo(() => prepaidSales.reduce((s, r) => s + r.amount, 0), [prepaidSales]);
+  // 매출 탭 보너스: 해당 기간 충전 총액(pass_log) - 결제 총액(payment)
+  const prepaidBonusAmount = useMemo(() => {
+    const totalLoaded = passLogs
+      .filter((l) => l.passType === "amount" && l.delta > 0)
+      .filter((l) => { const d = kstDateStr(l.created_at); return d >= from && d <= to; })
+      .reduce((s, l) => s + l.delta, 0);
+    return totalLoaded - prepaidTotal;
+  }, [passLogs, from, to, prepaidTotal]);
 
   const serviceStats = useMemo(() => {
     const map: Record<string, { count: number; revenue: number }> = {};
@@ -201,6 +209,8 @@ export function ReportsClient({
   }, [passLogs, closingFrom, closingTo]);
 
   // 월말 시점 선불권 부채: 현재 잔액에서 월말 이후 변동분을 역산
+  // TODO: pass_logs 누적 시 매 조회마다 전체 합산(O(N)) — 거래량 증가 시
+  // 월말 스냅샷 테이블(monthly_pass_snapshots)로 전환 검토
   const closingMonthEndBalance = useMemo(() => {
     const deltasAfter = passLogs
       .filter((l) => l.passType === "amount" && kstDateStr(l.created_at) > closingTo)
@@ -310,6 +320,7 @@ export function ReportsClient({
           {(prepaidTotal > 0 || prepaidSales.length > 0 || passUsageCount > 0) && (
             <Section title="선불권">
               {prepaidSales.length > 0 && <Row label={`선불권 판매 (${prepaidSales.length}건)`} value={`₩${prepaidTotal.toLocaleString()}`} />}
+              {prepaidBonusAmount > 0 && <Row label="보너스 적립" value={`₩${prepaidBonusAmount.toLocaleString()}`} />}
               {passUsageCount > 0 && <Row label="횟수권 사용" value={`${passUsageCount}건`} />}
               <p className="text-[11px] text-ink-disabled">시술 매출과 별도로 집계돼요 (선수금)</p>
             </Section>
