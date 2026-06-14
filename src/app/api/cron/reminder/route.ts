@@ -68,6 +68,7 @@ export async function GET(request: Request) {
       type: "reminder",
       recipientPhone: customer.phone,
       payload,
+      supabaseClient: supabase,
     });
 
     if (result.skipped) skipped++;

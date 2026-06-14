@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Json } from "@/types/database";
 
 // ── 템플릿 변수 구조 ──
@@ -83,6 +84,7 @@ export async function sendNotification({
   type,
   recipientPhone,
   payload,
+  supabaseClient,
 }: {
   reservationId: string;
   shopId: string;
@@ -90,8 +92,9 @@ export async function sendNotification({
   type: NotificationType;
   recipientPhone: string;
   payload: AlimtalkPayload;
+  supabaseClient?: SupabaseClient;
 }) {
-  const supabase = await createClient();
+  const supabase = supabaseClient ?? (await createClient());
 
   // type, recipient_phone, payload 컬럼은 migration 0012에서 추가 — generated types 미반영
   // RPC를 쓰거나 타입 단언으로 우회

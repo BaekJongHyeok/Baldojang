@@ -1,6 +1,8 @@
 -- 횟수권 차감 시 금액 잔액도 함께 차감하고, 회당 단가를 반환
 -- 기존: remaining만 -1, delta=-1 (단위 없는 카운트)
 -- 변경: remaining -1, balance -= unit_price, delta=-unit_price (원 단위), 반환값=unit_price
+-- 반환 타입이 void → int로 변경되므로 drop 필수
+drop function if exists deduct_pass_count(uuid, uuid);
 create or replace function deduct_pass_count(
   p_pass_id uuid,
   p_visit_id uuid
