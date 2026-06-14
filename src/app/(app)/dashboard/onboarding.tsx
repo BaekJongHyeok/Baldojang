@@ -35,13 +35,9 @@ export function OnboardingChecklist({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4 backdrop-blur-[2px]">
       <div className="w-full max-w-[420px] overflow-hidden rounded-xl bg-gradient-to-br from-[#3182F6] to-[#1B64DA] p-[1px] shadow-modal">
-        <div className="relative rounded-[11px] bg-gradient-to-br from-white via-white to-primary-light">
-          {/* 배경 장식 (우상단 X 버튼과 겹치지 않도록 위치 조정) */}
-          <div className="pointer-events-none absolute right-12 -top-10 h-32 w-32 rounded-full bg-primary/5" />
-          <div className="pointer-events-none absolute -right-2 bottom-4 h-20 w-20 rounded-full bg-primary/[0.03]" />
-
+        <div className="rounded-[11px] bg-gradient-to-br from-white via-white to-primary-light">
           {/* 헤더 */}
-          <div className="relative px-6 pt-6 pb-4">
+          <div className="px-6 pt-6 pb-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="flex items-center gap-2 text-[22px] font-bold text-ink">
@@ -76,7 +72,7 @@ export function OnboardingChecklist({
           </div>
 
           {/* 체크리스트 */}
-          <div className="relative px-6 pb-3">
+          <div className="px-6 pb-3">
             <div className="flex flex-col gap-2.5">
               <ChecklistItem
                 done={!needsHours}
@@ -98,7 +94,7 @@ export function OnboardingChecklist({
           </div>
 
           {/* 푸터 */}
-          <div className="relative flex justify-end px-6 pb-5 pt-2">
+          <div className="flex justify-end px-6 pb-5 pt-2">
             <button type="button" onClick={dismiss} className="text-[11px] text-ink-disabled transition-colors hover:text-ink-caption">
               나중에 할게요
             </button>
