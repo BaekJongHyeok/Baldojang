@@ -16,9 +16,13 @@ export function OnboardingChecklist({
 }) {
   const [dismissed, setDismissed] = useState(true);
 
+  // dismissed 키에 완료 상태를 포함: 상태가 바뀌면(설정 완료 등) 이전 dismiss가 무효화됨
+  // 예: "hours:false,service:true"로 dismiss → 영업시간 완료 후 키가 "hours:true,service:true"로 바뀌면 불일치 → 다시 표시
+  const stateKey = `${DISMISSED_KEY}:${!needsHours},${!needsService}`;
+
   useEffect(() => {
-    setDismissed(localStorage.getItem(DISMISSED_KEY) === "true");
-  }, []);
+    setDismissed(localStorage.getItem(stateKey) === "true");
+  }, [stateKey]);
 
   const doneCount = (needsHours ? 0 : 1) + (needsService ? 0 : 1);
   const totalSteps = 2;
@@ -28,7 +32,7 @@ export function OnboardingChecklist({
   if (dismissed) return null;
 
   function dismiss() {
-    localStorage.setItem(DISMISSED_KEY, "true");
+    localStorage.setItem(stateKey, "true");
     setDismissed(true);
   }
 
