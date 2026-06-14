@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 
 /**
@@ -45,6 +46,76 @@ export async function signInAction(formData: FormData) {
 
 export async function signOutAction() {
   const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/login");
+}
+
+/**
+ * 회원 탈퇴: 비밀번호 재확인 → shop 삭제(CASCADE로 모든 데이터 제거) → auth 계정 삭제
+ * service_role 키로 auth.users 삭제 (일반 사용자 권한으로는 불가)
+ */
+export async function deleteAccountAction(formData: FormData) {
+  const password = String(formData.get("password"));
+  const confirmShopName = String(formData.get("confirm_shop_name"));
+
+  if (!password || !confirmShopName) {
+    return { error: "비밀번호와 샵 이름을 입력해주세요." };
+  }
+
+  const supabase = await createClient();
+
+  // 1. 현재 사용자 확인
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  // 2. 비밀번호 재확인 (재로그인으로 검증)
+  const { error: authError } = await supabase.auth.signInWithPassword({
+    email: user.email!,
+    password,
+  });
+  if (authError) return { error: "비밀번호가 일치하지 않습니다." };
+
+  // 3. staff → shop_id 확인 + 샵 이름 대조
+  const { data: staff } = await supabase
+    .from("staff")
+    .select("shop_id")
+    .eq("id", user.id)
+    .single();
+  if (!staff) return { error: "계정 정보를 찾을 수 없습니다." };
+
+  const { data: shop } = await supabase
+    .from("shops")
+    .select("name")
+    .eq("id", staff.shop_id)
+    .single();
+  if (!shop) return { error: "샵 정보를 찾을 수 없습니다." };
+
+  if (confirmShopName.trim() !== shop.name.trim()) {
+    return { error: "샵 이름이 일치하지 않습니다." };
+  }
+
+  // 4. service_role 클라이언트로 데이터 삭제 (RLS 우회)
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) return { error: "서버 설정 오류입니다. 관리자에게 문의해주세요." };
+
+  const adminClient = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey,
+  );
+
+  // 5. shops 삭제 — CASCADE로 staff, customers, pets, services, reservations,
+  //    visits, passes, pass_logs, payments, notifications, retention_contacts 모두 삭제
+  const { error: deleteShopError } = await adminClient
+    .from("shops")
+    .delete()
+    .eq("id", staff.shop_id);
+  if (deleteShopError) return { error: `데이터 삭제 실패: ${deleteShopError.message}` };
+
+  // 6. auth.users 삭제 (개인정보 완전 제거)
+  const { error: deleteUserError } = await adminClient.auth.admin.deleteUser(user.id);
+  if (deleteUserError) return { error: `계정 삭제 실패: ${deleteUserError.message}` };
+
+  // 7. 세션 정리 + 로그아웃
   await supabase.auth.signOut();
   redirect("/login");
 }

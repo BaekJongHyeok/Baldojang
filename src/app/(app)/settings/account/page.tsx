@@ -11,7 +11,7 @@ export default async function AccountPage() {
     <div>
       <Link href="/settings" className="text-[13px] text-ink-caption hover:text-ink-secondary">&larr; 설정</Link>
       <h1 className="mt-2 text-[20px] font-bold text-ink">계정 정보</h1>
-      <AccountForm email={ctx.user.email ?? ""} staffName={ctx.staff.name} />
+      <AccountForm email={ctx.user.email ?? ""} staffName={ctx.staff.name} shopName={ctx.shop?.name ?? ""} />
     </div>
   );
 }
