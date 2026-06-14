@@ -4,6 +4,7 @@ import Link from "next/link";
 import { todayKST } from "@/lib/calendar-utils";
 import { getAuthContext } from "@/lib/auth-cache";
 import { TodayTable } from "./today-table";
+import { OnboardingModal } from "./onboarding";
 import { startOfWeek, startOfMonth, format } from "date-fns";
 
 export default async function DashboardPage() {
@@ -28,7 +29,7 @@ export default async function DashboardPage() {
   const weekEndISO = new Date(today + "T23:59:59+09:00").toISOString();
   const week7End = new Date(Date.now() + 7 * 86400000).toISOString();
 
-  const [todayResResult, todayPayResult, weekPayResult, monthPayResult, oldVisitsResult, futureResResult, weekResResult] = await Promise.all([
+  const [todayResResult, todayPayResult, weekPayResult, monthPayResult, oldVisitsResult, futureResResult, weekResResult, serviceCountResult] = await Promise.all([
     supabase
       .from("reservations")
       .select("id, starts_at, ends_at, status, price_quoted, pet_id, pets(name, size, photo_url, customer_id, customers(id, phone)), services(name, duration_minutes, price)")
@@ -46,6 +47,8 @@ export default async function DashboardPage() {
     supabase.from("reservations").select("pet_id").eq("shop_id", shopId).eq("status", "confirmed").gte("starts_at", nowISO),
     // 이번 주 예약 (오늘~7일)
     supabase.from("reservations").select("id", { count: "exact", head: true }).eq("shop_id", shopId).eq("status", "confirmed").gte("starts_at", nowISO).lte("starts_at", week7End),
+    // 온보딩: 시술 등록 여부
+    supabase.from("services").select("id", { count: "exact", head: true }).eq("shop_id", shopId),
   ]);
 
   const reservations = todayResResult.data ?? [];
@@ -128,8 +131,16 @@ export default async function DashboardPage() {
   const slotMinutes = ctx.shop?.slotMinutes ?? 30;
   const dateLabel = new Date(today + "T00:00:00Z").toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
 
+  // 온보딩: 영업시간 미설정 또는 시술 0건이면 모달 표시
+  const openHours = ctx.shop?.openHours;
+  const needsHours = !openHours || typeof openHours !== "object" || Object.keys(openHours as object).length === 0;
+  const needsService = (serviceCountResult.count ?? 0) === 0;
+
   return (
     <div>
+      {(needsHours || needsService) && (
+        <OnboardingModal shopName={ctx.shop?.name ?? "내 샵"} needsHours={needsHours} needsService={needsService} />
+      )}
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>

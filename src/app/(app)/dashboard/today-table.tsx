@@ -52,9 +52,12 @@ export function TodayTable({ items, slotMinutes, today }: { items: TodayItem[]; 
 
   if (items.length === 0) {
     return (
-      <div className="px-4 py-10 text-center">
-        <p className="text-[14px] text-ink-caption">오늘 예약이 없어요</p>
-        <Link href="/calendar?new=1" className="mt-2 inline-block text-[13px] font-medium text-primary hover:underline">예약 등록하기</Link>
+      <div className="flex flex-col items-center px-4 py-10 text-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-border-light">
+          <svg className="h-5 w-5 text-ink-disabled" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+        </div>
+        <p className="mt-2 text-[14px] text-ink-caption">오늘 예약이 없어요</p>
+        <Link href="/calendar?new=1" className="mt-3 rounded-md bg-primary px-4 py-2 text-[13px] font-medium text-white hover:bg-primary-hover">첫 예약 등록하기</Link>
       </div>
     );
   }

@@ -339,6 +339,7 @@ export function ReportsClient({
                     ))}
                   </div>
                   <p className="text-xs text-ink-caption">이 기간에는 매출이 없어요</p>
+                  <p className="text-[11px] text-ink-disabled">예약을 완료하면 매출이 집계돼요</p>
                 </div>
               ) : (
                 <div className="mt-3">
