@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthContext } from "@/lib/auth-cache";
+import { ALIMTALK_UI_ENABLED } from "@/lib/features";
 import { NotificationForm } from "./notification-form";
 
 export default async function NotificationSettingsPage() {
+  if (!ALIMTALK_UI_ENABLED) redirect("/settings");
+
   const ctx = await getAuthContext();
   if (!ctx) redirect("/login");
 

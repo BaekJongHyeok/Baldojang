@@ -8,6 +8,7 @@ import { PetAvatar } from "@/components/pet-avatar";
 import { formatTimestampKST } from "@/lib/calendar-utils";
 import type { CalendarReservation } from "@/lib/calendar-data";
 import { createClient } from "@/lib/supabase/client";
+import { ALIMTALK_UI_ENABLED } from "@/lib/features";
 
 function statusLabel(s: string) {
   switch (s) { case "confirmed": return "확정"; case "completed": return "완료"; case "no_show": return "노쇼"; case "cancelled": return "취소"; default: return s; }
@@ -102,8 +103,8 @@ export function ReservationDetail({
             </div>
           )}
 
-          {/* ── 알림 이력 ── */}
-          <NotificationHistory reservationId={r.id} />
+          {/* ── 알림 이력 (UI 플래그 OFF 시 숨김, 백그라운드 기록은 계속됨) ── */}
+          {ALIMTALK_UI_ENABLED && <NotificationHistory reservationId={r.id} />}
 
           {/* ── 액션 ── */}
           <div className="mt-4 flex flex-col gap-3">

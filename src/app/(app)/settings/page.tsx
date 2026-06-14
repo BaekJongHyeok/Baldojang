@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LogoutButton } from "@/components/logout-button";
+import { ALIMTALK_UI_ENABLED } from "@/lib/features";
 import pkg from "../../../../package.json";
 
 /** 이메일 주소를 채워주세요 */
@@ -14,7 +15,11 @@ export default function SettingsPage() {
       <Section title="샵 운영" className="mt-6">
         <SettingsLink href="/settings/shop" icon={<ShopIcon />} label="샵 정보" desc="상호, 전화번호, 주소, 영업시간" />
         <SettingsLink href="/settings/services" icon={<ScissorsIcon />} label="시술 메뉴" desc="시술 항목, 가격, 소요시간, 재방문 주기" />
-        <SettingsLink href="/settings/notifications" icon={<BellIcon />} label="알림톡 설정" desc="예약 확인·리마인드 발송" />
+        {ALIMTALK_UI_ENABLED ? (
+          <SettingsLink href="/settings/notifications" icon={<BellIcon />} label="알림톡 설정" desc="예약 확인·리마인드 발송" />
+        ) : (
+          <SettingsRow icon={<BellIcon />} label="알림톡 설정" desc="곧 제공될 기능이에요 (준비 중)" disabled />
+        )}
       </Section>
 
       {/* ── 계정 ── */}

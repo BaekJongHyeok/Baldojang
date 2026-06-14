@@ -7,6 +7,11 @@ import { addDays } from "date-fns";
 // Vercel Cron: 매일 09:00 UTC (= 18:00 KST) 실행
 // Hobby 플랜: 지정 시간대 내 임의 시각(±최대 59분) 실행 — 리마인드 용도엔 무방
 // Pro 전환 시 정각 보장
+//
+// [베타 안전성] ALIMTALK_UI_ENABLED(features.ts)와 무관하게 동작합니다.
+// UI가 꺼져 있어도 이 cron은 실행되며, ALIMTALK_TEST_MODE 기본값(true)에 의해
+// 실발송 없이 skipped 레코드만 축적합니다. 카카오 채널 승인 후 TEST_MODE=false로
+// 전환하면 실발송이 시작됩니다.
 
 const KST = "Asia/Seoul";
 

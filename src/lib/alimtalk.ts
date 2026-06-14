@@ -33,6 +33,8 @@ const TEMPLATES = {
 
 type NotificationType = keyof typeof TEMPLATES;
 
+// Fail-safe: 환경변수 누락·미설정 시 항상 테스트 모드 (실발송 안 됨).
+// 명시적으로 ALIMTALK_TEST_MODE=false 일 때만 실발송.
 const isTestMode = () => process.env.ALIMTALK_TEST_MODE !== "false";
 
 // ── Solapi 발송 (테스트 모드: 로그+DB 기록만) ──
