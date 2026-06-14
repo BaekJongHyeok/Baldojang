@@ -36,16 +36,16 @@ export function OnboardingChecklist({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4 backdrop-blur-[2px]">
       <div className="w-full max-w-[420px] overflow-hidden rounded-xl bg-gradient-to-br from-[#3182F6] to-[#1B64DA] p-[1px] shadow-modal">
         <div className="relative rounded-[11px] bg-gradient-to-br from-white via-white to-primary-light">
-          {/* 배경 장식 */}
-          <div className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-primary/5" />
+          {/* 배경 장식 (우상단 X 버튼과 겹치지 않도록 위치 조정) */}
+          <div className="pointer-events-none absolute right-12 -top-10 h-32 w-32 rounded-full bg-primary/5" />
           <div className="pointer-events-none absolute -right-2 bottom-4 h-20 w-20 rounded-full bg-primary/[0.03]" />
 
           {/* 헤더 */}
           <div className="relative px-6 pt-6 pb-4">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-[22px] font-bold text-ink">
-                  환영해요! <span className="inline-block">🐾</span>
+                <p className="flex items-center gap-2 text-[22px] font-bold text-ink">
+                  환영해요! <img src="/logo-mark.svg" alt="" width={28} height={28} className="inline-block" />
                 </p>
                 <p className="mt-1.5 text-[14px] leading-snug text-ink-secondary">
                   <span className="font-semibold text-primary">{shopName}</span>님, 예약을 받기 위한{"\u00A0"}설정을 시작해볼까요?
