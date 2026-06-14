@@ -138,7 +138,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <OnboardingChecklist needsHours={needsHours} needsService={needsService} />
+      <OnboardingChecklist shopName={ctx.shop?.name ?? "내 샵"} needsHours={needsHours} needsService={needsService} />
 
       {/* 헤더 */}
       <div className="flex items-center justify-between">
