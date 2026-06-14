@@ -24,7 +24,6 @@ export function OnboardingChecklist({
   const totalSteps = 2;
   const allDone = doneCount === totalSteps;
 
-  // 모든 필수 항목 완료 → 자동 숨김
   if (allDone) return null;
   if (dismissed) return null;
 
@@ -34,76 +33,76 @@ export function OnboardingChecklist({
   }
 
   return (
-    <div className="relative mb-6 overflow-hidden rounded-xl bg-gradient-to-br from-[#3182F6] to-[#1B64DA] p-[1px] shadow-modal">
-      <div className="rounded-[11px] bg-gradient-to-br from-white via-white to-primary-light">
-        {/* 배경 장식 */}
-        <div className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-primary/5" />
-        <div className="pointer-events-none absolute -right-2 bottom-4 h-20 w-20 rounded-full bg-primary/[0.03]" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4 backdrop-blur-[2px]">
+      <div className="w-full max-w-[420px] overflow-hidden rounded-xl bg-gradient-to-br from-[#3182F6] to-[#1B64DA] p-[1px] shadow-modal">
+        <div className="relative rounded-[11px] bg-gradient-to-br from-white via-white to-primary-light">
+          {/* 배경 장식 */}
+          <div className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-primary/5" />
+          <div className="pointer-events-none absolute -right-2 bottom-4 h-20 w-20 rounded-full bg-primary/[0.03]" />
 
-        {/* 헤더 */}
-        <div className="relative px-5 pt-5 pb-4 sm:px-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-[20px] font-bold text-ink">
-                환영해요! <span className="inline-block">🐾</span>
-              </p>
-              <p className="mt-1 text-[14px] text-ink-secondary">
-                <span className="font-semibold text-primary">{shopName}</span>님, 예약을 받기 위한 설정을 시작해볼까요?
-              </p>
+          {/* 헤더 */}
+          <div className="relative px-6 pt-6 pb-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-[22px] font-bold text-ink">
+                  환영해요! <span className="inline-block">🐾</span>
+                </p>
+                <p className="mt-1.5 text-[14px] leading-snug text-ink-secondary">
+                  <span className="font-semibold text-primary">{shopName}</span>님, 예약을 받기 위한{"\u00A0"}설정을 시작해볼까요?
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={dismiss}
+                aria-label="닫기"
+                className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-ink-disabled transition-colors hover:bg-border-light hover:text-ink-caption"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={dismiss}
-              aria-label="닫기"
-              className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-ink-disabled transition-colors hover:bg-border-light hover:text-ink-caption"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
+
+            {/* 프로그레스 바 */}
+            <div className="mt-5 flex items-center gap-3">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-border-light">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+                  style={{ width: `${(doneCount / totalSteps) * 100}%` }}
+                />
+              </div>
+              <span className="shrink-0 text-[12px] font-semibold tabular-nums text-primary">
+                {doneCount}/{totalSteps}
+              </span>
+            </div>
           </div>
 
-          {/* 프로그레스 바 */}
-          <div className="mt-4 flex items-center gap-3">
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-border-light">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
-                style={{ width: `${(doneCount / totalSteps) * 100}%` }}
+          {/* 체크리스트 */}
+          <div className="relative px-6 pb-3">
+            <div className="flex flex-col gap-2.5">
+              <ChecklistItem
+                done={!needsHours}
+                icon={<ClockIcon />}
+                title="영업시간 설정"
+                desc="캘린더에 영업시간이 표시돼요"
+                href="/settings/shop"
+                linkLabel="설정하러 가기"
+              />
+              <ChecklistItem
+                done={!needsService}
+                icon={<ScissorsIcon />}
+                title="시술·가격 등록"
+                desc="예약을 잡으려면 시술이 1개 이상 필요해요"
+                href="/settings/services"
+                linkLabel="등록하러 가기"
               />
             </div>
-            <span className="shrink-0 text-[12px] font-semibold tabular-nums text-primary">
-              {doneCount}/{totalSteps}
-            </span>
           </div>
-        </div>
 
-        {/* 체크리스트 */}
-        <div className="px-5 pb-2 sm:px-6">
-          <div className="flex flex-col gap-2.5">
-            <ChecklistItem
-              step={1}
-              done={!needsHours}
-              icon={<ClockIcon />}
-              title="영업시간 설정"
-              desc="캘린더에 영업시간이 표시돼요"
-              href="/settings/shop"
-              linkLabel="설정하러 가기"
-            />
-            <ChecklistItem
-              step={2}
-              done={!needsService}
-              icon={<ScissorsIcon />}
-              title="시술·가격 등록"
-              desc="예약을 잡으려면 시술이 1개 이상 필요해요"
-              href="/settings/services"
-              linkLabel="등록하러 가기"
-            />
+          {/* 푸터 */}
+          <div className="relative flex justify-end px-6 pb-5 pt-2">
+            <button type="button" onClick={dismiss} className="text-[11px] text-ink-disabled transition-colors hover:text-ink-caption">
+              나중에 할게요
+            </button>
           </div>
-        </div>
-
-        {/* 푸터 */}
-        <div className="flex justify-end px-5 py-3 sm:px-6">
-          <button type="button" onClick={dismiss} className="text-[11px] text-ink-disabled transition-colors hover:text-ink-caption">
-            나중에 할게요
-          </button>
         </div>
       </div>
     </div>
@@ -111,7 +110,6 @@ export function OnboardingChecklist({
 }
 
 function ChecklistItem({
-  step,
   done,
   icon,
   title,
@@ -119,7 +117,6 @@ function ChecklistItem({
   href,
   linkLabel,
 }: {
-  step: number;
   done: boolean;
   icon: React.ReactNode;
   title: string;
@@ -128,29 +125,23 @@ function ChecklistItem({
   linkLabel: string;
 }) {
   return (
-    <div className={`group flex items-center gap-3.5 rounded-lg border p-3.5 transition-all ${
+    <div className={`flex items-center gap-3.5 rounded-lg border p-3.5 transition-all ${
       done
         ? "border-success/20 bg-success-light/50"
         : "border-border bg-white shadow-sm hover:border-primary/30 hover:shadow-md"
     }`}>
       {/* 스텝 뱃지 */}
       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
-        done
-          ? "bg-success text-white"
-          : "bg-primary-light text-primary"
+        done ? "bg-success text-white" : "bg-primary-light text-primary"
       }`}>
         {done ? (
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-        ) : (
-          icon
-        )}
+        ) : icon}
       </div>
 
       {/* 텍스트 */}
       <div className="min-w-0 flex-1">
-        <p className={`text-[14px] font-semibold ${done ? "text-success" : "text-ink"}`}>
-          {done ? `${title}` : `${title}`}
-        </p>
+        <p className={`text-[14px] font-semibold ${done ? "text-success" : "text-ink"}`}>{title}</p>
         <p className={`mt-0.5 text-[12px] ${done ? "text-success/70" : "text-ink-caption"}`}>{desc}</p>
       </div>
 
