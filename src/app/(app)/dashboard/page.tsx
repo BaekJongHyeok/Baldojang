@@ -4,7 +4,7 @@ import Link from "next/link";
 import { todayKST } from "@/lib/calendar-utils";
 import { getAuthContext } from "@/lib/auth-cache";
 import { TodayTable } from "./today-table";
-import { OnboardingModal } from "./onboarding";
+import { OnboardingChecklist } from "./onboarding";
 import { startOfWeek, startOfMonth, format } from "date-fns";
 
 export default async function DashboardPage() {
@@ -138,9 +138,8 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      {(needsHours || needsService) && (
-        <OnboardingModal shopName={ctx.shop?.name ?? "내 샵"} needsHours={needsHours} needsService={needsService} />
-      )}
+      <OnboardingChecklist needsHours={needsHours} needsService={needsService} />
+
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
