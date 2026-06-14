@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { localizeDbError } from "@/lib/error-messages";
 
 export async function updateCustomerAction(formData: FormData) {
   const supabase = await createClient();
@@ -23,7 +24,7 @@ export async function updateCustomerAction(formData: FormData) {
     .update({ name, phone, memo: memo || null })
     .eq("id", customerId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath(`/customers/${customerId}`);
   revalidatePath("/pets");

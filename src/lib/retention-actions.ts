@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { localizeDbError } from "@/lib/error-messages";
 
 export async function markContactedAction(formData: FormData) {
   const supabase = await createClient();
@@ -15,7 +16,7 @@ export async function markContactedAction(formData: FormData) {
     staff_id: user.id,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
   revalidatePath("/retention");
   revalidatePath("/dashboard");
   return { success: true };

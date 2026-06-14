@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
+import { localizeAuthError } from "@/lib/error-messages";
 
 /**
  * 가입 플로우: Auth 가입 → create_shop_with_owner RPC로 샵 + staff 행 생성
@@ -18,7 +19,7 @@ export async function signUpAction(formData: FormData) {
 
   const { error: authError } = await supabase.auth.signUp({ email, password });
   if (authError) {
-    return { error: authError.message };
+    return { error: localizeAuthError(authError.message) };
   }
 
   const { error: rpcError } = await supabase.rpc("create_shop_with_owner", {
@@ -26,7 +27,7 @@ export async function signUpAction(formData: FormData) {
     owner_name: ownerName,
   });
   if (rpcError) {
-    return { error: rpcError.message };
+    return { error: "샵 생성 중 오류가 발생했습니다. 다시 시도해주세요." };
   }
 
   redirect("/dashboard");
@@ -39,7 +40,7 @@ export async function signInAction(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    return { error: error.message };
+    return { error: localizeAuthError(error.message) };
   }
   redirect("/dashboard");
 }
@@ -109,11 +110,11 @@ export async function deleteAccountAction(formData: FormData) {
     .from("shops")
     .delete()
     .eq("id", staff.shop_id);
-  if (deleteShopError) return { error: `데이터 삭제 실패: ${deleteShopError.message}` };
+  if (deleteShopError) return { error: "데이터 삭제에 실패했습니다. 다시 시도해주세요." };
 
   // 6. auth.users 삭제 (개인정보 완전 제거)
   const { error: deleteUserError } = await adminClient.auth.admin.deleteUser(user.id);
-  if (deleteUserError) return { error: `계정 삭제 실패: ${deleteUserError.message}` };
+  if (deleteUserError) return { error: "계정 삭제에 실패했습니다. 다시 시도해주세요." };
 
   // 7. 세션 정리 + 로그아웃
   await supabase.auth.signOut();
@@ -129,7 +130,7 @@ export async function updatePasswordAction(formData: FormData) {
 
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });
-  if (error) return { error: error.message };
+  if (error) return { error: localizeAuthError(error.message) };
 
   return { success: true };
 }

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { localizeDbError } from "@/lib/error-messages";
 
 async function getStaffInfo() {
   const supabase = await createClient();
@@ -53,7 +54,7 @@ export async function createPassAction(formData: FormData) {
     .select("id")
     .single();
 
-  if (passErr || !pass) return { error: passErr?.message ?? "선불권 생성 실패" };
+  if (passErr || !pass) return { error: "선불권 생성에 실패했습니다." };
 
   // 충전 로그 (금액 단위 — 횟수권도 판매가 기준)
   const delta = type === "amount"
@@ -104,7 +105,7 @@ export async function togglePassDisableAction(formData: FormData) {
     .update({ disabled_at: disable ? new Date().toISOString() : null })
     .eq("id", passId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath("/customers");
   return { success: true };

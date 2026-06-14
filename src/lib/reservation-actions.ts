@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { localizeDbError } from "@/lib/error-messages";
 
 async function getStaff() {
   const supabase = await createClient();
@@ -54,7 +55,7 @@ export async function createReservationAction(formData: FormData) {
     if (error.code === "23P01") {
       return { error: "이 시간에 이미 예약이 있습니다." };
     }
-    return { error: error.message };
+    return { error: localizeDbError(error.message, error.code) };
   }
 
   // 알림톡: 예약 확인 (비동기, 실패해도 예약 생성에 영향 없음)
@@ -126,7 +127,7 @@ export async function updateReservationAction(formData: FormData) {
     if (error.code === "23P01") {
       return { error: "이 시간에 이미 예약이 있습니다." };
     }
-    return { error: error.message };
+    return { error: localizeDbError(error.message, error.code) };
   }
 
   revalidatePath("/calendar");
@@ -177,7 +178,7 @@ export async function changeReservationStatusAction(formData: FormData) {
         .update({ status: "no_show", ends_at: shrunkEnd })
         .eq("id", reservationId);
 
-      if (error) return { error: error.message };
+      if (error) return { error: localizeDbError(error.message, error.code) };
 
       revalidatePath("/calendar");
       return { success: true };
@@ -191,7 +192,7 @@ export async function changeReservationStatusAction(formData: FormData) {
 
   if (error) {
     if (error.code === "23P01") return { error: "해당 시간에 이미 다른 예약이 있어 되돌릴 수 없어요." };
-    return { error: error.message };
+    return { error: localizeDbError(error.message, error.code) };
   }
 
   revalidatePath("/calendar");
@@ -219,7 +220,7 @@ export async function deleteReservationAction(formData: FormData) {
     .delete()
     .eq("id", reservationId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath("/calendar");
   revalidatePath("/dashboard");
@@ -296,7 +297,7 @@ export async function revertCompletionAction(formData: FormData) {
 
   if (error) {
     if (error.code === "23P01") return { error: "해당 시간에 이미 다른 예약이 있어 되돌릴 수 없어요." };
-    return { error: error.message };
+    return { error: localizeDbError(error.message, error.code) };
   }
 
   revalidatePath("/calendar");
@@ -345,7 +346,7 @@ export async function completeWithVisitAction(formData: FormData) {
     .single();
 
   if (fetchErr || !reservation) {
-    return { error: fetchErr?.message ?? "예약을 찾을 수 없습니다." };
+    return { error: "예약을 찾을 수 없습니다." };
   }
 
   const priceFinal = paymentAmount ?? reservation.price_quoted;
@@ -368,7 +369,7 @@ export async function completeWithVisitAction(formData: FormData) {
     .single();
 
   if (visitErr || !visit) {
-    return { error: `방문 기록 생성 실패: ${visitErr?.message}` };
+    return { error: "방문 기록 생성에 실패했습니다." };
   }
 
   // 결제 기록 생성
@@ -390,14 +391,14 @@ export async function completeWithVisitAction(formData: FormData) {
           p_visit_id: visit.id,
           p_service_date: reservation.starts_at,
         });
-        if (deductErr) return { error: `선불권 차감 실패: ${deductErr.message}` };
+        if (deductErr) return { error: "선불권 차감에 실패했습니다." };
       } else if (passType === "count") {
         const { data: unitPrice, error: deductErr } = await supabase.rpc("deduct_pass_count", {
           p_pass_id: passId,
           p_visit_id: visit.id,
           p_service_date: reservation.starts_at,
         });
-        if (deductErr) return { error: `횟수권 차감 실패: ${deductErr.message}` };
+        if (deductErr) return { error: "횟수권 차감에 실패했습니다." };
         deductedAmount = unitPrice ?? 0;
       }
 
@@ -410,7 +411,7 @@ export async function completeWithVisitAction(formData: FormData) {
         pass_id: passId,
         paid_at: reservation.starts_at,
       });
-      if (passPayErr) return { error: `선불권 결제 기록 실패: ${passPayErr.message}` };
+      if (passPayErr) return { error: "선불권 결제 기록에 실패했습니다." };
 
       // 부족분 추가 결제
       if (extraMethod && extraAmount > 0) {
@@ -421,7 +422,7 @@ export async function completeWithVisitAction(formData: FormData) {
           amount: extraAmount,
           paid_at: reservation.starts_at,
         });
-        if (extraPayErr) return { error: `추가 결제 기록 실패: ${extraPayErr.message}` };
+        if (extraPayErr) return { error: "추가 결제 기록에 실패했습니다." };
       }
     } else if (paymentMethod && priceFinal != null) {
       // 일반 결제
@@ -432,7 +433,7 @@ export async function completeWithVisitAction(formData: FormData) {
         amount: priceFinal,
         paid_at: reservation.starts_at,
       });
-      if (payErr) return { error: `결제 기록 생성 실패: ${payErr.message}` };
+      if (payErr) return { error: "결제 기록 생성에 실패했습니다." };
     }
   }
 
@@ -443,7 +444,7 @@ export async function completeWithVisitAction(formData: FormData) {
     .eq("id", reservationId);
 
   if (statusErr) {
-    return { error: `상태 변경 실패: ${statusErr.message}` };
+    return { error: "상태 변경에 실패했습니다." };
   }
 
   revalidatePath("/calendar");

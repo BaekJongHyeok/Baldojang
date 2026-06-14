@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { localizeDbError } from "@/lib/error-messages";
 
 async function getShopId() {
   const supabase = await createClient();
@@ -40,7 +41,7 @@ export async function createPetAction(formData: FormData) {
       .insert({ shop_id: shopId, name: customerName, phone })
       .select("id")
       .single();
-    if (custErr) return { error: custErr.message };
+    if (custErr) return { error: localizeDbError(custErr.message, custErr.code) };
     customerId = newCustomer.id;
   }
 
@@ -89,7 +90,7 @@ export async function createPetAction(formData: FormData) {
     .select("id")
     .single();
 
-  if (petErr) return { error: petErr.message };
+  if (petErr) return { error: localizeDbError(petErr.message, petErr.code) };
 
   // 사진 URL 저장 (클라이언트에서 Storage 업로드 후 URL을 전달)
   const photoUrl = formData.get("photo_url");
@@ -123,7 +124,7 @@ export async function quickCreatePetAction(formData: FormData) {
       .insert({ shop_id: shopId, name: customerName, phone })
       .select("id")
       .single();
-    if (custErr) return { error: custErr.message };
+    if (custErr) return { error: localizeDbError(custErr.message, custErr.code) };
     customerId = newCustomer.id;
   }
 
@@ -138,7 +139,7 @@ export async function quickCreatePetAction(formData: FormData) {
     .select("id")
     .single();
 
-  if (petErr) return { error: petErr.message };
+  if (petErr) return { error: localizeDbError(petErr.message, petErr.code) };
 
   revalidatePath("/pets");
   return { success: true, petId: pet.id };
@@ -188,7 +189,7 @@ export async function updatePetAction(formData: FormData) {
     })
     .eq("id", petId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   // 사진 URL 업데이트
   const photoUrl = formData.get("photo_url");
@@ -213,7 +214,7 @@ export async function deactivatePetAction(formData: FormData) {
     .update({ is_active: false })
     .eq("id", petId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath("/pets");
   redirect("/pets");
@@ -228,7 +229,7 @@ export async function reactivatePetAction(formData: FormData) {
     .update({ is_active: true })
     .eq("id", petId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath(`/pets/${petId}`);
   revalidatePath("/pets");
@@ -269,7 +270,7 @@ export async function updatePetCautionAction(formData: FormData) {
     .update({ caution_tags: cautionTags, caution_memo: cautionMemo })
     .eq("id", petId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath(`/pets/${petId}`);
   return { success: true };
@@ -286,7 +287,7 @@ export async function updatePetCycleAction(formData: FormData) {
     .update({ cycle_weeks: cycleWeeks })
     .eq("id", petId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath(`/pets/${petId}`);
   return { success: true };

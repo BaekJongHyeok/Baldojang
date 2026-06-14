@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Json } from "@/types/database";
+import { localizeDbError } from "@/lib/error-messages";
 
 export async function updateNotificationSettingsAction(formData: FormData) {
   const supabase = await createClient();
@@ -18,7 +19,7 @@ export async function updateNotificationSettingsAction(formData: FormData) {
     notification_enabled: enabled,
     reminder_hour: reminderHour,
   }).eq("id", staff.shop_id);
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath("/settings/notifications");
   return { success: true };
@@ -33,7 +34,7 @@ export async function updateDefaultCycleAction(formData: FormData) {
 
   const weeks = Number(formData.get("default_cycle_weeks")) || 5;
   const { error } = await supabase.from("shops").update({ default_cycle_weeks: weeks }).eq("id", staff.shop_id);
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath("/settings/services");
   revalidatePath("/retention");
@@ -55,7 +56,7 @@ export async function updateStaffNameAction(formData: FormData) {
     .update({ name })
     .eq("id", user.id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath("/settings/account");
   return { success: true };
@@ -113,7 +114,7 @@ export async function updateShopAction(formData: FormData) {
     })
     .eq("id", staff.shop_id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath("/settings/shop");
   revalidatePath("/dashboard");
@@ -170,7 +171,7 @@ export async function createServiceAction(formData: FormData) {
     sort_order: sortOrder,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath("/settings/services");
   return { success: true };
@@ -203,7 +204,7 @@ export async function updateServiceAction(formData: FormData) {
     })
     .eq("id", serviceId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath("/settings/services");
   return { success: true };
@@ -219,7 +220,7 @@ export async function toggleServiceAction(formData: FormData) {
     .update({ is_active: !isActive })
     .eq("id", serviceId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath("/settings/services");
   return { success: true };

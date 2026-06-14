@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { localizeDbError } from "@/lib/error-messages";
 
 export async function addVisitPhotosAction(formData: FormData) {
   const supabase = await createClient();
@@ -31,7 +32,7 @@ export async function addVisitPhotosAction(formData: FormData) {
     : { after_photos: [...existing, urls[0]] };
 
   const { error } = await supabase.from("visits").update(updateData).eq("id", visitId);
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath(`/pets/${visit.pet_id}`);
   revalidatePath(`/visits/${visitId}/card`);
@@ -55,7 +56,7 @@ export async function deleteVisitPhotoAction(formData: FormData) {
   if (!visit) return { error: "방문 기록을 찾을 수 없습니다." };
 
   const { error: storageErr } = await supabase.storage.from("visit-photos").remove([path]);
-  if (storageErr) return { error: `스토리지 삭제 실패: ${storageErr.message}` };
+  if (storageErr) return { error: "사진 삭제에 실패했습니다." };
 
   const existing = type === "before" ? visit.before_photos : visit.after_photos;
   const updated = existing.filter((p) => p !== path);
@@ -64,7 +65,7 @@ export async function deleteVisitPhotoAction(formData: FormData) {
     : { after_photos: updated };
 
   const { error } = await supabase.from("visits").update(updateData).eq("id", visitId);
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath(`/pets/${visit.pet_id}`);
   revalidatePath(`/visits/${visitId}/card`);
@@ -98,7 +99,7 @@ export async function moveVisitPhotoAction(formData: FormData) {
     : { before_photos: [...toArr, path], after_photos: fromArr.filter((p) => p !== path) };
 
   const { error } = await supabase.from("visits").update(updateData).eq("id", visitId);
-  if (error) return { error: error.message };
+  if (error) return { error: localizeDbError(error.message, error.code) };
 
   revalidatePath(`/pets/${visit.pet_id}`);
   revalidatePath(`/visits/${visitId}/card`);
